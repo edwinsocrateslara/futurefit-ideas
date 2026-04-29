@@ -161,7 +161,7 @@ function DashboardHeader({ data, weekLabel }: { data: DashboardData; weekLabel: 
           alignItems: "baseline",
           justifyContent: "space-between",
           gap: 16,
-          marginBottom: 16,
+          marginBottom: 8,
         }}
       >
         <div>
