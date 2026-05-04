@@ -27,7 +27,7 @@ function getWeekBounds(weekMonday: Date): { start: Date; end: Date } {
 
 function loadStrategyDocs(): Record<string, string> {
   const docs: Record<string, string> = {};
-  const filenames = ["okrs.md", "product-diagnosis.md"];
+  const filenames = ["okrs.md", "product-diagnosis.md", "build-strategy.md"];
 
   for (const filename of filenames) {
     const filepath = join(STRATEGY_DIR, filename);
@@ -232,7 +232,6 @@ async function writeSynthesisResults(
       .update({
         selected_this_week: true,
         selection_reason: selection.reason,
-        selection_status: selection.status_badge,
         selection_week: weekOf,
         selection_priority_rank: selection.priority_rank,
       })
@@ -260,9 +259,6 @@ async function writeSynthesisResults(
         week_of: weekOf,
         title: pattern.title,
         summary: pattern.summary,
-        board_count: pattern.board_count,
-        item_count: pattern.item_count,
-        roadmap_alignment: pattern.roadmap_alignment,
         angles: pattern.angles,
       })
       .select("id")

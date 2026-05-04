@@ -14,7 +14,7 @@ const ROOT = join(__dirname, "..");
 
 const MODEL = "claude-sonnet-4-6";
 const TEMPERATURE = 0.3;
-const PROMPT_VERSION = "synthesis-v1.0";
+const PROMPT_VERSION = "synthesis-v2.2";
 const MAX_DESCRIPTION_CHARS = 300;
 const WEEK_OF = "2025-01-06"; // test sentinel (Monday)
 
@@ -38,7 +38,7 @@ const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 function loadStrategyDocs() {
   const strategyDir = join(ROOT, "strategy");
   const docs = {};
-  for (const fn of ["okrs.md", "product-diagnosis.md"]) {
+  for (const fn of ["okrs.md", "product-diagnosis.md", "build-strategy.md"]) {
     const fp = join(strategyDir, fn);
     if (existsSync(fp)) {
       docs[fn] = readFileSync(fp, "utf-8");
@@ -56,7 +56,7 @@ function buildStrategyDocsString(docs) {
     .join("\n\n---\n\n");
 }
 
-// ── Prompt builders (mirrors lib/synthesis/prompt.ts) ─────────────────────────
+// ── Prompt builders (mirrors lib/synthesis/prompt.ts v2.2) ───────────────────
 
 function truncate(text, max) {
   if (!text) return "(no description)";
@@ -94,7 +94,7 @@ function buildUserMessage(boards, strategyString, weekOf) {
 
   return `## STRATEGY DOCUMENTS
 
-Read these carefully before reviewing any feedback items. They are the lens for every decision below — badge assignments, selection reasoning, and pattern detection all depend on what you find here.
+Read these carefully before reviewing any feedback items. They are the lens for every selection and pattern decision below.
 
 ${strategyString}
 
@@ -120,6 +120,8 @@ Select exactly 10 items across all boards. Rank them 1–10 by strategic importa
 - Urgency: items suggesting churn risk, competitive threat, or compounding gaps rank higher than items that are interesting but stable
 - Specificity of the signal: an item that names a precise problem with concrete consequences outranks one that is vague but widely applicable
 
+**Rank is the primary signal.** Item 1 is the most consequential signal leadership should act on this week. Use the full 1–10 range deliberately — the ordering itself communicates urgency and strategic weight. Do not compress rankings artificially. If the top three items are genuinely more critical than the rest, that separation should be legible in how you reason about each one.
+
 **How to write the reason field:**
 The reason must be one sentence. It must be strategic, not descriptive. It should explain why this item deserves leadership attention relative to the strategy — not what the idea says.
 
@@ -133,29 +135,17 @@ Good: "This item identifies memory and persistence as the specific AI Coach fric
 
 Reference specific things from the strategy documents when they apply: OKR language, named customers, the green/yellow/red renewal framework, Workforce Pell, the Canadian market context, named market segments, the 'Some/Believed' outcomes framing.
 
-**How to assign status_badge:**
-Read the strategy documents to assign every badge. Do not infer from the item text alone.
-
-Note: FutureFit's strategy documents are a market diagnosis memo and OKRs — not a traditional product roadmap. Use these definitions accordingly:
-- in_flight: work on this item is actively underway this quarter — look for KRs with named owners, near-term deadlines, or language describing current work in progress
-- on_roadmap: this item is referenced as planned work but without clear evidence it has started yet
-- aligned: this item fits clearly with stated strategy or OKRs but is not specifically scoped as a deliverable
-- gap: this item points at a real user need not addressed anywhere in the strategy documents
-- critical: this item signals something broken, a churn risk, or a competitive threat requiring attention now
-- watch: interesting signal, not yet actionable — often market trends or early indicators from newer boards
-- new: item appeared recently and is too early to assess strategically
-
-When in doubt between in_flight and on_roadmap, use aligned. Do not guess.
-
 ---
 
 ## TASK 2: DETECT PATTERNS
 
 Identify 0–5 themes where multiple feedback items converge on the same underlying problem or opportunity.
 
+**What makes a strong pattern:**
+A strong pattern is one where multiple items — regardless of which boards they come from or how they relate to the current roadmap — all expose the same underlying structural problem or opportunity. The convergence is what matters, not the surface label, not the board of origin, and not whether the pattern fits the existing strategy. A pattern that contradicts or reveals a gap in the strategy is just as valid as one that reinforces it.
+
 **Rules for pattern detection:**
 - A pattern requires at least 2 supporting items (linked_canny_ids)
-- A pattern can come entirely from one board (board_scope: "single-board") or span multiple boards (board_scope: "cross-board")
 - Do not force patterns to exist. If only 1 or 2 genuine patterns emerge from this data, return 1 or 2. A weak pattern with forced connections is worse than fewer sharp ones.
 - Patterns should be non-obvious. A pattern names the specific underlying problem or structural gap the feedback reveals — not just a shared surface label.
 
@@ -165,19 +155,12 @@ Genuine pattern (right): A theme where ideas from different contexts all expose 
 **For each pattern:**
 - title: 5–8 words, specific enough to be meaningful without context
 - summary: 2–3 sentences. First sentence names the underlying theme. Second situates it against the strategy. Third (optional) names what makes it timely or urgent.
-- board_scope: "single-board" if all evidence comes from one board, "cross-board" if multiple boards contribute
-- board_count: number of distinct boards with linked evidence
-- item_count: total number of linked ideas
-- roadmap_alignment: no_match | partial_overlap | aligned | contradicts
 - linked_canny_ids: the specific ids that constitute evidence for this pattern
 
 **Angles — exploration prompts, not recommendations:**
 The angles field is for leadership to explore the space the pattern opens. It is not a place for conclusions or recommendations.
 
-- framing: one sentence that sets up the exploration space — what question does this pattern open?
-- questions: 3–5 open-ended questions that leadership could investigate or discuss
-
-If you find yourself writing "we should build X" or "FutureFit needs to prioritize Y", rewrite as a question: "What would building X mean for our positioning with employment services customers?" The questions should open inquiry, not close it.
+- framing: one sentence that sets up the exploration space — what question or tension does this pattern surface?
 
 - possibilities: 3–5 concrete directions the pattern opens up. Phrase as noun-phrases describing things that could exist or happen — not as imperatives or recommendations.
 
@@ -202,22 +185,16 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
     {
       "canny_id": "<id from the feedback items above>",
       "priority_rank": <integer 1–10, where 1 is most important>,
-      "reason": "<one strategic sentence referencing the strategy documents>",
-      "status_badge": "<gap | on_roadmap | aligned | watch | new | in_flight | critical>"
+      "reason": "<one strategic sentence referencing the strategy documents>"
     }
   ],
   "patterns": [
     {
       "title": "<5–8 words>",
       "summary": "<2–3 sentences>",
-      "board_scope": "<single-board | cross-board>",
-      "board_count": <integer>,
-      "item_count": <integer>,
-      "roadmap_alignment": "<no_match | partial_overlap | aligned | contradicts>",
       "linked_canny_ids": ["<id>"],
       "angles": {
         "framing": "<one sentence opening the exploration space>",
-        "questions": ["<open-ended question>"],
         "possibilities": ["<noun-phrase describing something that could exist or happen>"]
       }
     }
@@ -225,11 +202,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
 }`;
 }
 
-// ── Schema validation (mirrors schema.ts) ─────────────────────────────────────
-
-const STATUS_BADGES = new Set(["gap", "on_roadmap", "aligned", "watch", "new", "in_flight", "critical"]);
-const ROADMAP_ALIGNMENTS = new Set(["no_match", "partial_overlap", "aligned", "contradicts"]);
-const BOARD_SCOPES = new Set(["single-board", "cross-board"]);
+// ── Schema validation (mirrors schema.ts v2.1) ────────────────────────────────
 
 function validateOutput(parsed) {
   const errors = [];
@@ -248,9 +221,6 @@ function validateOutput(parsed) {
         errors.push(`selections[${i}].priority_rank must be 1–10`);
       }
       if (!s.reason) errors.push(`selections[${i}].reason missing`);
-      if (!STATUS_BADGES.has(s.status_badge)) {
-        errors.push(`selections[${i}].status_badge '${s.status_badge}' not valid`);
-      }
     }
   }
 
@@ -260,19 +230,14 @@ function validateOutput(parsed) {
     for (const [i, p] of parsed.patterns.entries()) {
       if (!p.title) errors.push(`patterns[${i}].title missing`);
       if (!p.summary) errors.push(`patterns[${i}].summary missing`);
-      if (!BOARD_SCOPES.has(p.board_scope)) errors.push(`patterns[${i}].board_scope invalid`);
-      if (typeof p.board_count !== "number") errors.push(`patterns[${i}].board_count must be number`);
-      if (typeof p.item_count !== "number" || p.item_count < 2) errors.push(`patterns[${i}].item_count must be >= 2`);
-      if (!ROADMAP_ALIGNMENTS.has(p.roadmap_alignment)) errors.push(`patterns[${i}].roadmap_alignment invalid`);
       if (!Array.isArray(p.linked_canny_ids) || p.linked_canny_ids.length < 2) {
         errors.push(`patterns[${i}].linked_canny_ids must have >= 2 items`);
       }
       if (
         !p.angles?.framing ||
-        !Array.isArray(p.angles?.questions) || p.angles.questions.length < 3 ||
         !Array.isArray(p.angles?.possibilities) || p.angles.possibilities.length < 3
       ) {
-        errors.push(`patterns[${i}].angles invalid (needs framing, 3+ questions, 3+ possibilities)`);
+        errors.push(`patterns[${i}].angles invalid (needs framing + 3–5 possibilities)`);
       }
     }
   }
@@ -283,7 +248,7 @@ function validateOutput(parsed) {
 // ── DB writes ─────────────────────────────────────────────────────────────────
 
 async function writeSynthesisResults(output, weekOf) {
-  // Clear previous test selections for this week
+  // Clear previous selections for this week
   await supabase
     .from("ideas")
     .update({ selected_this_week: false, selection_reason: null, selection_status: null, selection_week: null })
@@ -295,7 +260,6 @@ async function writeSynthesisResults(output, weekOf) {
       .update({
         selected_this_week: true,
         selection_reason: sel.reason,
-        selection_status: sel.status_badge,
         selection_week: weekOf,
         selection_priority_rank: sel.priority_rank,
       })
@@ -312,9 +276,6 @@ async function writeSynthesisResults(output, weekOf) {
         week_of: weekOf,
         title: pattern.title,
         summary: pattern.summary,
-        board_count: pattern.board_count,
-        item_count: pattern.item_count,
-        roadmap_alignment: pattern.roadmap_alignment,
         angles: pattern.angles,
       })
       .select("id")
@@ -376,10 +337,7 @@ console.log(`  Fetched ${allIdeas.length} active ideas (no date filter)\n`);
 const boardGroups = BOARD_ORDER
   .map((slug) => {
     const ideas = allIdeas
-      .filter((idea) => {
-        const board = idea.boards;
-        return board?.slug === slug;
-      })
+      .filter((idea) => idea.boards?.slug === slug)
       .map((idea) => ({
         canny_id: idea.canny_id,
         title: idea.title,
@@ -390,11 +348,7 @@ const boardGroups = BOARD_ORDER
       }));
 
     const first = allIdeas.find((i) => i.boards?.slug === slug);
-    return {
-      slug,
-      name: first?.boards?.name ?? slug,
-      ideas,
-    };
+    return { slug, name: first?.boards?.name ?? slug, ideas };
   })
   .filter((g) => g.ideas.length > 0);
 
@@ -496,8 +450,6 @@ if (validationErrors.length > 0) {
 }
 console.log("  Schema validation: OK\n");
 
-// board_distribution is owned by the API layer (DB join), not the synthesis output.
-// For the test script summary, derive it from the idea data we already fetched.
 const cannyIdToBoard = Object.fromEntries(
   allIdeas.map((idea) => [idea.canny_id, idea.boards?.slug ?? "unknown"])
 );
@@ -507,7 +459,6 @@ const boardDistribution = parsed.selections.reduce((acc, s) => {
   return acc;
 }, {});
 
-const output = parsed;
 const totalDuration = Date.now() - startedAt;
 
 // Log to prompt_runs
@@ -519,7 +470,7 @@ const { data: promptRunRow, error: prErr } = await supabase
     model: MODEL,
     duration_ms: totalDuration,
     input_item_count: totalItems,
-    output: output,
+    output: parsed,
     error: null,
     strategy_commit_sha: "local-test",
   })
@@ -546,11 +497,11 @@ console.log(`  Board distribution: ${JSON.stringify(boardDistribution)}`);
 console.log("═══════════════════════════════════════════════════════════════\n");
 
 console.log("── FULL JSON OUTPUT ────────────────────────────────────────────\n");
-console.log(JSON.stringify(output, null, 2));
+console.log(JSON.stringify(parsed, null, 2));
 
 if (promptRunRow) {
   console.log("\n── PROMPT_RUNS ROW ─────────────────────────────────────────────\n");
   const row = { ...promptRunRow };
-  delete row.output; // already printed above
+  delete row.output;
   console.log(JSON.stringify(row, null, 2));
 }

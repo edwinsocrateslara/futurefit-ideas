@@ -1,7 +1,5 @@
 import { createServerClient } from "@/lib/supabase/server";
-import type { StatusBadge, RoadmapAlignment, Angles } from "@/lib/supabase/types";
-
-export type BoardScope = "single-board" | "cross-board";
+import type { Angles } from "@/lib/supabase/types";
 
 export interface DashboardSelection {
   canny_id: string;
@@ -9,21 +7,26 @@ export interface DashboardSelection {
   board_name: string;
   priority_rank: number;
   reason: string;
-  status_badge: StatusBadge;
   title: string;
   vote_count: number;
   canny_url: string | null;
   posted_at: string;
 }
 
+export interface DoneItem {
+  canny_id: string;
+  title: string;
+  board_slug: string;
+  board_name: string;
+  priority_rank: number | null;
+  selection_week: string | null;
+  marked_done_at: string;
+}
+
 export interface DashboardPattern {
   id: string;
   title: string;
   summary: string;
-  board_scope: BoardScope;
-  board_count: number;
-  item_count: number;
-  roadmap_alignment: RoadmapAlignment;
   linked_canny_ids: string[];
   angles: Angles;
 }
@@ -75,7 +78,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, vote_count, canny_url, created_at, selection_reason, selection_status, selection_priority_rank, boards(slug, name)"
+      "canny_id, title, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -89,7 +92,7 @@ export async function getDashboardData(
   // Patterns
   const { data: patternRows, error: patternsError } = await supabase
     .from("patterns")
-    .select("id, title, summary, board_count, item_count, roadmap_alignment, angles")
+    .select("id, title, summary, angles")
     .eq("week_of", resolvedWeek);
 
   if (patternsError) return { data: null, error: patternsError.message };
@@ -138,7 +141,6 @@ export async function getDashboardData(
       board_name: board?.name ?? "",
       priority_rank: idea.selection_priority_rank ?? 0,
       reason: idea.selection_reason ?? "",
-      status_badge: (idea.selection_status ?? "watch") as StatusBadge,
       title: idea.title,
       vote_count: idea.vote_count,
       canny_url: idea.canny_url,
@@ -155,10 +157,6 @@ export async function getDashboardData(
     id: p.id,
     title: p.title,
     summary: p.summary,
-    board_scope: (p.board_count > 1 ? "cross-board" : "single-board") as BoardScope,
-    board_count: p.board_count,
-    item_count: p.item_count,
-    roadmap_alignment: p.roadmap_alignment as RoadmapAlignment,
     linked_canny_ids: patternLinkedIds[p.id] ?? [],
     angles: p.angles as unknown as Angles,
   }));
@@ -185,4 +183,26 @@ export async function getDashboardData(
     },
     error: null,
   };
+}
+
+export async function getDoneItems(): Promise<DoneItem[]> {
+  const supabase = createServerClient();
+  const { data } = await supabase
+    .from("ideas")
+    .select("canny_id, title, marked_done_at, selection_priority_rank, selection_week, boards(slug, name)")
+    .eq("marked_done", true)
+    .order("marked_done_at", { ascending: false });
+
+  return (data ?? []).map((row) => {
+    const board = row.boards as unknown as { slug: string; name: string } | null;
+    return {
+      canny_id: row.canny_id,
+      title: row.title,
+      board_slug: board?.slug ?? "",
+      board_name: board?.name ?? "",
+      priority_rank: row.selection_priority_rank,
+      selection_week: row.selection_week,
+      marked_done_at: row.marked_done_at!,
+    };
+  });
 }

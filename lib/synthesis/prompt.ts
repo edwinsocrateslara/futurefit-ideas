@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v1.0";
+export const PROMPT_VERSION = "synthesis-v2.2";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -63,7 +63,7 @@ export function buildUserMessage(
 
   return `## STRATEGY DOCUMENTS
 
-Read these carefully before reviewing any feedback items. They are the lens for every decision below — badge assignments, selection reasoning, and pattern detection all depend on what you find here.
+Read these carefully before reviewing any feedback items. They are the lens for every selection and pattern decision below.
 
 ${strategyDocs}
 
@@ -89,6 +89,8 @@ Select exactly 10 items across all boards. Rank them 1–10 by strategic importa
 - Urgency: items suggesting churn risk, competitive threat, or compounding gaps rank higher than items that are interesting but stable
 - Specificity of the signal: an item that names a precise problem with concrete consequences outranks one that is vague but widely applicable
 
+**Rank is the primary signal.** Item 1 is the most consequential signal leadership should act on this week. Use the full 1–10 range deliberately — the ordering itself communicates urgency and strategic weight. Do not compress rankings artificially. If the top three items are genuinely more critical than the rest, that separation should be legible in how you reason about each one.
+
 **How to write the reason field:**
 The reason must be one sentence. It must be strategic, not descriptive. It should explain why this item deserves leadership attention relative to the strategy — not what the idea says.
 
@@ -102,29 +104,17 @@ Good: "This item identifies memory and persistence as the specific AI Coach fric
 
 Reference specific things from the strategy documents when they apply: OKR language, named customers, the green/yellow/red renewal framework, Workforce Pell, the Canadian market context, named market segments, the 'Some/Believed' outcomes framing.
 
-**How to assign status_badge:**
-Read the strategy documents to assign every badge. Do not infer from the item text alone.
-
-Note: FutureFit's strategy documents are a market diagnosis memo and OKRs — not a traditional product roadmap. Use these definitions accordingly:
-- in_flight: work on this item is actively underway this quarter — look for KRs with named owners, near-term deadlines, or language describing current work in progress
-- on_roadmap: this item is referenced as planned work but without clear evidence it has started yet
-- aligned: this item fits clearly with stated strategy or OKRs but is not specifically scoped as a deliverable
-- gap: this item points at a real user need not addressed anywhere in the strategy documents
-- critical: this item signals something broken, a churn risk, or a competitive threat requiring attention now
-- watch: interesting signal, not yet actionable — often market trends or early indicators from newer boards
-- new: item appeared recently and is too early to assess strategically
-
-When in doubt between in_flight and on_roadmap, use aligned. Do not guess.
-
 ---
 
 ## TASK 2: DETECT PATTERNS
 
 Identify 0–5 themes where multiple feedback items converge on the same underlying problem or opportunity.
 
+**What makes a strong pattern:**
+A strong pattern is one where multiple items — regardless of which boards they come from or how they relate to the current roadmap — all expose the same underlying structural problem or opportunity. The convergence is what matters, not the surface label, not the board of origin, and not whether the pattern fits the existing strategy. A pattern that contradicts or reveals a gap in the strategy is just as valid as one that reinforces it.
+
 **Rules for pattern detection:**
 - A pattern requires at least 2 supporting items (linked_canny_ids)
-- A pattern can come entirely from one board (board_scope: "single-board") or span multiple boards (board_scope: "cross-board")
 - Do not force patterns to exist. If only 1 or 2 genuine patterns emerge from this data, return 1 or 2. A weak pattern with forced connections is worse than fewer sharp ones.
 - Patterns should be non-obvious. A pattern names the specific underlying problem or structural gap the feedback reveals — not just a shared surface label.
 
@@ -134,19 +124,12 @@ Genuine pattern (right): A theme where ideas from different contexts all expose 
 **For each pattern:**
 - title: 5–8 words, specific enough to be meaningful without context
 - summary: 2–3 sentences. First sentence names the underlying theme. Second situates it against the strategy. Third (optional) names what makes it timely or urgent.
-- board_scope: "single-board" if all evidence comes from one board, "cross-board" if multiple boards contribute
-- board_count: number of distinct boards with linked evidence
-- item_count: total number of linked ideas
-- roadmap_alignment: no_match | partial_overlap | aligned | contradicts
 - linked_canny_ids: the specific ids that constitute evidence for this pattern
 
 **Angles — exploration prompts, not recommendations:**
 The angles field is for leadership to explore the space the pattern opens. It is not a place for conclusions or recommendations.
 
-- framing: one sentence that sets up the exploration space — what question does this pattern open?
-- questions: 3–5 open-ended questions that leadership could investigate or discuss
-
-If you find yourself writing "we should build X" or "FutureFit needs to prioritize Y", rewrite as a question: "What would building X mean for our positioning with employment services customers?" The questions should open inquiry, not close it.
+- framing: one sentence that sets up the exploration space — what question or tension does this pattern surface?
 
 - possibilities: 3–5 concrete directions the pattern opens up. Phrase as noun-phrases describing things that could exist or happen — not as imperatives or recommendations.
 
@@ -171,22 +154,16 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
     {
       "canny_id": "<id from the feedback items above>",
       "priority_rank": <integer 1–10, where 1 is most important>,
-      "reason": "<one strategic sentence referencing the strategy documents>",
-      "status_badge": "<gap | on_roadmap | aligned | watch | new | in_flight | critical>"
+      "reason": "<one strategic sentence referencing the strategy documents>"
     }
   ],
   "patterns": [
     {
       "title": "<5–8 words>",
       "summary": "<2–3 sentences>",
-      "board_scope": "<single-board | cross-board>",
-      "board_count": <integer>,
-      "item_count": <integer>,
-      "roadmap_alignment": "<no_match | partial_overlap | aligned | contradicts>",
       "linked_canny_ids": ["<id>"],
       "angles": {
         "framing": "<one sentence opening the exploration space>",
-        "questions": ["<open-ended question>"],
         "possibilities": ["<noun-phrase describing something that could exist or happen>"]
       }
     }

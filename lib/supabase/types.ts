@@ -1,23 +1,7 @@
-export type StatusBadge =
-  | "gap"
-  | "on_roadmap"
-  | "aligned"
-  | "watch"
-  | "new"
-  | "in_flight"
-  | "critical";
-
-export type RoadmapAlignment =
-  | "no_match"
-  | "partial_overlap"
-  | "aligned"
-  | "contradicts";
-
 export type SyncStatus = "running" | "completed" | "failed";
 
 export interface Angles {
   framing: string;
-  questions: string[];
   possibilities: string[];
 }
 
@@ -43,9 +27,11 @@ export interface IdeaRow {
   removed_at: string | null;
   selected_this_week: boolean;
   selection_reason: string | null;
-  selection_status: StatusBadge | null;
+  selection_status: string | null;
   selection_week: string | null;
   selection_priority_rank: number | null;
+  marked_done: boolean;
+  marked_done_at: string | null;
   synced_at: string;
   updated_at: string;
 }
@@ -66,9 +52,9 @@ export interface PatternRow {
   week_of: string;
   title: string;
   summary: string;
-  board_count: number;
-  item_count: number;
-  roadmap_alignment: RoadmapAlignment;
+  board_count: number | null;
+  item_count: number | null;
+  roadmap_alignment: string | null;
   angles: Angles;
   created_at: string;
 }

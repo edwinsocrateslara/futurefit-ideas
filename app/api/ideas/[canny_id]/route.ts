@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import type { StatusBadge } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +13,7 @@ export async function GET(
   const { data: idea, error } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, description, vote_count, canny_url, created_at, selection_reason, selection_status, selection_week, selection_priority_rank, boards(slug, name)"
+      "canny_id, title, description, vote_count, canny_url, created_at, selection_reason, selection_week, selection_priority_rank, boards(slug, name)"
     )
     .eq("canny_id", canny_id)
     .is("removed_at", null)
@@ -39,7 +38,6 @@ export async function GET(
           week: idea.selection_week,
           priority_rank: idea.selection_priority_rank,
           reason: idea.selection_reason,
-          status_badge: idea.selection_status as StatusBadge,
         }
       : null,
   });

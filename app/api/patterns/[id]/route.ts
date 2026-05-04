@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase/server";
-import type { RoadmapAlignment, Angles } from "@/lib/supabase/types";
+import type { Angles } from "@/lib/supabase/types";
 
 export const dynamic = "force-dynamic";
-
-type BoardScope = "single-board" | "cross-board";
 
 export async function GET(
   _request: Request,
@@ -15,7 +13,7 @@ export async function GET(
 
   const { data: pattern, error } = await supabase
     .from("patterns")
-    .select("id, week_of, title, summary, board_count, item_count, roadmap_alignment, angles, created_at")
+    .select("id, week_of, title, summary, angles, created_at")
     .eq("id", id)
     .single();
 
@@ -64,10 +62,6 @@ export async function GET(
     week_of: pattern.week_of,
     title: pattern.title,
     summary: pattern.summary,
-    board_scope: (pattern.board_count > 1 ? "cross-board" : "single-board") as BoardScope,
-    board_count: pattern.board_count,
-    item_count: pattern.item_count,
-    roadmap_alignment: pattern.roadmap_alignment as RoadmapAlignment,
     angles: pattern.angles as unknown as Angles,
     linked_ideas,
   });
