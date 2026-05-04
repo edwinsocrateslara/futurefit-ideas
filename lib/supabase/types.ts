@@ -71,6 +71,15 @@ export interface PatternRow {
   created_at: string;
 }
 
+export interface EasyWinRow {
+  id: string;
+  canny_id: string;
+  week_of: string;
+  reason: string;
+  jira_story: string | null;
+  created_at: string;
+}
+
 export interface PatternItemRow {
   pattern_id: string;
   idea_id: string;

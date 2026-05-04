@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import type { DashboardData, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
+import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
 import PatternCard from "@/app/components/PatternCard";
 
 // ── Token maps ─────────────────────────────────────────────────────────────────
@@ -137,25 +137,28 @@ function MetricCard({
 
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
-type TabId = "signals" | "patterns" | "done";
+type TabId = "signals" | "easy-wins" | "patterns" | "done";
 
 function TabBar({
   active,
   signalCount,
+  easyWinCount,
   patternCount,
   doneCount,
   onSelect,
 }: {
   active: TabId;
   signalCount: number;
+  easyWinCount: number;
   patternCount: number;
   doneCount: number;
   onSelect: (id: TabId) => void;
 }) {
   const tabs: { id: TabId; label: string }[] = [
-    { id: "signals",  label: "Top 10 Signals" },
-    { id: "patterns", label: `Patterns · ${patternCount}` },
-    { id: "done",     label: `Done · ${doneCount}` },
+    { id: "signals",   label: "Top 10 Signals" },
+    { id: "easy-wins", label: `Easy wins · ${easyWinCount}` },
+    { id: "patterns",  label: `Patterns · ${patternCount}` },
+    { id: "done",      label: `Done · ${doneCount}` },
   ];
 
   return (
@@ -404,6 +407,156 @@ function SignalRow({
   );
 }
 
+// ── Easy win card ──────────────────────────────────────────────────────────────
+
+function EasyWinCard({
+  win,
+  doneSet,
+  onToggleDone,
+}: {
+  win: DashboardEasyWin;
+  doneSet: Set<string>;
+  onToggleDone: (win: DashboardEasyWin) => void;
+}) {
+  const isDone = doneSet.has(win.canny_id);
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    if (!win.jira_story) return;
+    navigator.clipboard.writeText(win.jira_story).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  return (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr auto",
+        gap: 20,
+        padding: "20px 24px",
+        background: "oklch(0.18 0 0)",
+        border: "1px solid oklch(1 0 0 / 0.08)",
+        borderRadius: 12,
+        alignItems: "start",
+        opacity: isDone ? 0.45 : 1,
+        transition: "opacity 150ms",
+      }}
+    >
+      {/* Content */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+          <BoardTag slug={win.board_slug} />
+        </div>
+        <p
+          style={{
+            margin: "0 0 8px 0",
+            fontSize: 16,
+            fontWeight: 600,
+            lineHeight: 1.4,
+            color: "oklch(0.97 0 0)",
+            letterSpacing: -0.2,
+          }}
+        >
+          {win.title}
+        </p>
+        <p
+          style={{
+            margin: "0 0 8px 0",
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: "oklch(0.85 0 0)",
+            textWrap: "pretty",
+          }}
+        >
+          {win.reason}
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {win.jira_story && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 8px",
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: 0.2,
+                borderRadius: 9999,
+                border: copied
+                  ? "1px solid oklch(0.55 0.16 145 / 0.5)"
+                  : "1px solid oklch(1 0 0 / 0.10)",
+                background: copied ? "oklch(0.20 0.04 145)" : "transparent",
+                color: copied ? "oklch(0.70 0.20 145)" : "oklch(0.55 0 0)",
+                cursor: "pointer",
+                transition: "color 150ms, background 150ms, border-color 150ms",
+              }}
+            >
+              {copied ? "Copied!" : "Copy Jira Ticket"}
+            </button>
+          )}
+          {win.canny_url && (
+            <a
+              href={win.canny_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="canny-link"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "oklch(0.55 0 0)",
+                textDecoration: "none",
+                letterSpacing: 0.2,
+              }}
+            >
+              View in Canny →
+            </a>
+          )}
+        </div>
+      </div>
+
+      {/* Done toggle */}
+      <div style={{ paddingTop: 2 }}>
+        <button
+          type="button"
+          onClick={() => onToggleDone(win)}
+          title={isDone ? "Mark undone" : "Mark done"}
+          style={{
+            width: 28,
+            height: 28,
+            borderRadius: "50%",
+            border: isDone
+              ? "1.5px solid oklch(0.55 0.16 145)"
+              : "1.5px solid oklch(1 0 0 / 0.12)",
+            background: isDone ? "oklch(0.24 0.06 145)" : "transparent",
+            cursor: "pointer",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+            transition: "border-color 150ms, background 150ms",
+          }}
+        >
+          {isDone ? (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="oklch(0.70 0.20 145)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          ) : (
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+              <path d="M2 6l3 3 5-5" stroke="oklch(0.40 0 0)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          )}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── Done tab ───────────────────────────────────────────────────────────────────
 
 function DoneTab({
@@ -543,10 +696,54 @@ export default function Dashboard({
     });
   }
 
+  async function handleEasyWinToggleDone(win: DashboardEasyWin) {
+    const wasDone = doneSet.has(win.canny_id);
+
+    if (wasDone) {
+      setDoneItems((prev) => prev.filter((d) => d.canny_id !== win.canny_id));
+    } else {
+      setDoneItems((prev) => [
+        {
+          canny_id: win.canny_id,
+          title: win.title,
+          board_slug: win.board_slug,
+          board_name: win.board_name,
+          priority_rank: null,
+          selection_week: data.week_of,
+          marked_done_at: new Date().toISOString(),
+        },
+        ...prev,
+      ]);
+    }
+
+    startTransition(async () => {
+      const res = await fetch(`/api/ideas/${win.canny_id}/done`, { method: "PATCH" });
+      if (!res.ok) {
+        if (wasDone) {
+          setDoneItems((prev) => [
+            {
+              canny_id: win.canny_id,
+              title: win.title,
+              board_slug: win.board_slug,
+              board_name: win.board_name,
+              priority_rank: null,
+              selection_week: data.week_of,
+              marked_done_at: new Date().toISOString(),
+            },
+            ...prev,
+          ]);
+        } else {
+          setDoneItems((prev) => prev.filter((d) => d.canny_id !== win.canny_id));
+        }
+      }
+    });
+  }
+
   function handleUnmark(cannyId: string) {
     const item = data.selections.find((s) => s.canny_id === cannyId);
-    if (!item) return;
-    handleToggleDone(item);
+    if (item) { handleToggleDone(item); return; }
+    const win = data.easy_wins.find((w) => w.canny_id === cannyId);
+    if (win) handleEasyWinToggleDone(win);
   }
 
   function scrollToSignal(cannyId: string) {
@@ -704,6 +901,7 @@ export default function Dashboard({
       <TabBar
         active={activeTab}
         signalCount={data.selections.length}
+        easyWinCount={data.easy_wins.length}
         patternCount={data.patterns.length}
         doneCount={doneItems.length}
         onSelect={setActiveTab}
@@ -724,6 +922,24 @@ export default function Dashboard({
           {activeSignals.length === 0 && (
             <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
               All signals marked done.
+            </p>
+          )}
+        </div>
+      )}
+
+      {activeTab === "easy-wins" && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          {data.easy_wins.filter((w) => !doneSet.has(w.canny_id)).map((win) => (
+            <EasyWinCard
+              key={win.canny_id}
+              win={win}
+              doneSet={doneSet}
+              onToggleDone={handleEasyWinToggleDone}
+            />
+          ))}
+          {data.easy_wins.length > 0 && data.easy_wins.every((w) => doneSet.has(w.canny_id)) && (
+            <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
+              All easy wins marked done.
             </p>
           )}
         </div>

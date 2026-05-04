@@ -317,4 +317,16 @@ async function writeSynthesisResults(
       }
     }
   }
+
+  // Clear and rewrite easy_wins
+  await supabase.from("easy_wins").delete().eq("week_of", weekOf);
+
+  for (const win of output.easy_wins) {
+    await supabase.from("easy_wins").insert({
+      canny_id: win.canny_id,
+      week_of: weekOf,
+      reason: win.reason,
+      jira_story: win.jira_story,
+    });
+  }
 }

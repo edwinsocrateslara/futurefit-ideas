@@ -15,7 +15,7 @@ const ROOT = join(__dirname, "..");
 
 const MODEL = "claude-sonnet-4-6";
 const TEMPERATURE = 0.3;
-const PROMPT_VERSION = "synthesis-v2.4";
+const PROMPT_VERSION = "synthesis-v2.6";
 const MAX_DESCRIPTION_CHARS = 300;
 const WEEK_OF = "2025-01-06"; // test sentinel (Monday)
 
@@ -238,6 +238,37 @@ Incorrect (different structural problem): "Outcomes loop broken" → "Employer p
 
 ---
 
+## TASK 3: IDENTIFY EASY WINS
+
+Identify exactly 5 items from the same idea pool that qualify as easy wins — things the engineering team could ship in a single sprint with no discovery work required, where the solution is obvious from the feedback itself.
+
+**What qualifies (all must be true):**
+- Clear and simple solution: the request names what to build. A developer reading it should be able to write a ticket in sprint planning without further questions.
+- Low effort: small features, toggles, copy changes, single-screen UX changes, narrow filter or sort additions, missing empty states, simple validations, minor workflow tweaks.
+- Fast: shippable within a sprint, ideally a few days of engineering time.
+- High value relative to effort: meaningfully reduces friction despite the small scope — not trivial polish for its own sake.
+
+**What does NOT qualify:**
+- Anything requiring a new data integration or third-party API
+- Multi-stakeholder workflows requiring coordination across roles (employer + admin + job seeker)
+- Outcomes data architecture, measurement, or reporting infrastructure
+- Ontology, taxonomy, skill graph, or AI model changes
+- New platform services or infrastructure
+- Anything requiring product discovery before scoping — if the solution isn't obvious from reading the feedback, it doesn't belong here
+
+**Prefer different items from the top 10.** If an item genuinely qualifies for both, it may appear in both. But easy wins should be additive — surface items that might not rank in the top 10 for strategic reasons but are clearly shippable.
+
+**How to write the reason field:**
+Two sentences. First: what the item is asking for, in plain language. Second: why it qualifies as an easy win — what makes the solution obvious and the scope bounded.
+
+Bad: "Customers want better filtering in the manage table, which would improve their workflow."
+Good: "Administrators want to filter the manage table by a user's assigned coach. The solution is a single dropdown filter on an existing table — no new data model required since the coach-user relationship already exists."
+
+**How to write the jira_story field:**
+Same format as TASK 1 — Title, User story, Context, Acceptance criteria. For easy wins, the Context paragraph may be brief (1–2 sentences) if the scope is already clear from the feedback. Same rules apply: no UX patterns or interaction counts in acceptance criteria, specific role names, independently testable criteria.
+
+---
+
 ## OUTPUT FORMAT
 
 Return a single JSON object. Your entire response must be valid JSON — no markdown fences, no preamble, no explanation, no text before the opening { or after the closing }. If your response contains anything outside the JSON object, it will fail validation and the analysis will be discarded.
@@ -263,6 +294,13 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
         "framing": "<one sentence opening the exploration space>",
         "possibilities": ["<noun-phrase describing something that could exist or happen>"]
       }
+    }
+  ],
+  "easy_wins": [
+    {
+      "canny_id": "<id from the feedback items above>",
+      "reason": "<two sentences: what the item asks for, then why it qualifies as an easy win>",
+      "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
   ]
 }`;
@@ -313,6 +351,16 @@ function validateOutput(parsed) {
       ) {
         errors.push(`patterns[${i}].pattern_lineage_id must be a UUID string or null`);
       }
+    }
+  }
+
+  if (!Array.isArray(parsed.easy_wins) || parsed.easy_wins.length !== 5) {
+    errors.push(`easy_wins must be array of exactly 5 (got ${Array.isArray(parsed.easy_wins) ? parsed.easy_wins.length : "non-array"})`);
+  } else {
+    for (const [i, w] of parsed.easy_wins.entries()) {
+      if (!w.canny_id) errors.push(`easy_wins[${i}].canny_id missing`);
+      if (!w.reason) errors.push(`easy_wins[${i}].reason missing`);
+      if (!w.jira_story) errors.push(`easy_wins[${i}].jira_story missing`);
     }
   }
 
@@ -385,6 +433,18 @@ async function writeSynthesisResults(output, weekOf) {
         });
       }
     }
+  }
+
+  // Clear and rewrite easy_wins
+  await supabase.from("easy_wins").delete().eq("week_of", weekOf);
+
+  for (const win of output.easy_wins) {
+    await supabase.from("easy_wins").insert({
+      canny_id: win.canny_id,
+      week_of: weekOf,
+      reason: win.reason,
+      jira_story: win.jira_story,
+    });
   }
 }
 

@@ -24,6 +24,13 @@ export const PatternSchema = z.object({
   angles: AnglesSchema,
 });
 
+// Easy win — shippable in a sprint, solution obvious from feedback
+export const EasyWinSchema = z.object({
+  canny_id: z.string().min(1),
+  reason: z.string().min(1),
+  jira_story: z.string().min(1),
+});
+
 // ── Top-level output ──────────────────────────────────────────────────────────
 
 export const SynthesisOutputSchema = z.object({
@@ -31,6 +38,7 @@ export const SynthesisOutputSchema = z.object({
   prompt_version: z.string(),
   selections: z.array(SelectionSchema).length(10),
   patterns: z.array(PatternSchema),
+  easy_wins: z.array(EasyWinSchema).length(5),
 });
 
 // ── Inferred types ────────────────────────────────────────────────────────────
@@ -38,3 +46,4 @@ export const SynthesisOutputSchema = z.object({
 export type SynthesisOutput = z.infer<typeof SynthesisOutputSchema>;
 export type Selection = z.infer<typeof SelectionSchema>;
 export type Pattern = z.infer<typeof PatternSchema>;
+export type EasyWin = z.infer<typeof EasyWinSchema>;

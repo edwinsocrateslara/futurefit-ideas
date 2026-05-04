@@ -27,6 +27,16 @@ export interface DoneItem {
   marked_done_at: string;
 }
 
+export interface DashboardEasyWin {
+  canny_id: string;
+  title: string;
+  board_slug: string;
+  board_name: string;
+  reason: string;
+  jira_story: string | null;
+  canny_url: string | null;
+}
+
 export interface DashboardPattern {
   id: string;
   title: string;
@@ -47,6 +57,7 @@ export interface DashboardData {
   board_distribution: Record<string, number>;
   selections: DashboardSelection[];
   patterns: DashboardPattern[];
+  easy_wins: DashboardEasyWin[];
   persistent_count: number;
   new_count: number;
   persistent_titles: { canny_id: string; title: string }[];
@@ -214,6 +225,45 @@ export async function getDashboardData(
     };
   });
 
+  // Easy wins
+  const { data: easyWinRows } = await supabase
+    .from("easy_wins")
+    .select("canny_id, reason, jira_story")
+    .eq("week_of", resolvedWeek);
+
+  const easyWinCannyIds = (easyWinRows ?? []).map((w) => w.canny_id);
+  const easyWinIdeaMap: Record<string, { title: string; canny_url: string | null; board_slug: string; board_name: string }> = {};
+
+  if (easyWinCannyIds.length > 0) {
+    const { data: easyWinIdeas } = await supabase
+      .from("ideas")
+      .select("canny_id, title, canny_url, boards(slug, name)")
+      .in("canny_id", easyWinCannyIds);
+
+    for (const row of easyWinIdeas ?? []) {
+      const board = row.boards as unknown as { slug: string; name: string } | null;
+      easyWinIdeaMap[row.canny_id] = {
+        title: row.title,
+        canny_url: row.canny_url,
+        board_slug: board?.slug ?? "",
+        board_name: board?.name ?? "",
+      };
+    }
+  }
+
+  const easy_wins: DashboardEasyWin[] = (easyWinRows ?? []).map((w) => {
+    const idea = easyWinIdeaMap[w.canny_id];
+    return {
+      canny_id: w.canny_id,
+      title: idea?.title ?? "",
+      board_slug: idea?.board_slug ?? "",
+      board_name: idea?.board_name ?? "",
+      reason: w.reason,
+      jira_story: w.jira_story,
+      canny_url: idea?.canny_url ?? null,
+    };
+  });
+
   const persistentSelections = selections.filter((s) => s.is_persistent);
   const newSelections = selections.filter((s) => s.is_new_this_week);
 
@@ -228,6 +278,7 @@ export async function getDashboardData(
       board_distribution,
       selections,
       patterns,
+      easy_wins,
       persistent_count: persistentSelections.length,
       new_count: newSelections.length,
       persistent_titles: persistentSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
