@@ -1,6 +1,7 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { readFileSync, existsSync } from "fs";
 import { join } from "path";
+import { randomUUID } from "crypto";
 import { createServiceClient } from "@/lib/supabase/server";
 import { BOARDS } from "@/config/boards";
 import { SynthesisOutputSchema } from "./schema";
@@ -10,7 +11,7 @@ import {
   buildStrategyDocsString,
   PROMPT_VERSION,
 } from "./prompt";
-import type { BoardGroup, IdeaInput } from "./prompt";
+import type { BoardGroup, IdeaInput, PreviousPattern } from "./prompt";
 import type { SynthesisOutput } from "./schema";
 
 const MODEL = "claude-sonnet-4-6";
@@ -118,9 +119,29 @@ export async function runSynthesis(
   const strategyDocs = loadStrategyDocs();
   const strategyString = buildStrategyDocsString(strategyDocs);
 
+  // Fetch last 4 weeks of patterns for lineage context
+  const fourWeeksAgo = new Date(weekMonday);
+  fourWeeksAgo.setUTCDate(fourWeeksAgo.getUTCDate() - 28);
+  const { data: prevPatternRows } = await supabase
+    .from("patterns")
+    .select("week_of, title, summary, pattern_lineage_id")
+    .lt("week_of", weekOf)
+    .gte("week_of", fourWeeksAgo.toISOString().slice(0, 10))
+    .not("pattern_lineage_id", "is", null)
+    .order("week_of", { ascending: false });
+
+  const previousPatterns: PreviousPattern[] = (prevPatternRows ?? [])
+    .filter((p) => p.pattern_lineage_id)
+    .map((p) => ({
+      week_of: p.week_of,
+      title: p.title,
+      summary: p.summary,
+      pattern_lineage_id: p.pattern_lineage_id!,
+    }));
+
   // Build prompt
   const systemMessage = buildSystemMessage();
-  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf);
+  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf, previousPatterns);
 
   // Call Claude
   let rawOutput: string;
@@ -226,7 +247,10 @@ async function writeSynthesisResults(
     })
     .eq("selection_week", weekOf);
 
-  // Write selections
+  // Clear selections history for this week (handles re-runs)
+  await supabase.from("selections").delete().eq("week_of", weekOf);
+
+  // Write selections to both ideas (for done-state and display) and selections (for history)
   for (const selection of output.selections) {
     await supabase
       .from("ideas")
@@ -238,6 +262,14 @@ async function writeSynthesisResults(
         jira_story: selection.jira_story,
       })
       .eq("canny_id", selection.canny_id);
+
+    await supabase.from("selections").insert({
+      canny_id: selection.canny_id,
+      week_of: weekOf,
+      priority_rank: selection.priority_rank,
+      reason: selection.reason,
+      jira_story: selection.jira_story ?? null,
+    });
   }
 
   // Delete existing patterns for this week and rewrite
@@ -255,6 +287,7 @@ async function writeSynthesisResults(
 
   // Write patterns and their linked items
   for (const pattern of output.patterns) {
+    const lineageId = pattern.pattern_lineage_id ?? randomUUID();
     const { data: patternRow } = await supabase
       .from("patterns")
       .insert({
@@ -262,6 +295,7 @@ async function writeSynthesisResults(
         title: pattern.title,
         summary: pattern.summary,
         angles: pattern.angles,
+        pattern_lineage_id: lineageId,
       })
       .select("id")
       .single();

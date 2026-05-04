@@ -49,6 +49,92 @@ function BoardTag({ slug }: { slug: string }) {
   );
 }
 
+// ── Metric cards ──────────────────────────────────────────────────────────────
+
+function MetricCard({
+  count,
+  label,
+  accentColor,
+  items,
+  onItemClick,
+  coldStart = false,
+}: {
+  count: number;
+  label: string;
+  accentColor: string;
+  items: { canny_id: string; title: string }[];
+  onItemClick: (cannyId: string) => void;
+  coldStart?: boolean;
+}) {
+  const showItems = !coldStart && items.length > 0;
+  return (
+    <div
+      style={{
+        flex: 1,
+        padding: "16px 20px",
+        background: "oklch(0.16 0 0)",
+        border: "1px solid oklch(1 0 0 / 0.06)",
+        borderRadius: 10,
+      }}
+    >
+      <div
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 28,
+          fontWeight: 500,
+          fontVariantNumeric: "tabular-nums",
+          color: "oklch(0.97 0 0)",
+          lineHeight: 1,
+          marginBottom: 4,
+        }}
+      >
+        {count}
+      </div>
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: 1.0,
+          textTransform: "uppercase",
+          color: accentColor,
+          marginBottom: showItems || coldStart ? 12 : 0,
+        }}
+      >
+        {label}
+      </div>
+      {showItems && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+          {items.map((item) => (
+            <button
+              key={item.canny_id}
+              type="button"
+              onClick={() => onItemClick(item.canny_id)}
+              style={{
+                background: "none",
+                border: "none",
+                padding: 0,
+                cursor: "pointer",
+                textAlign: "left",
+                fontSize: 12,
+                color: "oklch(0.68 0 0)",
+                lineHeight: 1.4,
+                textWrap: "pretty",
+              }}
+            >
+              {item.title}
+            </button>
+          ))}
+        </div>
+      )}
+      {coldStart && (
+        <p style={{ margin: 0, fontSize: 11, color: "oklch(0.38 0 0)", fontStyle: "italic" }}>
+          Comparison data starts next week
+        </p>
+      )}
+    </div>
+  );
+}
+
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
 type TabId = "signals" | "patterns" | "done";
@@ -122,10 +208,12 @@ function SignalRow({
   item,
   doneSet,
   onToggleDone,
+  suppressNewBadge = false,
 }: {
   item: DashboardSelection;
   doneSet: Set<string>;
   onToggleDone: (item: DashboardSelection) => void;
+  suppressNewBadge?: boolean;
 }) {
   const isDone = doneSet.has(item.canny_id);
   const [copied, setCopied] = useState(false);
@@ -140,6 +228,7 @@ function SignalRow({
 
   return (
     <div
+      id={`signal-${item.canny_id}`}
       style={{
         display: "grid",
         gridTemplateColumns: "44px 1fr auto",
@@ -153,8 +242,8 @@ function SignalRow({
         transition: "opacity 150ms",
       }}
     >
-      {/* Rank */}
-      <div style={{ paddingTop: 2 }}>
+      {/* Rank + persistent dot */}
+      <div style={{ paddingTop: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
         <span
           style={{
             fontFamily: "var(--font-mono)",
@@ -168,12 +257,44 @@ function SignalRow({
         >
           {String(item.priority_rank).padStart(2, "0")}
         </span>
+        {item.is_persistent && (
+          <span
+            aria-label="Persistent signal"
+            style={{
+              display: "block",
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "oklch(0.75 0.18 75)",
+              flexShrink: 0,
+            }}
+          />
+        )}
       </div>
 
       {/* Content */}
       <div>
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
           <BoardTag slug={item.board_slug} />
+          {item.is_new_this_week && !suppressNewBadge && (
+            <span
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "2px 6px",
+                fontSize: 11,
+                fontWeight: 600,
+                lineHeight: 1,
+                letterSpacing: 0.1,
+                borderRadius: 9999,
+                background: "oklch(0.20 0.06 145)",
+                color: "oklch(0.72 0.18 145)",
+                border: "1px solid oklch(0.72 0.18 145 / 0.25)",
+              }}
+            >
+              New
+            </span>
+          )}
         </div>
         <p
           style={{
@@ -428,7 +549,15 @@ export default function Dashboard({
     handleToggleDone(item);
   }
 
+  function scrollToSignal(cannyId: string) {
+    setActiveTab("signals");
+    setTimeout(() => {
+      document.getElementById(`signal-${cannyId}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }, 50);
+  }
+
   const activeSignals = data.selections.filter((s) => !doneSet.has(s.canny_id));
+  const isColdStart = data.selections.length > 0 && data.new_count === data.selections.length;
 
   return (
     <>
@@ -551,6 +680,26 @@ export default function Dashboard({
         </div>
       </section>
 
+      {/* Metric cards */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+        <MetricCard
+          count={data.persistent_count}
+          label="Persistent · 4+ weeks running"
+          accentColor="oklch(0.72 0.14 75)"
+          items={data.persistent_titles}
+          onItemClick={scrollToSignal}
+          coldStart={isColdStart}
+        />
+        <MetricCard
+          count={data.new_count}
+          label="New this week"
+          accentColor="oklch(0.70 0.20 145)"
+          items={data.new_titles}
+          onItemClick={scrollToSignal}
+          coldStart={isColdStart}
+        />
+      </div>
+
       {/* Tab navigation */}
       <TabBar
         active={activeTab}
@@ -569,6 +718,7 @@ export default function Dashboard({
               item={item}
               doneSet={doneSet}
               onToggleDone={handleToggleDone}
+              suppressNewBadge={isColdStart}
             />
           ))}
           {activeSignals.length === 0 && (

@@ -15,11 +15,12 @@ export const SelectionSchema = z.object({
   jira_story: z.string().min(1),
 });
 
-// Pattern — title, summary, linked evidence, exploration angles
+// Pattern — title, summary, linked evidence, lineage tag, exploration angles
 export const PatternSchema = z.object({
   title: z.string().min(1),
   summary: z.string().min(1),
   linked_canny_ids: z.array(z.string()).min(2),
+  pattern_lineage_id: z.string().uuid().nullable(),
   angles: AnglesSchema,
 });
 

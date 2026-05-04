@@ -6,6 +6,7 @@ import { createClient } from "@supabase/supabase-js";
 import { readFileSync, existsSync } from "fs";
 import { join, dirname } from "path";
 import { fileURLToPath } from "url";
+import { randomUUID } from "crypto";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, "..");
@@ -14,7 +15,7 @@ const ROOT = join(__dirname, "..");
 
 const MODEL = "claude-sonnet-4-6";
 const TEMPERATURE = 0.3;
-const PROMPT_VERSION = "synthesis-v2.3";
+const PROMPT_VERSION = "synthesis-v2.4";
 const MAX_DESCRIPTION_CHARS = 300;
 const WEEK_OF = "2025-01-06"; // test sentinel (Monday)
 
@@ -56,7 +57,7 @@ function buildStrategyDocsString(docs) {
     .join("\n\n---\n\n");
 }
 
-// ── Prompt builders (mirrors lib/synthesis/prompt.ts v2.3) ───────────────────
+// ── Prompt builders (mirrors lib/synthesis/prompt.ts v2.4) ───────────────────
 
 function truncate(text, max) {
   if (!text) return "(no description)";
@@ -88,9 +89,38 @@ Your analysis will be read by people who are time-poor and skeptical of vague AI
 The strategy documents are the lens. You are not clustering feedback for novelty or summarizing what customers want in the abstract. You are evaluating feedback against what FutureFit has committed to, what it has left unaddressed, and what it is most at risk of getting wrong.`;
 }
 
-function buildUserMessage(boards, strategyString, weekOf) {
+function formatPreviousPatterns(patterns) {
+  if (!patterns || patterns.length === 0) {
+    return "(No previous patterns — assign null to all pattern_lineage_id fields.)";
+  }
+  const byWeek = new Map();
+  for (const p of patterns) {
+    const week = p.week_of.slice(0, 10);
+    if (!byWeek.has(week)) byWeek.set(week, []);
+    byWeek.get(week).push(p);
+  }
+  return Array.from(byWeek.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([week, ps]) => {
+      const items = ps
+        .map((p) => `  lineage:${p.pattern_lineage_id} | "${p.title}"\n  ${p.summary.slice(0, 200)}…`)
+        .join("\n\n");
+      return `[Week ${week}]\n${items}`;
+    })
+    .join("\n\n");
+}
+
+function buildUserMessage(boards, strategyString, weekOf, previousPatterns = []) {
   const totalItems = boards.reduce((n, b) => n + b.ideas.length, 0);
   const boardsSection = boards.map(formatBoard).join("\n\n---\n\n");
+
+  const lineageSection = `## PATTERN LINEAGE CONTEXT (up to last 4 weeks — may be fewer if recent)
+
+${formatPreviousPatterns(previousPatterns)}
+
+---
+
+`;
 
   return `## STRATEGY DOCUMENTS
 
@@ -161,7 +191,7 @@ Rules for jira_story:
 
 ---
 
-## TASK 2: DETECT PATTERNS
+${lineageSection}## TASK 2: DETECT PATTERNS
 
 Identify 0–5 themes where multiple feedback items converge on the same underlying problem or opportunity.
 
@@ -196,6 +226,16 @@ Good (possibility): "A focused effort to make Colorado Thrives a reference case 
 
 The test: a possibility names something that could exist or be done, without telling leadership to do it. If you can prefix the line with "we should" or "let's" and it reads naturally, rewrite it as a noun-phrase.
 
+**Lineage tagging — pattern_lineage_id field:**
+For each detected pattern, assign a pattern_lineage_id by comparing it against the PATTERN LINEAGE CONTEXT above:
+- If this pattern exposes the same underlying structural problem as a pattern in the lineage context, output that pattern's lineage_id string.
+- If this is a genuinely new structural theme not present in the lineage context, output null. The system will assign a fresh id.
+
+Lineage test: read both pattern summaries back to back. Would a reader conclude the root cause is the same problem seen through different evidence? If yes, same lineage. If the root cause is adjacent but structurally distinct — same domain, different failure mode — output null.
+
+Correct (same lineage): "Outcomes loop broken at ATS configuration" → "Outcomes loop broken at self-report layer" — same structural gap (outcomes collection depends on parties outside our control), different evidence this week.
+Incorrect (different structural problem): "Outcomes loop broken" → "Employer portal lacks candidate status tracking" — both touch outcomes, but the failure mode is employer portal depth, not collection dependency. Separate lineage.
+
 ---
 
 ## OUTPUT FORMAT
@@ -218,6 +258,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "title": "<5–8 words>",
       "summary": "<2–3 sentences>",
       "linked_canny_ids": ["<id>"],
+      "pattern_lineage_id": "<existing UUID from lineage context, or null if new theme>",
       "angles": {
         "framing": "<one sentence opening the exploration space>",
         "possibilities": ["<noun-phrase describing something that could exist or happen>"]
@@ -265,6 +306,13 @@ function validateOutput(parsed) {
       ) {
         errors.push(`patterns[${i}].angles invalid (needs framing + 3–5 possibilities)`);
       }
+      if (
+        p.pattern_lineage_id !== null &&
+        p.pattern_lineage_id !== undefined &&
+        typeof p.pattern_lineage_id !== "string"
+      ) {
+        errors.push(`patterns[${i}].pattern_lineage_id must be a UUID string or null`);
+      }
     }
   }
 
@@ -280,6 +328,9 @@ async function writeSynthesisResults(output, weekOf) {
     .update({ selected_this_week: false, selection_reason: null, selection_status: null, selection_week: null, jira_story: null })
     .eq("selection_week", weekOf);
 
+  // Clear selections history for this week (handles re-runs)
+  await supabase.from("selections").delete().eq("week_of", weekOf);
+
   for (const sel of output.selections) {
     await supabase
       .from("ideas")
@@ -291,12 +342,21 @@ async function writeSynthesisResults(output, weekOf) {
         jira_story: sel.jira_story,
       })
       .eq("canny_id", sel.canny_id);
+
+    await supabase.from("selections").insert({
+      canny_id: sel.canny_id,
+      week_of: weekOf,
+      priority_rank: sel.priority_rank,
+      reason: sel.reason,
+      jira_story: sel.jira_story ?? null,
+    });
   }
 
   // Clear and rewrite patterns
   await supabase.from("patterns").delete().eq("week_of", weekOf);
 
   for (const pattern of output.patterns) {
+    const lineageId = pattern.pattern_lineage_id ?? randomUUID();
     const { data: patternRow } = await supabase
       .from("patterns")
       .insert({
@@ -304,6 +364,7 @@ async function writeSynthesisResults(output, weekOf) {
         title: pattern.title,
         summary: pattern.summary,
         angles: pattern.angles,
+        pattern_lineage_id: lineageId,
       })
       .select("id")
       .single();
@@ -391,9 +452,31 @@ const strategyDocs = loadStrategyDocs();
 const strategyString = buildStrategyDocsString(strategyDocs);
 console.log(`  Strategy docs loaded: ${Object.keys(strategyDocs).join(", ")}`);
 
+// Fetch previous 4 weeks of patterns for lineage context
+const fourWeeksAgo = new Date(WEEK_OF + "T00:00:00Z");
+fourWeeksAgo.setUTCDate(fourWeeksAgo.getUTCDate() - 28);
+const { data: prevPatternRows } = await supabase
+  .from("patterns")
+  .select("week_of, title, summary, pattern_lineage_id")
+  .lt("week_of", WEEK_OF)
+  .gte("week_of", fourWeeksAgo.toISOString().slice(0, 10))
+  .not("pattern_lineage_id", "is", null)
+  .order("week_of", { ascending: false });
+
+const previousPatterns = (prevPatternRows ?? [])
+  .filter((p) => p.pattern_lineage_id)
+  .map((p) => ({
+    week_of: p.week_of,
+    title: p.title,
+    summary: p.summary,
+    pattern_lineage_id: p.pattern_lineage_id,
+  }));
+
+console.log(`  Previous patterns loaded: ${previousPatterns.length} (from last 4 weeks)`);
+
 // Build prompt
 const systemMessage = buildSystemMessage();
-const userMessage = buildUserMessage(boardGroups, strategyString, WEEK_OF);
+const userMessage = buildUserMessage(boardGroups, strategyString, WEEK_OF, previousPatterns);
 console.log(`  System message: ${systemMessage.length} chars`);
 console.log(`  User message:   ${userMessage.length} chars`);
 console.log("\n  Calling Claude...\n");
@@ -405,7 +488,7 @@ try {
   const callStart = Date.now();
   const message = await anthropic.messages.create({
     model: MODEL,
-    max_tokens: 8192,
+    max_tokens: 16000,
     temperature: TEMPERATURE,
     system: systemMessage,
     messages: [{ role: "user", content: userMessage }],

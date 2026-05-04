@@ -25,7 +25,7 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
       {/* Title */}
       <h3
         style={{
-          margin: "0 0 12px 0",
+          margin: "0 0 6px 0",
           fontSize: 16,
           fontWeight: 600,
           lineHeight: 1.4,
@@ -35,6 +35,20 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
       >
         {pattern.title}
       </h3>
+
+      {/* Lineage indicator */}
+      <p
+        style={{
+          margin: "0 0 12px 0",
+          fontSize: 11,
+          color: "oklch(0.48 0 0)",
+          letterSpacing: 0.1,
+        }}
+      >
+        {pattern.is_first_appearance
+          ? "First appearance"
+          : `Week ${pattern.weeks_active} of this theme`}
+      </p>
 
       {/* Summary */}
       <p

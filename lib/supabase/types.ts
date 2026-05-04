@@ -48,6 +48,16 @@ export interface IdeaTagRow {
   tag_id: string;
 }
 
+export interface SelectionRow {
+  id: string;
+  canny_id: string;
+  week_of: string;
+  priority_rank: number;
+  reason: string;
+  jira_story: string | null;
+  created_at: string;
+}
+
 export interface PatternRow {
   id: string;
   week_of: string;
@@ -57,6 +67,7 @@ export interface PatternRow {
   item_count: number | null;
   roadmap_alignment: string | null;
   angles: Angles;
+  pattern_lineage_id: string | null;
   created_at: string;
 }
 

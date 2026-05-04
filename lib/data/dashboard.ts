@@ -12,6 +12,9 @@ export interface DashboardSelection {
   canny_url: string | null;
   posted_at: string;
   jira_story: string | null;
+  weeks_in_top_10: number;
+  is_new_this_week: boolean;
+  is_persistent: boolean;
 }
 
 export interface DoneItem {
@@ -30,6 +33,8 @@ export interface DashboardPattern {
   summary: string;
   linked_canny_ids: string[];
   angles: Angles;
+  weeks_active: number;
+  is_first_appearance: boolean;
 }
 
 export interface DashboardData {
@@ -42,6 +47,10 @@ export interface DashboardData {
   board_distribution: Record<string, number>;
   selections: DashboardSelection[];
   patterns: DashboardPattern[];
+  persistent_count: number;
+  new_count: number;
+  persistent_titles: { canny_id: string; title: string }[];
+  new_titles: { canny_id: string; title: string }[];
   sync: {
     id: string;
     started_at: string;
@@ -90,10 +99,23 @@ export async function getDashboardData(
     return { data: null, error: `No results for week ${resolvedWeek}` };
   }
 
+  // Selection history — count appearances per canny_id up to and including this week
+  const selectedCannyIds = selectedIdeas.map((i) => i.canny_id);
+  const { data: selectionHistory } = await supabase
+    .from("selections")
+    .select("canny_id")
+    .in("canny_id", selectedCannyIds)
+    .lte("week_of", resolvedWeek);
+
+  const weeksByCanny: Record<string, number> = {};
+  for (const row of selectionHistory ?? []) {
+    weeksByCanny[row.canny_id] = (weeksByCanny[row.canny_id] ?? 0) + 1;
+  }
+
   // Patterns
   const { data: patternRows, error: patternsError } = await supabase
     .from("patterns")
-    .select("id, title, summary, angles")
+    .select("id, title, summary, angles, pattern_lineage_id")
     .eq("week_of", resolvedWeek);
 
   if (patternsError) return { data: null, error: patternsError.message };
@@ -111,6 +133,26 @@ export async function getDashboardData(
       if (!idea) continue;
       if (!patternLinkedIds[item.pattern_id]) patternLinkedIds[item.pattern_id] = [];
       patternLinkedIds[item.pattern_id].push(idea.canny_id);
+    }
+  }
+
+  // Pattern lineage history — count appearances per lineage_id up to this week
+  const lineageIds = (patternRows ?? [])
+    .map((p) => p.pattern_lineage_id)
+    .filter(Boolean) as string[];
+
+  const weeksByLineage: Record<string, number> = {};
+  if (lineageIds.length > 0) {
+    const { data: lineageHistory } = await supabase
+      .from("patterns")
+      .select("pattern_lineage_id")
+      .in("pattern_lineage_id", lineageIds)
+      .lte("week_of", resolvedWeek);
+
+    for (const row of lineageHistory ?? []) {
+      if (row.pattern_lineage_id) {
+        weeksByLineage[row.pattern_lineage_id] = (weeksByLineage[row.pattern_lineage_id] ?? 0) + 1;
+      }
     }
   }
 
@@ -136,6 +178,7 @@ export async function getDashboardData(
   // Assemble selections
   const selections: DashboardSelection[] = (selectedIdeas ?? []).map((idea) => {
     const board = idea.boards as unknown as { slug: string; name: string } | null;
+    const weeks = weeksByCanny[idea.canny_id] ?? 1;
     return {
       canny_id: idea.canny_id,
       board_slug: board?.slug ?? "",
@@ -147,6 +190,9 @@ export async function getDashboardData(
       canny_url: idea.canny_url,
       posted_at: idea.created_at,
       jira_story: idea.jira_story,
+      weeks_in_top_10: weeks,
+      is_new_this_week: weeks === 1,
+      is_persistent: weeks >= 4,
     };
   });
 
@@ -155,13 +201,21 @@ export async function getDashboardData(
     return acc;
   }, {});
 
-  const patterns: DashboardPattern[] = (patternRows ?? []).map((p) => ({
-    id: p.id,
-    title: p.title,
-    summary: p.summary,
-    linked_canny_ids: patternLinkedIds[p.id] ?? [],
-    angles: p.angles as unknown as Angles,
-  }));
+  const patterns: DashboardPattern[] = (patternRows ?? []).map((p) => {
+    const weeks = p.pattern_lineage_id ? (weeksByLineage[p.pattern_lineage_id] ?? 1) : 1;
+    return {
+      id: p.id,
+      title: p.title,
+      summary: p.summary,
+      linked_canny_ids: patternLinkedIds[p.id] ?? [],
+      angles: p.angles as unknown as Angles,
+      weeks_active: weeks,
+      is_first_appearance: weeks === 1,
+    };
+  });
+
+  const persistentSelections = selections.filter((s) => s.is_persistent);
+  const newSelections = selections.filter((s) => s.is_new_this_week);
 
   return {
     data: {
@@ -174,6 +228,10 @@ export async function getDashboardData(
       board_distribution,
       selections,
       patterns,
+      persistent_count: persistentSelections.length,
+      new_count: newSelections.length,
+      persistent_titles: persistentSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
+      new_titles: newSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
       sync: syncRun
         ? {
             id: syncRun.id,

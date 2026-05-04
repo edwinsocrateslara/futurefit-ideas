@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v2.3";
+export const PROMPT_VERSION = "synthesis-v2.4";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -17,6 +17,13 @@ export interface BoardGroup {
   slug: BoardSlug;
   name: string;
   ideas: IdeaInput[];
+}
+
+export interface PreviousPattern {
+  week_of: string;
+  title: string;
+  summary: string;
+  pattern_lineage_id: string;
 }
 
 function truncate(text: string | null, max: number): string {
@@ -53,10 +60,34 @@ The strategy documents are the lens. You are not clustering feedback for novelty
 
 // ── User message ───────────────────────────────────────────────────────────
 
+function formatPreviousPatterns(patterns: PreviousPattern[]): string {
+  if (patterns.length === 0) {
+    return "(No previous patterns — assign null to all pattern_lineage_id fields.)";
+  }
+
+  const byWeek = new Map<string, PreviousPattern[]>();
+  for (const p of patterns) {
+    const week = p.week_of.slice(0, 10);
+    if (!byWeek.has(week)) byWeek.set(week, []);
+    byWeek.get(week)!.push(p);
+  }
+
+  return Array.from(byWeek.entries())
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([week, ps]) => {
+      const items = ps
+        .map((p) => `  lineage:${p.pattern_lineage_id} | "${p.title}"\n  ${p.summary.slice(0, 200)}…`)
+        .join("\n\n");
+      return `[Week ${week}]\n${items}`;
+    })
+    .join("\n\n");
+}
+
 export function buildUserMessage(
   boards: BoardGroup[],
   strategyDocs: string,
-  weekOf: string
+  weekOf: string,
+  previousPatterns: PreviousPattern[] = []
 ): string {
   const totalItems = boards.reduce((n, b) => n + b.ideas.length, 0);
   const boardsSection = boards.map(formatBoard).join("\n\n---\n\n");
@@ -130,6 +161,14 @@ Rules for jira_story:
 
 ---
 
+## PATTERN LINEAGE CONTEXT (up to last 4 weeks — may be fewer if recent)
+
+Review the patterns identified in recent weeks before detecting patterns below. You will use these to tag each detected pattern with a lineage identifier. Do not let this list constrain which patterns you detect — surface patterns based on the feedback items, then compare for lineage.
+
+${formatPreviousPatterns(previousPatterns)}
+
+---
+
 ## TASK 2: DETECT PATTERNS
 
 Identify 0–5 themes where multiple feedback items converge on the same underlying problem or opportunity.
@@ -165,6 +204,16 @@ Good (possibility): "A focused effort to make Colorado Thrives a reference case 
 
 The test: a possibility names something that could exist or be done, without telling leadership to do it. If you can prefix the line with "we should" or "let's" and it reads naturally, rewrite it as a noun-phrase.
 
+**Lineage tagging — pattern_lineage_id field:**
+For each detected pattern, assign a pattern_lineage_id by comparing it against the PATTERN LINEAGE CONTEXT above:
+- If this pattern exposes the same underlying structural problem as a pattern in the lineage context, output that pattern's lineage_id string.
+- If this is a genuinely new structural theme not present in the lineage context, output null. The system will assign a fresh id.
+
+Lineage test: read both pattern summaries back to back. Would a reader conclude the root cause is the same problem seen through different evidence? If yes, same lineage. If the root cause is adjacent but structurally distinct — same domain, different failure mode — output null.
+
+Correct (same lineage): "Outcomes loop broken at ATS configuration" → "Outcomes loop broken at self-report layer" — same structural gap (outcomes collection depends on parties outside our control), different evidence this week.
+Incorrect (different structural problem): "Outcomes loop broken" → "Employer portal lacks candidate status tracking" — both touch outcomes, but the failure mode is employer portal depth, not collection dependency. Separate lineage.
+
 ---
 
 ## OUTPUT FORMAT
@@ -187,6 +236,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "title": "<5–8 words>",
       "summary": "<2–3 sentences>",
       "linked_canny_ids": ["<id>"],
+      "pattern_lineage_id": "<existing lineage UUID if continuation, null if new>",
       "angles": {
         "framing": "<one sentence opening the exploration space>",
         "possibilities": ["<noun-phrase describing something that could exist or happen>"]
