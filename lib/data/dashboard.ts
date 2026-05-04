@@ -11,6 +11,7 @@ export interface DashboardSelection {
   vote_count: number;
   canny_url: string | null;
   posted_at: string;
+  jira_story: string | null;
 }
 
 export interface DoneItem {
@@ -78,7 +79,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, boards(slug, name)"
+      "canny_id, title, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -145,6 +146,7 @@ export async function getDashboardData(
       vote_count: idea.vote_count,
       canny_url: idea.canny_url,
       posted_at: idea.created_at,
+      jira_story: idea.jira_story,
     };
   });
 

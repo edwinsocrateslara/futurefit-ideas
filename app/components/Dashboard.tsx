@@ -128,6 +128,15 @@ function SignalRow({
   onToggleDone: (item: DashboardSelection) => void;
 }) {
   const isDone = doneSet.has(item.canny_id);
+  const [copied, setCopied] = useState(false);
+
+  function handleCopy() {
+    if (!item.jira_story) return;
+    navigator.clipboard.writeText(item.jira_story).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   return (
     <div
@@ -189,25 +198,52 @@ function SignalRow({
         >
           {item.reason}
         </p>
-        {item.canny_url && (
-          <a
-            href={item.canny_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="canny-link"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 11,
-              color: "oklch(0.55 0 0)",
-              textDecoration: "none",
-              letterSpacing: 0.2,
-            }}
-          >
-            View in Canny →
-          </a>
-        )}
+        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+          {item.jira_story && (
+            <button
+              type="button"
+              onClick={handleCopy}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                padding: "3px 8px",
+                fontSize: 11,
+                fontWeight: 500,
+                letterSpacing: 0.2,
+                borderRadius: 9999,
+                border: copied
+                  ? "1px solid oklch(0.55 0.16 145 / 0.5)"
+                  : "1px solid oklch(1 0 0 / 0.10)",
+                background: copied ? "oklch(0.20 0.04 145)" : "transparent",
+                color: copied ? "oklch(0.70 0.20 145)" : "oklch(0.55 0 0)",
+                cursor: "pointer",
+                transition: "color 150ms, background 150ms, border-color 150ms",
+              }}
+            >
+              {copied ? "Copied!" : "Copy Jira Ticket"}
+            </button>
+          )}
+          {item.canny_url && (
+            <a
+              href={item.canny_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="canny-link"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "oklch(0.55 0 0)",
+                textDecoration: "none",
+                letterSpacing: 0.2,
+              }}
+            >
+              View in Canny →
+            </a>
+          )}
+        </div>
       </div>
 
       {/* Done toggle */}

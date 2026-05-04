@@ -127,7 +127,7 @@ export async function runSynthesis(
   try {
     const message = await client.messages.create({
       model: MODEL,
-      max_tokens: 8192,
+      max_tokens: 16000,
       temperature: TEMPERATURE,
       system: systemMessage,
       messages: [{ role: "user", content: userMessage }],
@@ -222,6 +222,7 @@ async function writeSynthesisResults(
       selection_reason: null,
       selection_status: null,
       selection_week: null,
+      jira_story: null,
     })
     .eq("selection_week", weekOf);
 
@@ -234,6 +235,7 @@ async function writeSynthesisResults(
         selection_reason: selection.reason,
         selection_week: weekOf,
         selection_priority_rank: selection.priority_rank,
+        jira_story: selection.jira_story,
       })
       .eq("canny_id", selection.canny_id);
   }

@@ -12,6 +12,7 @@ export const SelectionSchema = z.object({
   canny_id: z.string(),
   priority_rank: z.number().int().min(1).max(10),
   reason: z.string().min(1),
+  jira_story: z.string().min(1),
 });
 
 // Pattern — title, summary, linked evidence, exploration angles

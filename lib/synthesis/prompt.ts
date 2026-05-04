@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v2.2";
+export const PROMPT_VERSION = "synthesis-v2.3";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -104,6 +104,30 @@ Good: "This item identifies memory and persistence as the specific AI Coach fric
 
 Reference specific things from the strategy documents when they apply: OKR language, named customers, the green/yellow/red renewal framework, Workforce Pell, the Canadian market context, named market segments, the 'Some/Believed' outcomes framing.
 
+**How to write the jira_story field:**
+For each selected item, generate a complete, self-contained user story in this exact format. The story describes the work — not the priority or strategic rationale. An engineer must be able to read it and understand what to build without consulting the feedback item or the reason field.
+
+Title: [action-oriented title, max 80 chars — what is being built, not the problem]
+
+User story:
+As a [specific role — "administrator," "coach," "job seeker," "employer," "business services rep," etc.], I want [specific capability], so that [concrete outcome].
+
+Context:
+[2–3 sentences: current behavior, the gap or friction, and any technical constraints or dependencies relevant to engineering. Do not repeat the strategic reason. This is for engineers, not leadership.]
+
+Acceptance criteria:
+- [testable behavior 1]
+- [testable behavior 2]
+- [testable behavior 3]
+[3–5 criteria total — describe what the feature does, not how it looks or how many interactions it takes]
+
+Rules for jira_story:
+- Never reference rank, priority, or strategic importance
+- User role must be specific — never "user" or "platform user"
+- Context must be distinct from the reason field — it describes implementation context, not strategic rationale
+- Each acceptance criterion must be independently testable
+- Acceptance criteria describe behavior and outcomes only — not UX patterns, interaction counts, visual design, or layout. UX decisions are made during design review with engineers and designers, not in tickets. Bad: "Completable in three taps or fewer from the home screen." Good: "The flow is accessible on mobile." Bad: "Displayed in a left-aligned sidebar." Good: "Visible to coaches and administrators in their portal views."
+
 ---
 
 ## TASK 2: DETECT PATTERNS
@@ -154,7 +178,8 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
     {
       "canny_id": "<id from the feedback items above>",
       "priority_rank": <integer 1–10, where 1 is most important>,
-      "reason": "<one strategic sentence referencing the strategy documents>"
+      "reason": "<one strategic sentence referencing the strategy documents>",
+      "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
   ],
   "patterns": [

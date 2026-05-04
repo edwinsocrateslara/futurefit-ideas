@@ -30,6 +30,7 @@ export interface IdeaRow {
   selection_status: string | null;
   selection_week: string | null;
   selection_priority_rank: number | null;
+  jira_story: string | null;
   marked_done: boolean;
   marked_done_at: string | null;
   synced_at: string;
