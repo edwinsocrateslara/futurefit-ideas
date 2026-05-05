@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Copy, Check } from "lucide-react";
+import { Copy, Check, Pin, Sparkles } from "lucide-react";
 
 // ── Token maps ─────────────────────────────────────────────────────────────────
 
@@ -65,6 +65,7 @@ function MetricCard({
   count,
   label,
   accentColor,
+  icon,
   items,
   onItemClick,
   coldStart = false,
@@ -72,6 +73,7 @@ function MetricCard({
   count: number;
   label: string;
   accentColor: string;
+  icon?: React.ReactNode;
   items: { canny_id: string; title: string }[];
   onItemClick: (cannyId: string) => void;
   coldStart?: boolean;
@@ -89,16 +91,25 @@ function MetricCard({
     >
       <div
         style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 28,
-          fontWeight: 500,
-          fontVariantNumeric: "tabular-nums",
-          color: "oklch(0.97 0 0)",
-          lineHeight: 1,
+          display: "flex",
+          alignItems: "center",
+          gap: 10,
           marginBottom: 4,
         }}
       >
-        {count}
+        {icon}
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: 28,
+            fontWeight: 500,
+            fontVariantNumeric: "tabular-nums",
+            color: "oklch(0.97 0 0)",
+            lineHeight: 1,
+          }}
+        >
+          {count}
+        </div>
       </div>
       <div
         style={{
@@ -967,31 +978,6 @@ export default function Dashboard({
           }}
         >
           <div>
-            <div
-              style={{
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: 1.6,
-                textTransform: "uppercase",
-                color: "oklch(0.65 0 0)",
-                marginBottom: 4,
-                display: "flex",
-                alignItems: "center",
-                gap: 8,
-              }}
-            >
-              <span
-                style={{
-                  display: "inline-block",
-                  width: 6,
-                  height: 6,
-                  borderRadius: "50%",
-                  background: "oklch(0.70 0.22 293)",
-                  boxShadow: "0 0 0 3px oklch(0.70 0.22 293 / 0.22)",
-                }}
-              />
-              Generated {weekLabel}
-            </div>
             <h1
               style={{
                 fontSize: 32,
@@ -1075,11 +1061,37 @@ export default function Dashboard({
       </section>
 
       {/* Metric cards */}
+      <div
+        style={{
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: 1.6,
+          textTransform: "uppercase",
+          color: "oklch(0.65 0 0)",
+          display: "flex",
+          alignItems: "center",
+          gap: 8,
+          marginBottom: 12,
+        }}
+      >
+        <span
+          style={{
+            display: "inline-block",
+            width: 6,
+            height: 6,
+            borderRadius: "50%",
+            background: "oklch(0.70 0.22 293)",
+            boxShadow: "0 0 0 3px oklch(0.70 0.22 293 / 0.22)",
+          }}
+        />
+        Generated {weekLabel}
+      </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         <MetricCard
           count={data.persistent_count}
           label="Persistent · 4+ weeks running"
           accentColor="oklch(0.72 0.14 75)"
+          icon={<Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
           items={data.persistent_titles}
           onItemClick={scrollToSignal}
           coldStart={isColdStart}
@@ -1088,6 +1100,7 @@ export default function Dashboard({
           count={data.new_count}
           label="New this week"
           accentColor="oklch(0.70 0.20 145)"
+          icon={<Sparkles size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
           items={data.new_titles}
           onItemClick={scrollToSignal}
           coldStart={isColdStart}
