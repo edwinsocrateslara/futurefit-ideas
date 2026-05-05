@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -274,12 +274,22 @@ function SignalRow({
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 8,
-          cursor: "grab",
+          gap: 6,
+          cursor: dragHandleListeners ? "grab" : "default",
           touchAction: "none",
           userSelect: "none",
         }}
       >
+        {dragHandleListeners && (
+          <svg width="10" height="14" viewBox="0 0 10 14" fill="none" style={{ opacity: 0.25, flexShrink: 0 }} aria-hidden>
+            <circle cx="3" cy="2.5" r="1.5" fill="currentColor"/>
+            <circle cx="7" cy="2.5" r="1.5" fill="currentColor"/>
+            <circle cx="3" cy="7" r="1.5" fill="currentColor"/>
+            <circle cx="7" cy="7" r="1.5" fill="currentColor"/>
+            <circle cx="3" cy="11.5" r="1.5" fill="currentColor"/>
+            <circle cx="7" cy="11.5" r="1.5" fill="currentColor"/>
+          </svg>
+        )}
         <span
           style={{
             fontFamily: "var(--font-mono)",
@@ -732,6 +742,9 @@ export default function Dashboard({
   const [, startTransition] = useTransition();
 
   // Drag-and-drop state
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
   const [localOrderIds, setLocalOrderIds] = useState<string[]>(
     () => data.selections.map((s) => s.canny_id)
   );
@@ -1060,28 +1073,44 @@ export default function Dashboard({
 
       {/* Tab content */}
       {activeTab === "signals" && (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={activeSignalIds} strategy={verticalListSortingStrategy}>
-            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-              {displaySignals.map((item, index) => (
-                <SortableSignalRow
-                  key={item.canny_id}
-                  item={item}
-                  displayRank={index + 1}
-                  isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
-                  doneSet={doneSet}
-                  onToggleDone={handleToggleDone}
-                  suppressNewBadge={isColdStart}
-                />
-              ))}
-              {displaySignals.length === 0 && (
-                <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
-                  All signals marked done.
-                </p>
-              )}
-            </div>
-          </SortableContext>
-        </DndContext>
+        mounted ? (
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={activeSignalIds} strategy={verticalListSortingStrategy}>
+              <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+                {displaySignals.map((item, index) => (
+                  <SortableSignalRow
+                    key={item.canny_id}
+                    item={item}
+                    displayRank={index + 1}
+                    isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
+                    doneSet={doneSet}
+                    onToggleDone={handleToggleDone}
+                    suppressNewBadge={isColdStart}
+                  />
+                ))}
+                {displaySignals.length === 0 && (
+                  <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
+                    All signals marked done.
+                  </p>
+                )}
+              </div>
+            </SortableContext>
+          </DndContext>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {displaySignals.map((item, index) => (
+              <SignalRow
+                key={item.canny_id}
+                item={item}
+                displayRank={index + 1}
+                isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
+                doneSet={doneSet}
+                onToggleDone={handleToggleDone}
+                suppressNewBadge={isColdStart}
+              />
+            ))}
+          </div>
+        )
       )}
 
       {/* Reorder confirmation modal */}
