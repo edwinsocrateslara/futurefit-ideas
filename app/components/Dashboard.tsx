@@ -787,7 +787,7 @@ export default function Dashboard({
   const [mounted, setMounted] = useState(false);
   const [confirmHovered, setConfirmHovered] = useState(false);
   const [confirmActive, setConfirmActive] = useState(false);
-  useEffect(() => setMounted(true), []);
+  useEffect(() => { setMounted(true); }, []);
 
   const [localOrderIds, setLocalOrderIds] = useState<string[]>(
     () => data.selections.map((s) => s.canny_id)
@@ -967,18 +967,22 @@ export default function Dashboard({
   return (
     <>
       {/* Header */}
-      <header style={{ marginBottom: 32 }}>
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "baseline",
-            justifyContent: "space-between",
-            gap: 16,
-            marginBottom: 8,
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+      <header
+        style={{
+          position: "sticky",
+          top: 0,
+          zIndex: 50,
+          width: "100vw",
+          marginLeft: "calc(50% - 50vw)",
+          marginBottom: 32,
+          paddingTop: 16,
+          paddingBottom: 16,
+          background: "oklch(0.145 0 0)",
+          borderBottom: "1px solid oklch(0.22 0 0)",
+        }}
+      >
+        <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 40px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
             <div style={{ width: 40, height: 40, flexShrink: 0 }}>
               <DotLottieReact src="/animations/header.json" loop autoplay />
             </div>
@@ -995,22 +999,17 @@ export default function Dashboard({
               FutureFit Ideas
             </h1>
           </div>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexWrap: "wrap",
-            alignItems: "center",
-            gap: 8,
-            fontSize: 12,
-            color: "oklch(0.65 0 0)",
-            paddingLeft: 52,
-          }}
-        >
-          {data.input_item_count != null && (
-            <span>Synthesized from {data.input_item_count} ideas</span>
-          )}
+          <div
+            style={{
+              fontSize: 12,
+              color: "oklch(0.65 0 0)",
+              paddingLeft: 52,
+            }}
+          >
+            {data.input_item_count != null && (
+              <span>Synthesized from {data.input_item_count} ideas</span>
+            )}
+          </div>
         </div>
       </header>
 
