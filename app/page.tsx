@@ -47,7 +47,7 @@ export default async function DashboardPage() {
           gap: 12,
         }}
       >
-        <span>FutureFit Signals</span>
+        <span>FutureFit Ideas</span>
       </footer>
     </main>
   );

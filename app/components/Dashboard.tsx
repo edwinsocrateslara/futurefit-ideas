@@ -968,7 +968,7 @@ export default function Dashboard({
                 margin: 0,
               }}
             >
-              FutureFit Signals
+              FutureFit Ideas
             </h1>
           </div>
         </div>
@@ -984,7 +984,7 @@ export default function Dashboard({
           }}
         >
           {data.input_item_count != null && (
-            <span>{data.input_item_count} ideas analyzed</span>
+            <span>Synthesized from {data.input_item_count} ideas</span>
           )}
         </div>
       </header>
