@@ -235,6 +235,9 @@ function SignalRow({
 }) {
   const isDone = doneSet.has(item.canny_id);
   const [copied, setCopied] = useState(false);
+  const [jiraHovered, setJiraHovered] = useState(false);
+  const [jiraActive, setJiraActive] = useState(false);
+  const [doneHovered, setDoneHovered] = useState(false);
 
   function handleCopy() {
     if (!item.jira_story) return;
@@ -384,6 +387,10 @@ function SignalRow({
             <button
               type="button"
               onClick={handleCopy}
+              onMouseEnter={() => setJiraHovered(true)}
+              onMouseLeave={() => { setJiraHovered(false); setJiraActive(false); }}
+              onMouseDown={() => setJiraActive(true)}
+              onMouseUp={() => setJiraActive(false)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -392,14 +399,18 @@ function SignalRow({
                 fontSize: 11,
                 fontWeight: 500,
                 letterSpacing: 0.2,
-                borderRadius: 9999,
-                border: copied
-                  ? "1px solid oklch(0.55 0.16 145 / 0.5)"
-                  : "1px solid oklch(1 0 0 / 0.10)",
-                background: copied ? "oklch(0.20 0.04 145)" : "transparent",
-                color: copied ? "oklch(0.70 0.20 145)" : "oklch(0.55 0 0)",
+                borderRadius: 6,
+                border: copied ? "1px solid oklch(0.55 0.16 145 / 0.5)" : "none",
+                background: copied
+                  ? "oklch(0.20 0.04 145)"
+                  : jiraActive
+                  ? "oklch(0.40 0.20 295)"
+                  : jiraHovered
+                  ? "oklch(0.50 0.20 295)"
+                  : "oklch(0.45 0.20 295)",
+                color: copied ? "oklch(0.70 0.20 145)" : "oklch(1 0 0)",
                 cursor: "pointer",
-                transition: "color 150ms, background 150ms, border-color 150ms",
+                transition: "background 120ms",
               }}
             >
               {copied ? "Copied!" : "Copy Jira Ticket"}
@@ -432,6 +443,8 @@ function SignalRow({
         <button
           type="button"
           onClick={() => onToggleDone(item)}
+          onMouseEnter={() => setDoneHovered(true)}
+          onMouseLeave={() => setDoneHovered(false)}
           title={isDone ? "Mark undone" : "Mark done"}
           style={{
             width: 28,
@@ -439,8 +452,14 @@ function SignalRow({
             borderRadius: "50%",
             border: isDone
               ? "1.5px solid oklch(0.55 0.16 145)"
+              : doneHovered
+              ? "1.5px solid oklch(0.70 0.20 145)"
               : "1.5px solid oklch(1 0 0 / 0.12)",
-            background: isDone ? "oklch(0.24 0.06 145)" : "transparent",
+            background: isDone
+              ? "oklch(0.24 0.06 145)"
+              : doneHovered
+              ? "oklch(0.70 0.20 145)"
+              : "transparent",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -455,7 +474,7 @@ function SignalRow({
             </svg>
           ) : (
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="oklch(0.40 0 0)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 6l3 3 5-5" stroke={doneHovered ? "oklch(0.15 0 0)" : "oklch(0.40 0 0)"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </button>
@@ -506,6 +525,9 @@ function EasyWinCard({
 }) {
   const isDone = doneSet.has(win.canny_id);
   const [copied, setCopied] = useState(false);
+  const [jiraHovered, setJiraHovered] = useState(false);
+  const [jiraActive, setJiraActive] = useState(false);
+  const [doneHovered, setDoneHovered] = useState(false);
 
   function handleCopy() {
     if (!win.jira_story) return;
@@ -563,6 +585,10 @@ function EasyWinCard({
             <button
               type="button"
               onClick={handleCopy}
+              onMouseEnter={() => setJiraHovered(true)}
+              onMouseLeave={() => { setJiraHovered(false); setJiraActive(false); }}
+              onMouseDown={() => setJiraActive(true)}
+              onMouseUp={() => setJiraActive(false)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -571,14 +597,18 @@ function EasyWinCard({
                 fontSize: 11,
                 fontWeight: 500,
                 letterSpacing: 0.2,
-                borderRadius: 9999,
-                border: copied
-                  ? "1px solid oklch(0.55 0.16 145 / 0.5)"
-                  : "1px solid oklch(1 0 0 / 0.10)",
-                background: copied ? "oklch(0.20 0.04 145)" : "transparent",
-                color: copied ? "oklch(0.70 0.20 145)" : "oklch(0.55 0 0)",
+                borderRadius: 6,
+                border: copied ? "1px solid oklch(0.55 0.16 145 / 0.5)" : "none",
+                background: copied
+                  ? "oklch(0.20 0.04 145)"
+                  : jiraActive
+                  ? "oklch(0.40 0.20 295)"
+                  : jiraHovered
+                  ? "oklch(0.50 0.20 295)"
+                  : "oklch(0.45 0.20 295)",
+                color: copied ? "oklch(0.70 0.20 145)" : "oklch(1 0 0)",
                 cursor: "pointer",
-                transition: "color 150ms, background 150ms, border-color 150ms",
+                transition: "background 120ms",
               }}
             >
               {copied ? "Copied!" : "Copy Jira Ticket"}
@@ -611,6 +641,8 @@ function EasyWinCard({
         <button
           type="button"
           onClick={() => onToggleDone(win)}
+          onMouseEnter={() => setDoneHovered(true)}
+          onMouseLeave={() => setDoneHovered(false)}
           title={isDone ? "Mark undone" : "Mark done"}
           style={{
             width: 28,
@@ -618,8 +650,14 @@ function EasyWinCard({
             borderRadius: "50%",
             border: isDone
               ? "1.5px solid oklch(0.55 0.16 145)"
+              : doneHovered
+              ? "1.5px solid oklch(0.70 0.20 145)"
               : "1.5px solid oklch(1 0 0 / 0.12)",
-            background: isDone ? "oklch(0.24 0.06 145)" : "transparent",
+            background: isDone
+              ? "oklch(0.24 0.06 145)"
+              : doneHovered
+              ? "oklch(0.70 0.20 145)"
+              : "transparent",
             cursor: "pointer",
             display: "flex",
             alignItems: "center",
@@ -634,7 +672,7 @@ function EasyWinCard({
             </svg>
           ) : (
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="oklch(0.40 0 0)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
+              <path d="M2 6l3 3 5-5" stroke={doneHovered ? "oklch(0.15 0 0)" : "oklch(0.40 0 0)"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
           )}
         </button>
@@ -652,6 +690,8 @@ function DoneTab({
   items: DoneItem[];
   onUnmark: (cannyId: string) => void;
 }) {
+  const [hoveredId, setHoveredId] = useState<string | null>(null);
+
   if (items.length === 0) {
     return (
       <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
@@ -702,18 +742,22 @@ function DoneTab({
           <button
             type="button"
             onClick={() => onUnmark(item.canny_id)}
+            onMouseEnter={() => setHoveredId(item.canny_id)}
+            onMouseLeave={() => setHoveredId(null)}
             title="Mark undone"
             style={{
               padding: "4px 10px",
               fontSize: 11,
               fontWeight: 500,
-              borderRadius: 9999,
-              border: "1px solid oklch(1 0 0 / 0.10)",
-              background: "transparent",
-              color: "oklch(0.55 0 0)",
+              borderRadius: 6,
+              border: hoveredId === item.canny_id
+                ? "1px solid oklch(0.70 0.20 145)"
+                : "1px solid oklch(1 0 0 / 0.10)",
+              background: hoveredId === item.canny_id ? "oklch(0.70 0.20 145)" : "transparent",
+              color: hoveredId === item.canny_id ? "oklch(0.15 0 0)" : "oklch(0.55 0 0)",
               cursor: "pointer",
               whiteSpace: "nowrap",
-              transition: "color 120ms, border-color 120ms",
+              transition: "background 150ms, border-color 150ms, color 150ms",
             }}
           >
             Undo
@@ -741,6 +785,8 @@ export default function Dashboard({
 
   // Drag-and-drop state
   const [mounted, setMounted] = useState(false);
+  const [confirmHovered, setConfirmHovered] = useState(false);
+  const [confirmActive, setConfirmActive] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const [localOrderIds, setLocalOrderIds] = useState<string[]>(
@@ -1164,7 +1210,7 @@ export default function Dashboard({
                   padding: "8px 16px",
                   fontSize: 13,
                   fontWeight: 500,
-                  borderRadius: 8,
+                  borderRadius: 6,
                   border: "1px solid oklch(1 0 0 / 0.12)",
                   background: "transparent",
                   color: "oklch(0.60 0 0)",
@@ -1176,15 +1222,24 @@ export default function Dashboard({
               <button
                 type="button"
                 onClick={handleConfirmReorder}
+                onMouseEnter={() => setConfirmHovered(true)}
+                onMouseLeave={() => { setConfirmHovered(false); setConfirmActive(false); }}
+                onMouseDown={() => setConfirmActive(true)}
+                onMouseUp={() => setConfirmActive(false)}
                 style={{
                   padding: "8px 16px",
                   fontSize: 13,
                   fontWeight: 500,
-                  borderRadius: 8,
+                  borderRadius: 6,
                   border: "none",
-                  background: "oklch(0.97 0 0)",
-                  color: "oklch(0.12 0 0)",
+                  background: confirmActive
+                    ? "oklch(0.40 0.20 295)"
+                    : confirmHovered
+                    ? "oklch(0.50 0.20 295)"
+                    : "oklch(0.45 0.20 295)",
+                  color: "oklch(1 0 0)",
                   cursor: "pointer",
+                  transition: "background 120ms",
                 }}
               >
                 Confirm
