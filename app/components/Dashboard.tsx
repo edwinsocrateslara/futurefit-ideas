@@ -201,8 +201,8 @@ function TabBar({
               borderRadius: 9999,
               border: "none",
               cursor: "pointer",
-              background: isActive ? "oklch(0.27 0 0)" : "transparent",
-              color: isActive ? "oklch(0.97 0 0)" : "oklch(0.65 0 0)",
+              background: isActive ? "oklch(0.45 0.20 295)" : "transparent",
+              color: isActive ? "oklch(1 0 0)" : "oklch(0.65 0 0)",
               transition: "background 120ms, color 120ms",
             }}
           >
