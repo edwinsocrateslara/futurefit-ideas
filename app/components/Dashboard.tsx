@@ -20,6 +20,7 @@ import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } fr
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
 import { Copy, Check, Pin, Sparkles } from "lucide-react";
+import { DotLottieReact } from "@lottiefiles/dotlottie-react";
 
 // ── Token maps ─────────────────────────────────────────────────────────────────
 
@@ -977,7 +978,10 @@ export default function Dashboard({
             marginBottom: 8,
           }}
         >
-          <div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 40, height: 40, flexShrink: 0 }}>
+              <DotLottieReact src="/animations/header.json" loop autoplay />
+            </div>
             <h1
               style={{
                 fontSize: 32,
@@ -1001,6 +1005,7 @@ export default function Dashboard({
             gap: 8,
             fontSize: 12,
             color: "oklch(0.65 0 0)",
+            paddingLeft: 52,
           }}
         >
           {data.input_item_count != null && (
