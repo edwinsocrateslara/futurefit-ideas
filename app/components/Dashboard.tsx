@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
+import { Copy, Check } from "lucide-react";
 
 // ── Token maps ─────────────────────────────────────────────────────────────────
 
@@ -236,7 +237,6 @@ function SignalRow({
   const isDone = doneSet.has(item.canny_id);
   const [copied, setCopied] = useState(false);
   const [jiraHovered, setJiraHovered] = useState(false);
-  const [jiraActive, setJiraActive] = useState(false);
   const [doneHovered, setDoneHovered] = useState(false);
 
   function handleCopy() {
@@ -388,32 +388,29 @@ function SignalRow({
               type="button"
               onClick={handleCopy}
               onMouseEnter={() => setJiraHovered(true)}
-              onMouseLeave={() => { setJiraHovered(false); setJiraActive(false); }}
-              onMouseDown={() => setJiraActive(true)}
-              onMouseUp={() => setJiraActive(false)}
+              onMouseLeave={() => setJiraHovered(false)}
+              disabled={copied}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 4,
-                padding: "3px 8px",
+                gap: 5,
+                padding: 0,
                 fontSize: 11,
                 fontWeight: 500,
                 letterSpacing: 0.2,
-                borderRadius: 6,
-                border: copied ? "1px solid oklch(0.55 0.16 145 / 0.5)" : "none",
-                background: copied
-                  ? "oklch(0.20 0.04 145)"
-                  : jiraActive
-                  ? "oklch(0.40 0.20 295)"
+                border: "none",
+                background: "transparent",
+                color: copied
+                  ? "oklch(0.70 0.20 145)"
                   : jiraHovered
-                  ? "oklch(0.50 0.20 295)"
+                  ? "oklch(0.55 0.22 295)"
                   : "oklch(0.45 0.20 295)",
-                color: copied ? "oklch(0.70 0.20 145)" : "oklch(1 0 0)",
-                cursor: "pointer",
-                transition: "background 120ms",
+                cursor: copied ? "default" : "pointer",
+                transition: "color 120ms",
               }}
             >
-              {copied ? "Copied!" : "Copy Jira Ticket"}
+              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
+              {copied ? "Copied" : "Copy Jira Ticket"}
             </button>
           )}
           {item.canny_url && (
@@ -526,7 +523,6 @@ function EasyWinCard({
   const isDone = doneSet.has(win.canny_id);
   const [copied, setCopied] = useState(false);
   const [jiraHovered, setJiraHovered] = useState(false);
-  const [jiraActive, setJiraActive] = useState(false);
   const [doneHovered, setDoneHovered] = useState(false);
 
   function handleCopy() {
@@ -586,32 +582,29 @@ function EasyWinCard({
               type="button"
               onClick={handleCopy}
               onMouseEnter={() => setJiraHovered(true)}
-              onMouseLeave={() => { setJiraHovered(false); setJiraActive(false); }}
-              onMouseDown={() => setJiraActive(true)}
-              onMouseUp={() => setJiraActive(false)}
+              onMouseLeave={() => setJiraHovered(false)}
+              disabled={copied}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: 4,
-                padding: "3px 8px",
+                gap: 5,
+                padding: 0,
                 fontSize: 11,
                 fontWeight: 500,
                 letterSpacing: 0.2,
-                borderRadius: 6,
-                border: copied ? "1px solid oklch(0.55 0.16 145 / 0.5)" : "none",
-                background: copied
-                  ? "oklch(0.20 0.04 145)"
-                  : jiraActive
-                  ? "oklch(0.40 0.20 295)"
+                border: "none",
+                background: "transparent",
+                color: copied
+                  ? "oklch(0.70 0.20 145)"
                   : jiraHovered
-                  ? "oklch(0.50 0.20 295)"
+                  ? "oklch(0.55 0.22 295)"
                   : "oklch(0.45 0.20 295)",
-                color: copied ? "oklch(0.70 0.20 145)" : "oklch(1 0 0)",
-                cursor: "pointer",
-                transition: "background 120ms",
+                cursor: copied ? "default" : "pointer",
+                transition: "color 120ms",
               }}
             >
-              {copied ? "Copied!" : "Copy Jira Ticket"}
+              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
+              {copied ? "Copied" : "Copy Jira Ticket"}
             </button>
           )}
           {win.canny_url && (
