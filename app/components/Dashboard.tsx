@@ -165,7 +165,7 @@ function TabBar({
 }) {
   const tabs: { id: TabId; label: string }[] = [
     { id: "signals",   label: "Top 10 Signals" },
-    { id: "easy-wins", label: `Easy wins · ${easyWinCount}` },
+    { id: "easy-wins", label: `Easy Wins · ${easyWinCount}` },
     { id: "patterns",  label: `Patterns · ${patternCount}` },
     { id: "done",      label: `Done · ${doneCount}` },
   ];
