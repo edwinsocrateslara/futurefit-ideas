@@ -18,15 +18,9 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
 import PatternCard from "@/app/components/PatternCard";
+import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
 
 // ── Token maps ─────────────────────────────────────────────────────────────────
-
-const BOARD_LABELS: Record<string, string> = {
-  "platform-feedback": "Platform",
-  "customer-ideas":    "Customer",
-  "market-ideas":      "Market",
-  "ux-inspiration":    "UX",
-};
 
 const BOARD_ACCENTS: Record<string, string> = {
   "platform-feedback": "oklch(0.74 0.14 245)",
@@ -38,7 +32,7 @@ const BOARD_ACCENTS: Record<string, string> = {
 // ── Atoms ──────────────────────────────────────────────────────────────────────
 
 function BoardTag({ slug }: { slug: string }) {
-  const label = BOARD_LABELS[slug] ?? slug;
+  const label = BOARD_BY_SLUG[slug]?.name ?? slug;
   const accent = BOARD_ACCENTS[slug] ?? "oklch(0.72 0 0)";
   return (
     <span
@@ -1010,12 +1004,12 @@ export default function Dashboard({
           Board breakdown
         </div>
         <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-          {Object.entries(data.board_distribution).map(([slug, count]) => {
-            const label = BOARD_LABELS[slug] ?? slug;
-            const accent = BOARD_ACCENTS[slug] ?? "oklch(0.72 0 0)";
+          {BOARDS.map((board) => {
+            const count = data.board_distribution[board.slug] ?? 0;
+            const accent = BOARD_ACCENTS[board.slug] ?? "oklch(0.72 0 0)";
             return (
               <div
-                key={slug}
+                key={board.slug}
                 style={{
                   display: "flex",
                   alignItems: "center",
@@ -1024,11 +1018,12 @@ export default function Dashboard({
                   background: "oklch(0.205 0 0)",
                   border: "1px solid oklch(1 0 0 / 0.08)",
                   borderRadius: 9999,
+                  opacity: count === 0 ? 0.45 : 1,
                 }}
               >
                 <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent }} />
                 <span style={{ fontSize: 12, fontWeight: 500, color: "oklch(0.92 0 0)" }}>
-                  {label}
+                  {board.name}
                 </span>
                 <span
                   style={{

@@ -2,6 +2,7 @@
 // node --env-file=.env.local scripts/test-connections.mjs
 
 import { createClient } from "@supabase/supabase-js";
+import { BOARDS_DATA } from "../config/boards.mjs";
 
 const REQUIRED_VARS = [
   "NEXT_PUBLIC_SUPABASE_URL",
@@ -72,12 +73,7 @@ try {
 
 // ── 3. Canny API ─────────────────────────────────────────────────────────────
 console.log("\n[3] Canny API");
-const BOARD_IDS = [
-  { id: "69dd91a6101dd51b00677e0c", name: "Customer Ideas" },
-  { id: "69dd91d2eef3251ac9c41091", name: "Market Opportunities" },
-  { id: "69dd91e37587ef995a08ef54", name: "UI/UX Inspiration" },
-  { id: "670c2bce89df784b49c2252e", name: "FutureFit AI" },
-];
+const BOARD_IDS = BOARDS_DATA.map((b) => ({ id: b.cannyId, name: b.name }));
 
 try {
   const res = await fetch("https://canny.io/api/v1/boards/list", {

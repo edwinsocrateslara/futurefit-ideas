@@ -2,15 +2,9 @@
 // node --env-file=.env.local scripts/run-sync.mjs
 
 import { createClient } from "@supabase/supabase-js";
+import { BOARDS_DATA as BOARDS } from "../config/boards.mjs";
 
 const CANNY_API_BASE = "https://canny.io/api/v1";
-
-const BOARDS = [
-  { cannyId: "69dd91a6101dd51b00677e0c", slug: "customer-ideas",   name: "Customer Ideas" },
-  { cannyId: "69dd91d2eef3251ac9c41091", slug: "market-ideas",     name: "Market Opportunities" },
-  { cannyId: "69dd91e37587ef995a08ef54", slug: "ux-inspiration",   name: "UX/UI Inspiration" },
-  { cannyId: "670c2bce89df784b49c2252e", slug: "platform-feedback",name: "FutureFit AI" },
-];
 
 const COMPLETE_STATUSES = new Set(["complete", "closed"]);
 
