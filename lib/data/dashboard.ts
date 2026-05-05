@@ -5,6 +5,7 @@ export interface DashboardSelection {
   canny_id: string;
   board_slug: string;
   board_name: string;
+  synthesis_rank: number;
   priority_rank: number;
   reason: string;
   title: string;
@@ -15,6 +16,8 @@ export interface DashboardSelection {
   weeks_in_top_10: number;
   is_new_this_week: boolean;
   is_persistent: boolean;
+  is_overridden: boolean;
+  original_rank: number | null;
 }
 
 export interface DoneItem {
@@ -68,6 +71,39 @@ export interface DashboardData {
     completed_at: string | null;
     items_processed: number;
   } | null;
+}
+
+function pinnedSort(
+  items: { canny_id: string; synthesis_rank: number }[],
+  overrides: Record<string, number>
+): { canny_id: string; effective_rank: number }[] {
+  const slots: (string | null)[] = new Array(items.length).fill(null);
+  const freeQueue: string[] = [];
+  const bySynthesis = [...items].sort((a, b) => a.synthesis_rank - b.synthesis_rank);
+
+  for (const item of bySynthesis) {
+    const nr = overrides[item.canny_id];
+    if (nr !== undefined) {
+      const slot = nr - 1;
+      if (slot >= 0 && slot < slots.length && slots[slot] === null) {
+        slots[slot] = item.canny_id;
+      } else {
+        freeQueue.push(item.canny_id);
+      }
+    }
+  }
+  for (const item of bySynthesis) {
+    if (overrides[item.canny_id] === undefined) freeQueue.push(item.canny_id);
+  }
+
+  let qi = 0;
+  for (let i = 0; i < slots.length; i++) {
+    if (slots[i] === null) slots[i] = freeQueue[qi++] ?? null;
+  }
+
+  return slots
+    .filter((id): id is string => id !== null)
+    .map((id, i) => ({ canny_id: id, effective_rank: i + 1 }));
 }
 
 export async function getDashboardData(
@@ -186,15 +222,29 @@ export async function getDashboardData(
     .limit(1)
     .single();
 
-  // Assemble selections
-  const selections: DashboardSelection[] = (selectedIdeas ?? []).map((idea) => {
+  // Ranking overrides for this week
+  const { data: overrideRows } = await supabase
+    .from("ranking_overrides")
+    .select("canny_id, original_rank, new_rank")
+    .eq("week_of", resolvedWeek);
+
+  const overrideMap: Record<string, number> = {};
+  for (const row of overrideRows ?? []) {
+    overrideMap[row.canny_id] = row.new_rank;
+  }
+
+  // Assemble selections with synthesis_rank, then apply pinned sort
+  const rawSelections = (selectedIdeas ?? []).map((idea) => {
     const board = idea.boards as unknown as { slug: string; name: string } | null;
     const weeks = weeksByCanny[idea.canny_id] ?? 1;
+    const synthesisRank = idea.selection_priority_rank ?? 0;
+    const isOverridden = overrideMap[idea.canny_id] !== undefined;
     return {
       canny_id: idea.canny_id,
       board_slug: board?.slug ?? "",
       board_name: board?.name ?? "",
-      priority_rank: idea.selection_priority_rank ?? 0,
+      synthesis_rank: synthesisRank,
+      priority_rank: synthesisRank,
       reason: idea.selection_reason ?? "",
       title: idea.title,
       vote_count: idea.vote_count,
@@ -204,8 +254,23 @@ export async function getDashboardData(
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
       is_persistent: weeks >= 4,
+      is_overridden: isOverridden,
+      original_rank: isOverridden ? synthesisRank : null,
     };
   });
+
+  const effectiveOrder = pinnedSort(
+    rawSelections.map((s) => ({ canny_id: s.canny_id, synthesis_rank: s.synthesis_rank })),
+    overrideMap
+  );
+  const effectiveRankMap: Record<string, number> = {};
+  for (const { canny_id, effective_rank } of effectiveOrder) {
+    effectiveRankMap[canny_id] = effective_rank;
+  }
+
+  const selections: DashboardSelection[] = rawSelections
+    .map((s) => ({ ...s, priority_rank: effectiveRankMap[s.canny_id] ?? s.synthesis_rank }))
+    .sort((a, b) => a.priority_rank - b.priority_rank);
 
   const board_distribution = selections.reduce<Record<string, number>>((acc, s) => {
     acc[s.board_slug] = (acc[s.board_slug] ?? 0) + 1;

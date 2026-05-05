@@ -15,7 +15,7 @@ const ROOT = join(__dirname, "..");
 
 const MODEL = "claude-sonnet-4-6";
 const TEMPERATURE = 0.3;
-const PROMPT_VERSION = "synthesis-v2.6";
+const PROMPT_VERSION = "synthesis-v2.7";
 const MAX_DESCRIPTION_CHARS = 300;
 const WEEK_OF = "2025-01-06"; // test sentinel (Monday)
 
@@ -110,7 +110,29 @@ function formatPreviousPatterns(patterns) {
     .join("\n\n");
 }
 
-function buildUserMessage(boards, strategyString, weekOf, previousPatterns = []) {
+function formatOverrideSignals(signals) {
+  if (!signals || signals.length === 0) {
+    return "(No override signals in the last 4 weeks.)";
+  }
+  const byKey = new Map();
+  for (const s of signals) {
+    const direction = s.moved_up ? "up" : "down";
+    const key = `${s.title}__${direction}`;
+    if (!byKey.has(key)) byKey.set(key, { title: s.title, direction, count: 0 });
+    byKey.get(key).count++;
+  }
+  return Array.from(byKey.values())
+    .sort((a, b) => b.count - a.count)
+    .map(({ title, direction, count }) => {
+      const dirText = direction === "up" ? "moved up" : "moved down";
+      if (count === 1) return `- '${title}' ${dirText} once (single-week signal)`;
+      const freq = count >= 3 ? "(consistent override pattern)" : "(recurring signal)";
+      return `- '${title}' ${dirText} in ${count} of 4 weeks ${freq}`;
+    })
+    .join("\n");
+}
+
+function buildUserMessage(boards, strategyString, weekOf, previousPatterns = [], overrideSignals = []) {
   const totalItems = boards.reduce((n, b) => n + b.ideas.length, 0);
   const boardsSection = boards.map(formatBoard).join("\n\n---\n\n");
 
@@ -138,6 +160,19 @@ Total: ${totalItems} items across ${boards.length} boards
 Each board has a different role. platform-feedback is the high-volume customer voice corpus from years of accumulated feedback. The other three boards (customer-ideas, market-ideas, ux-inspiration) are lower-volume curated streams — items appear there because someone on the team deliberately added them. There is no board quota. Strategic importance determines what makes the top 10 across all boards, regardless of which board an item comes from.
 
 ${boardsSection}
+
+---
+
+## PREVIOUS OVERRIDE SIGNALS (last 4 weeks)
+
+Use these signals ONLY for ranking decisions within the top 10. They should NOT influence:
+- Which items qualify for the top 10 (selection criteria stay grounded in strategy documents and feedback evidence)
+- Which patterns you detect (pattern detection stays grounded in cross-board evidence, not leadership preferences)
+- How you write reasons for selections (reasoning stays based on strategic evidence, not what leadership has previously emphasized)
+
+Override signals are leadership input on urgency weighting, not on what is strategically important. Treat them as a thumb on the scale for ranking within the top 10, not as evidence about what should be in the top 10 in the first place.
+
+${formatOverrideSignals(overrideSignals)}
 
 ---
 
@@ -534,9 +569,23 @@ const previousPatterns = (prevPatternRows ?? [])
 
 console.log(`  Previous patterns loaded: ${previousPatterns.length} (from last 4 weeks)`);
 
+// Fetch ranking override signals from last 4 weeks
+const { data: overrideHistoryRows } = await supabase
+  .from("ranking_overrides")
+  .select("canny_id, original_rank, new_rank, week_of, ideas(title)")
+  .lt("week_of", WEEK_OF)
+  .gte("week_of", fourWeeksAgo.toISOString().slice(0, 10));
+
+const overrideSignals = (overrideHistoryRows ?? []).map((row) => ({
+  title: row.ideas?.title ?? row.canny_id,
+  moved_up: row.new_rank < row.original_rank,
+  week_of: row.week_of,
+}));
+console.log(`  Override signals loaded: ${overrideSignals.length} (from last 4 weeks)`);
+
 // Build prompt
 const systemMessage = buildSystemMessage();
-const userMessage = buildUserMessage(boardGroups, strategyString, WEEK_OF, previousPatterns);
+const userMessage = buildUserMessage(boardGroups, strategyString, WEEK_OF, previousPatterns, overrideSignals);
 console.log(`  System message: ${systemMessage.length} chars`);
 console.log(`  User message:   ${userMessage.length} chars`);
 console.log("\n  Calling Claude...\n");

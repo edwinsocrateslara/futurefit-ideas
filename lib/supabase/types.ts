@@ -71,6 +71,15 @@ export interface PatternRow {
   created_at: string;
 }
 
+export interface RankingOverrideRow {
+  id: string;
+  canny_id: string;
+  week_of: string;
+  original_rank: number;
+  new_rank: number;
+  created_at: string;
+}
+
 export interface EasyWinRow {
   id: string;
   canny_id: string;

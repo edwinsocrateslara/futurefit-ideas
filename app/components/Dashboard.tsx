@@ -1,6 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import {
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  closestCenter,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+  arrayMove,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
 import PatternCard from "@/app/components/PatternCard";
 
@@ -209,14 +224,20 @@ function TabBar({
 
 function SignalRow({
   item,
+  displayRank,
+  isOverridden,
   doneSet,
   onToggleDone,
   suppressNewBadge = false,
+  dragHandleListeners,
 }: {
   item: DashboardSelection;
+  displayRank: number;
+  isOverridden: boolean;
   doneSet: Set<string>;
   onToggleDone: (item: DashboardSelection) => void;
   suppressNewBadge?: boolean;
+  dragHandleListeners?: Record<string, unknown>;
 }) {
   const isDone = doneSet.has(item.canny_id);
   const [copied, setCopied] = useState(false);
@@ -245,8 +266,20 @@ function SignalRow({
         transition: "opacity 150ms",
       }}
     >
-      {/* Rank + persistent dot */}
-      <div style={{ paddingTop: 2, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+      {/* Rank + indicators — drag handle */}
+      <div
+        {...(dragHandleListeners as React.HTMLAttributes<HTMLDivElement>)}
+        style={{
+          paddingTop: 2,
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          gap: 8,
+          cursor: "grab",
+          touchAction: "none",
+          userSelect: "none",
+        }}
+      >
         <span
           style={{
             fontFamily: "var(--font-mono)",
@@ -258,7 +291,7 @@ function SignalRow({
             letterSpacing: -0.5,
           }}
         >
-          {String(item.priority_rank).padStart(2, "0")}
+          {String(displayRank).padStart(2, "0")}
         </span>
         {item.is_persistent && (
           <span
@@ -272,6 +305,22 @@ function SignalRow({
               flexShrink: 0,
             }}
           />
+        )}
+        {isOverridden && (
+          <span
+            style={{
+              fontSize: 10,
+              color: "oklch(0.38 0 0)",
+              lineHeight: 1.2,
+              textAlign: "center",
+              whiteSpace: "normal",
+              width: "100%",
+            }}
+          >
+            Previously
+            <br />
+            #{item.synthesis_rank}
+          </span>
         )}
       </div>
 
@@ -403,6 +452,35 @@ function SignalRow({
           )}
         </button>
       </div>
+    </div>
+  );
+}
+
+// ── Sortable signal row ────────────────────────────────────────────────────────
+
+function SortableSignalRow(props: {
+  item: DashboardSelection;
+  displayRank: number;
+  isOverridden: boolean;
+  doneSet: Set<string>;
+  onToggleDone: (item: DashboardSelection) => void;
+  suppressNewBadge: boolean;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: props.item.canny_id });
+
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : undefined,
+        position: "relative",
+      }}
+    >
+      <SignalRow {...props} dragHandleListeners={listeners as Record<string, unknown>} />
     </div>
   );
 }
@@ -653,6 +731,27 @@ export default function Dashboard({
   const [doneItems, setDoneItems] = useState<DoneItem[]>(initialDoneItems);
   const [, startTransition] = useTransition();
 
+  // Drag-and-drop state
+  const [localOrderIds, setLocalOrderIds] = useState<string[]>(
+    () => data.selections.map((s) => s.canny_id)
+  );
+  const [pendingReorder, setPendingReorder] = useState<{
+    movedId: string;
+    newRank: number;
+    prevOrderIds: string[];
+  } | null>(null);
+  const [clientOverrides, setClientOverrides] = useState<Record<string, boolean>>(() => {
+    const init: Record<string, boolean> = {};
+    for (const s of data.selections) {
+      if (s.is_overridden) init[s.canny_id] = true;
+    }
+    return init;
+  });
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } })
+  );
+
   const doneSet = new Set(doneItems.map((d) => d.canny_id));
 
   async function handleToggleDone(item: DashboardSelection) {
@@ -753,8 +852,60 @@ export default function Dashboard({
     }, 50);
   }
 
-  const activeSignals = data.selections.filter((s) => !doneSet.has(s.canny_id));
+  const selectionMap = new Map(data.selections.map((s) => [s.canny_id, s]));
+  const displaySignals = localOrderIds
+    .map((id) => selectionMap.get(id))
+    .filter((s): s is DashboardSelection => s !== undefined && !doneSet.has(s.canny_id));
+  const activeSignalIds = displaySignals.map((s) => s.canny_id);
+
   const isColdStart = data.selections.length > 0 && data.new_count === data.selections.length;
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const oldIndex = localOrderIds.indexOf(active.id as string);
+    const newIndex = localOrderIds.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+
+    const newOrderIds = arrayMove(localOrderIds, oldIndex, newIndex);
+    const newRank = newIndex + 1;
+
+    setPendingReorder({ movedId: active.id as string, newRank, prevOrderIds: localOrderIds });
+    setLocalOrderIds(newOrderIds);
+  }
+
+  function handleCancelReorder() {
+    if (!pendingReorder) return;
+    setLocalOrderIds(pendingReorder.prevOrderIds);
+    setPendingReorder(null);
+  }
+
+  async function handleConfirmReorder() {
+    if (!pendingReorder) return;
+    const { movedId, newRank } = pendingReorder;
+    const item = selectionMap.get(movedId);
+    if (!item) { setPendingReorder(null); return; }
+
+    startTransition(async () => {
+      await fetch(`/api/selections/${movedId}/override`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          week_of: data.week_of,
+          original_rank: item.synthesis_rank,
+          new_rank: newRank,
+        }),
+      });
+    });
+
+    if (newRank === item.synthesis_rank) {
+      setClientOverrides((prev) => { const n = { ...prev }; delete n[movedId]; return n; });
+    } else {
+      setClientOverrides((prev) => ({ ...prev, [movedId]: true }));
+    }
+    setPendingReorder(null);
+  }
 
   return (
     <>
@@ -909,21 +1060,109 @@ export default function Dashboard({
 
       {/* Tab content */}
       {activeTab === "signals" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {activeSignals.map((item) => (
-            <SignalRow
-              key={item.canny_id}
-              item={item}
-              doneSet={doneSet}
-              onToggleDone={handleToggleDone}
-              suppressNewBadge={isColdStart}
-            />
-          ))}
-          {activeSignals.length === 0 && (
-            <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
-              All signals marked done.
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={activeSignalIds} strategy={verticalListSortingStrategy}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+              {displaySignals.map((item, index) => (
+                <SortableSignalRow
+                  key={item.canny_id}
+                  item={item}
+                  displayRank={index + 1}
+                  isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
+                  doneSet={doneSet}
+                  onToggleDone={handleToggleDone}
+                  suppressNewBadge={isColdStart}
+                />
+              ))}
+              {displaySignals.length === 0 && (
+                <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
+                  All signals marked done.
+                </p>
+              )}
+            </div>
+          </SortableContext>
+        </DndContext>
+      )}
+
+      {/* Reorder confirmation modal */}
+      {pendingReorder && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            background: "oklch(0 0 0 / 0.55)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 100,
+          }}
+        >
+          <div
+            style={{
+              background: "oklch(0.18 0 0)",
+              border: "1px solid oklch(1 0 0 / 0.12)",
+              borderRadius: 16,
+              padding: "28px 32px",
+              maxWidth: 420,
+              width: "calc(100% - 48px)",
+            }}
+          >
+            <h2
+              style={{
+                margin: "0 0 10px 0",
+                fontSize: 17,
+                fontWeight: 600,
+                letterSpacing: -0.3,
+                color: "oklch(0.97 0 0)",
+              }}
+            >
+              Reorder Top Priorities
+            </h2>
+            <p
+              style={{
+                margin: "0 0 24px 0",
+                fontSize: 14,
+                lineHeight: 1.6,
+                color: "oklch(0.68 0 0)",
+              }}
+            >
+              You&apos;re changing the priority order for this week. This will inform what gets prioritized in next week&apos;s synthesis as your team&apos;s top priorities.
             </p>
-          )}
+            <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+              <button
+                type="button"
+                onClick={handleCancelReorder}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  borderRadius: 8,
+                  border: "1px solid oklch(1 0 0 / 0.12)",
+                  background: "transparent",
+                  color: "oklch(0.60 0 0)",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmReorder}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  borderRadius: 8,
+                  border: "none",
+                  background: "oklch(0.97 0 0)",
+                  color: "oklch(0.12 0 0)",
+                  cursor: "pointer",
+                }}
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

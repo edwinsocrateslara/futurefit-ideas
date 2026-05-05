@@ -11,7 +11,7 @@ import {
   buildStrategyDocsString,
   PROMPT_VERSION,
 } from "./prompt";
-import type { BoardGroup, IdeaInput, PreviousPattern } from "./prompt";
+import type { BoardGroup, IdeaInput, OverrideSignal, PreviousPattern } from "./prompt";
 import type { SynthesisOutput } from "./schema";
 
 const MODEL = "claude-sonnet-4-6";
@@ -139,9 +139,25 @@ export async function runSynthesis(
       pattern_lineage_id: p.pattern_lineage_id!,
     }));
 
+  // Fetch ranking override signals from last 4 weeks
+  const { data: overrideHistoryRows } = await supabase
+    .from("ranking_overrides")
+    .select("canny_id, original_rank, new_rank, week_of, ideas(title)")
+    .lt("week_of", weekOf)
+    .gte("week_of", fourWeeksAgo.toISOString().slice(0, 10));
+
+  const overrideSignals: OverrideSignal[] = (overrideHistoryRows ?? []).map((row) => {
+    const idea = row.ideas as unknown as { title: string } | null;
+    return {
+      title: idea?.title ?? row.canny_id,
+      moved_up: row.new_rank < row.original_rank,
+      week_of: row.week_of,
+    };
+  });
+
   // Build prompt
   const systemMessage = buildSystemMessage();
-  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf, previousPatterns);
+  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf, previousPatterns, overrideSignals);
 
   // Call Claude
   let rawOutput: string;
