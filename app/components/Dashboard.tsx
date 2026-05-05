@@ -136,11 +136,6 @@ function MetricCard({
           ))}
         </div>
       )}
-      {coldStart && (
-        <p style={{ margin: 0, fontSize: 11, color: "oklch(0.38 0 0)", fontStyle: "italic" }}>
-          Comparison data starts next week
-        </p>
-      )}
     </div>
   );
 }
