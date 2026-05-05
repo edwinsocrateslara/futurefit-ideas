@@ -403,14 +403,14 @@ function SignalRow({
                 color: copied
                   ? "oklch(0.70 0.20 145)"
                   : jiraHovered
-                  ? "oklch(0.55 0.22 295)"
-                  : "oklch(0.45 0.20 295)",
+                  ? "oklch(1 0 0)"
+                  : "oklch(0.85 0 0)",
                 cursor: copied ? "default" : "pointer",
                 transition: "color 120ms",
               }}
             >
-              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
               {copied ? "Copied" : "Copy Jira Ticket"}
+              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
             </button>
           )}
           {item.canny_url && (
@@ -597,14 +597,14 @@ function EasyWinCard({
                 color: copied
                   ? "oklch(0.70 0.20 145)"
                   : jiraHovered
-                  ? "oklch(0.55 0.22 295)"
-                  : "oklch(0.45 0.20 295)",
+                  ? "oklch(1 0 0)"
+                  : "oklch(0.85 0 0)",
                 cursor: copied ? "default" : "pointer",
                 transition: "color 120ms",
               }}
             >
-              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
               {copied ? "Copied" : "Copy Jira Ticket"}
+              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
             </button>
           )}
           {win.canny_url && (
