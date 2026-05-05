@@ -1190,7 +1190,7 @@ export default function Dashboard({
                 color: "oklch(0.97 0 0)",
               }}
             >
-              Reorder Top Priorities
+              Reorder Idea
             </h2>
             <p
               style={{
@@ -1200,7 +1200,7 @@ export default function Dashboard({
                 color: "oklch(0.68 0 0)",
               }}
             >
-              You&apos;re changing the priority order for this week. This will inform what gets prioritized in next week&apos;s synthesis as your team&apos;s top priorities.
+              You&apos;re changing the order for this week. This will inform what gets prioritized in next week&apos;s synthesis as your team&apos;s top priorities.
             </p>
             <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
               <button
