@@ -270,6 +270,8 @@ function SignalRow({
       <div
         {...(dragHandleListeners as React.HTMLAttributes<HTMLDivElement>)}
         style={{
+          alignSelf: "stretch",
+          position: "relative",
           paddingTop: 2,
           display: "flex",
           flexDirection: "column",
@@ -281,7 +283,9 @@ function SignalRow({
         }}
       >
         {dragHandleListeners && (
-          <svg width="10" height="14" viewBox="0 0 10 14" fill="none" style={{ opacity: 0.25, flexShrink: 0 }} aria-hidden>
+          <svg width="10" height="14" viewBox="0 0 10 14" fill="none" aria-hidden
+            style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", opacity: 0.25 }}
+          >
             <circle cx="3" cy="2.5" r="1.5" fill="currentColor"/>
             <circle cx="7" cy="2.5" r="1.5" fill="currentColor"/>
             <circle cx="3" cy="7" r="1.5" fill="currentColor"/>
