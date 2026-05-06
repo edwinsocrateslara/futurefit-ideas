@@ -982,7 +982,7 @@ export default function Dashboard({
         }}
       >
         <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 40px" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 40, height: 40, flexShrink: 0 }}>
               <DotLottieReact src="/animations/header.json" loop autoplay />
             </div>
@@ -999,19 +999,34 @@ export default function Dashboard({
               FutureFit Ideas
             </h1>
           </div>
-          <div
-            style={{
-              fontSize: 12,
-              color: "oklch(0.65 0 0)",
-              paddingLeft: 52,
-            }}
-          >
-            {data.input_item_count != null && (
-              <span>Synthesized from {data.input_item_count} ideas</span>
-            )}
-          </div>
         </div>
       </header>
+
+      {/* Page title */}
+      <div style={{ marginBottom: 32 }}>
+        <h2
+          style={{
+            fontSize: 28,
+            fontWeight: 600,
+            letterSpacing: -0.4,
+            lineHeight: 1.1,
+            color: "oklch(0.985 0 0)",
+            margin: "0 0 6px 0",
+          }}
+        >
+          Synthesized Ideas{data.input_item_count != null ? ` (${data.input_item_count})` : ""}
+        </h2>
+        <p
+          style={{
+            margin: 0,
+            fontSize: 12,
+            color: "oklch(0.50 0 0)",
+            letterSpacing: 0.2,
+          }}
+        >
+          Generated {weekLabel}
+        </p>
+      </div>
 
       {/* Board distribution */}
       <section style={{ marginBottom: 32 }}>
@@ -1065,31 +1080,6 @@ export default function Dashboard({
       </section>
 
       {/* Metric cards */}
-      <div
-        style={{
-          fontSize: 11,
-          fontWeight: 600,
-          letterSpacing: 1.6,
-          textTransform: "uppercase",
-          color: "oklch(0.65 0 0)",
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: 12,
-        }}
-      >
-        <span
-          style={{
-            display: "inline-block",
-            width: 6,
-            height: 6,
-            borderRadius: "50%",
-            background: "oklch(0.70 0.22 293)",
-            boxShadow: "0 0 0 3px oklch(0.70 0.22 293 / 0.22)",
-          }}
-        />
-        Generated {weekLabel}
-      </div>
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         <MetricCard
           count={data.persistent_count}
