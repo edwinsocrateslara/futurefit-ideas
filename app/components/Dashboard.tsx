@@ -19,8 +19,9 @@ import { CSS } from "@dnd-kit/utilities";
 import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Copy, Check, Pin, Sparkles } from "lucide-react";
-import { DotLottieReact } from "@lottiefiles/dotlottie-react";
+import { Copy, Check, Pin, TrendingUp } from "lucide-react";
+import Lottie from "lottie-react";
+import headerAnimation from "@/public/animations/header.json";
 
 // ── Token maps ─────────────────────────────────────────────────────────────────
 
@@ -984,7 +985,7 @@ export default function Dashboard({
         <div style={{ maxWidth: 1320, margin: "0 auto", padding: "0 40px" }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <div style={{ width: 40, height: 40, flexShrink: 0 }}>
-              <DotLottieReact src="/animations/header.json" loop autoplay />
+              <Lottie animationData={headerAnimation} loop autoplay style={{ width: "100%", height: "100%" }} />
             </div>
             <h1
               style={{
@@ -1094,7 +1095,7 @@ export default function Dashboard({
           count={data.new_count}
           label="New this week"
           accentColor="oklch(0.70 0.20 145)"
-          icon={<Sparkles size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
+          icon={<TrendingUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
           items={data.new_titles}
           onItemClick={scrollToSignal}
           coldStart={isColdStart}
