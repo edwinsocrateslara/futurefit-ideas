@@ -18,6 +18,7 @@ export interface DashboardSelection {
   is_persistent: boolean;
   is_overridden: boolean;
   original_rank: number | null;
+  tier_1_customer: string | null;
 }
 
 export interface DoneItem {
@@ -38,6 +39,7 @@ export interface DashboardEasyWin {
   reason: string;
   jira_story: string | null;
   canny_url: string | null;
+  tier_1_customer: string | null;
 }
 
 export interface AcceptedItem {
@@ -50,6 +52,7 @@ export interface AcceptedItem {
   jira_url: string;
   jira_status: string;
   accepted_at: string;
+  tier_1_customer: string | null;
 }
 
 export interface DoneJiraItem {
@@ -63,6 +66,7 @@ export interface DoneJiraItem {
   jira_status: string;
   accepted_at: string;
   done_at: string;
+  tier_1_customer: string | null;
 }
 
 export interface DashboardPattern {
@@ -162,7 +166,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, synthesis_title, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -278,6 +282,7 @@ export async function getDashboardData(
       canny_url: idea.canny_url,
       posted_at: idea.created_at,
       jira_story: idea.jira_story,
+      tier_1_customer: idea.tier_1_customer ?? null,
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
       is_persistent: weeks >= 4,
@@ -324,12 +329,12 @@ export async function getDashboardData(
     .eq("week_of", resolvedWeek);
 
   const easyWinCannyIds = (easyWinRows ?? []).map((w) => w.canny_id);
-  const easyWinIdeaMap: Record<string, { title: string; canny_url: string | null; board_slug: string; board_name: string }> = {};
+  const easyWinIdeaMap: Record<string, { title: string; canny_url: string | null; board_slug: string; board_name: string; tier_1_customer: string | null }> = {};
 
   if (easyWinCannyIds.length > 0) {
     const { data: easyWinIdeas } = await supabase
       .from("ideas")
-      .select("canny_id, title, canny_url, boards(slug, name)")
+      .select("canny_id, title, tier_1_customer, canny_url, boards(slug, name)")
       .in("canny_id", easyWinCannyIds);
 
     for (const row of easyWinIdeas ?? []) {
@@ -339,6 +344,7 @@ export async function getDashboardData(
         canny_url: row.canny_url,
         board_slug: board?.slug ?? "",
         board_name: board?.name ?? "",
+        tier_1_customer: row.tier_1_customer ?? null,
       };
     }
   }
@@ -353,6 +359,7 @@ export async function getDashboardData(
       reason: w.reason,
       jira_story: w.jira_story,
       canny_url: idea?.canny_url ?? null,
+      tier_1_customer: idea?.tier_1_customer ?? null,
     };
   });
 
@@ -375,7 +382,7 @@ export async function getDashboardData(
     const [{ data: jiraIdeas }, { data: jiraEasyWins }] = await Promise.all([
       supabase
         .from("ideas")
-        .select("canny_id, title, selection_reason, selection_week, boards(slug, name)")
+        .select("canny_id, title, tier_1_customer, selection_reason, selection_week, boards(slug, name)")
         .in("canny_id", allJiraCannyIds),
       supabase
         .from("easy_wins")
@@ -393,6 +400,7 @@ export async function getDashboardData(
           board_name: board?.name ?? "",
           selection_reason: i.selection_reason,
           selection_week: i.selection_week,
+          tier_1_customer: i.tier_1_customer ?? null,
         }];
       })
     );
@@ -428,6 +436,7 @@ export async function getDashboardData(
         jira_url: link.jira_url,
         jira_status: link.jira_status,
         accepted_at: link.accepted_at,
+        tier_1_customer: idea.tier_1_customer,
       };
 
       if (link.done_at === null) {

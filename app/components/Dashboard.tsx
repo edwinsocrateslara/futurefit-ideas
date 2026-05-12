@@ -62,6 +62,31 @@ function BoardTag({ slug }: { slug: string }) {
   );
 }
 
+// ── Tier 1 Customer badge ──────────────────────────────────────────────────
+
+function Tier1Badge({ value }: { value: string | null | undefined }) {
+  if (!value) return null;
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "2px 8px",
+        fontSize: 11,
+        fontWeight: 600,
+        lineHeight: 1,
+        letterSpacing: 0.1,
+        borderRadius: 9999,
+        background: "oklch(0.45 0.20 295)",
+        color: "oklch(0.97 0 0)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {value}
+    </span>
+  );
+}
+
 // ── Jira status badge ──────────────────────────────────────────────────────
 
 const JIRA_STATUS_STYLES: Record<
@@ -460,6 +485,7 @@ function SignalRow({
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <BoardTag slug={item.board_slug} />
+            <Tier1Badge value={item.tier_1_customer} />
             {item.is_new_this_week && !suppressNewBadge && (
               <span
                 style={{
@@ -623,6 +649,7 @@ function EasyWinCard({
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <BoardTag slug={win.board_slug} />
+            <Tier1Badge value={win.tier_1_customer} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
             {win.jira_story && (
@@ -728,6 +755,7 @@ function AcceptedTab({ items }: { items: AcceptedItem[] }) {
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             <BoardTag slug={item.board_slug} />
             <JiraStatusBadge status={item.jira_status} />
+            <Tier1Badge value={item.tier_1_customer} />
           </div>
           <p
             style={{
@@ -806,6 +834,7 @@ function JiraDoneTab({ items }: { items: DoneJiraItem[] }) {
           <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
             <BoardTag slug={item.board_slug} />
             <JiraStatusBadge status={item.jira_status} />
+            <Tier1Badge value={item.tier_1_customer} />
           </div>
           <p
             style={{
@@ -1006,6 +1035,7 @@ export default function Dashboard({
         jira_url: result.url,
         jira_status: result.status,
         accepted_at: new Date().toISOString(),
+        tier_1_customer: item.tier_1_customer,
       },
       ...prev,
     ]);

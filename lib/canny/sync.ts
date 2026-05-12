@@ -6,6 +6,8 @@ import type { CannyPost } from "./client";
 // Canny statuses that mean the item is done — filter these out at sync time
 const COMPLETE_STATUSES = new Set(["complete", "closed"]);
 
+const TIER_1_CUSTOMER_FIELD_ID = "6a036c6f71be4b65f43a7fb0";
+
 export interface SyncResult {
   syncRunId: string;
   added: number;
@@ -87,6 +89,7 @@ export async function runSync(): Promise<SyncResult> {
           created_at: post.created,
           removed_at: null,
           updated_at: new Date().toISOString(),
+          tier_1_customer: post.customFields?.find(f => f.id === TIER_1_CUSTOMER_FIELD_ID)?.value ?? null,
         };
 
         // Upsert by canny_id

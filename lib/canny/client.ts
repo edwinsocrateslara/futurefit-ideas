@@ -12,6 +12,7 @@ export interface CannyPost {
   board: { id: string; name: string };
   status: string;
   tags: Array<{ id: string; name: string }>;
+  customFields?: Array<{ id: string; name: string; value: string | null }>;
 }
 
 interface CannyPostsResponse {

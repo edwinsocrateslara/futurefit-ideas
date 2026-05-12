@@ -1,0 +1,2 @@
+ALTER TABLE ideas
+  ADD COLUMN IF NOT EXISTS tier_1_customer TEXT NULL;
