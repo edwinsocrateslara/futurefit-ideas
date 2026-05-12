@@ -1,0 +1,2 @@
+ALTER TABLE jira_links
+  ADD COLUMN IF NOT EXISTS canny_closed_at TIMESTAMPTZ NULL;

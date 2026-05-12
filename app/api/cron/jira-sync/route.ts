@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { getIssueStatus } from "@/lib/jira/client";
 import { getJiraConfig } from "@/config/jira";
+import { closePost } from "@/lib/canny/client";
+import { CANNY_DONE_STATUS, CANNY_NOTIFY_VOTERS, CANNY_CHANGER_ID, buildCloseMessage } from "@/config/canny";
 
 export const dynamic = "force-dynamic";
 
@@ -23,14 +25,14 @@ export async function GET(request: Request) {
 
   const { data: links, error: fetchError } = await supabase
     .from("jira_links")
-    .select("id, canny_id, jira_issue_key, jira_status, done_at");
+    .select("id, canny_id, jira_issue_key, jira_status, done_at, canny_closed_at");
 
   if (fetchError) {
     console.error("[jira-sync] Failed to fetch jira_links:", fetchError.message);
     return NextResponse.json({ error: fetchError.message }, { status: 500 });
   }
 
-  const counts = { total: links?.length ?? 0, updated: 0, toDone: 0, toAccepted: 0, errors: 0 };
+  const counts = { total: links?.length ?? 0, updated: 0, toDone: 0, toAccepted: 0, cannyClosed: 0, errors: 0 };
 
   for (const link of links ?? []) {
     try {
@@ -51,6 +53,25 @@ export async function GET(request: Request) {
         // Reverse: Done → Accepted (ticket reopened or status corrected)
         update.done_at = null;
         counts.toAccepted++;
+      }
+
+      // Close Canny post when newly done and not yet closed
+      if (isDoneStatus && link.canny_closed_at === null) {
+        try {
+          await closePost(
+            link.canny_id,
+            CANNY_DONE_STATUS,
+            CANNY_CHANGER_ID,
+            CANNY_NOTIFY_VOTERS,
+            buildCloseMessage(link.jira_issue_key)
+          );
+          update.canny_closed_at = new Date().toISOString();
+          counts.cannyClosed++;
+        } catch (cannyErr) {
+          const msg = cannyErr instanceof Error ? cannyErr.message : String(cannyErr);
+          console.error(`[jira-sync] Canny close failed for ${link.jira_issue_key} (${link.canny_id}):`, msg);
+          // Do not set canny_closed_at — will retry on next poll
+        }
       }
 
       const { error: updateError } = await supabase

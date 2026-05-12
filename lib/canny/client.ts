@@ -88,3 +88,27 @@ export async function fetchBoardPostsSince(
   const all = await fetchBoardPosts(boardId);
   return all.filter((p) => new Date(p.created) >= since);
 }
+
+// Close a Canny post: change status to "complete" then post a comment.
+// Throws if either call fails — caller should only record canny_closed_at on success.
+export async function closePost(
+  postId: string,
+  status: string,
+  changerId: string,
+  notifyVoters: boolean,
+  comment: string
+): Promise<void> {
+  await cannyRequest("/posts/change_status", {
+    postID: postId,
+    status,
+    changerID: changerId,
+    shouldNotifyVoters: notifyVoters,
+  });
+
+  await cannyRequest("/comments/create", {
+    authorID: changerId,
+    postID: postId,
+    value: comment,
+    shouldNotifyVoters: notifyVoters,
+  });
+}
