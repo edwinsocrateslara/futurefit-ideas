@@ -7,10 +7,11 @@ export const AnglesSchema = z.object({
   possibilities: z.array(z.string().min(1)).min(3).max(5),
 });
 
-// Flat selection — canny_id, rank, and strategic reason only
+// Flat selection — canny_id, rank, dashboard title, and strategic reason
 export const SelectionSchema = z.object({
   canny_id: z.string(),
   priority_rank: z.number().int().min(1).max(10),
+  title: z.string().min(1),
   reason: z.string().min(1),
   jira_story: z.string().min(1),
 });
@@ -27,6 +28,7 @@ export const PatternSchema = z.object({
 // Easy win — shippable in a sprint, solution obvious from feedback
 export const EasyWinSchema = z.object({
   canny_id: z.string().min(1),
+  title: z.string().min(1),
   reason: z.string().min(1),
   jira_story: z.string().min(1),
 });

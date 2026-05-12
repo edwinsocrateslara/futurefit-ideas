@@ -40,6 +40,31 @@ export interface DashboardEasyWin {
   canny_url: string | null;
 }
 
+export interface AcceptedItem {
+  canny_id: string;
+  title: string;
+  board_slug: string;
+  board_name: string;
+  reason: string;
+  jira_issue_key: string;
+  jira_url: string;
+  jira_status: string;
+  accepted_at: string;
+}
+
+export interface DoneJiraItem {
+  canny_id: string;
+  title: string;
+  board_slug: string;
+  board_name: string;
+  reason: string;
+  jira_issue_key: string;
+  jira_url: string;
+  jira_status: string;
+  accepted_at: string;
+  done_at: string;
+}
+
 export interface DashboardPattern {
   id: string;
   title: string;
@@ -61,6 +86,8 @@ export interface DashboardData {
   selections: DashboardSelection[];
   patterns: DashboardPattern[];
   easy_wins: DashboardEasyWin[];
+  accepted_items: AcceptedItem[];
+  done_jira_items: DoneJiraItem[];
   persistent_count: number;
   new_count: number;
   persistent_titles: { canny_id: string; title: string }[];
@@ -135,7 +162,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -246,7 +273,7 @@ export async function getDashboardData(
       synthesis_rank: synthesisRank,
       priority_rank: synthesisRank,
       reason: idea.selection_reason ?? "",
-      title: idea.title,
+      title: idea.synthesis_title ?? idea.title,
       vote_count: idea.vote_count,
       canny_url: idea.canny_url,
       posted_at: idea.created_at,
@@ -293,7 +320,7 @@ export async function getDashboardData(
   // Easy wins
   const { data: easyWinRows } = await supabase
     .from("easy_wins")
-    .select("canny_id, reason, jira_story")
+    .select("canny_id, reason, jira_story, synthesis_title")
     .eq("week_of", resolvedWeek);
 
   const easyWinCannyIds = (easyWinRows ?? []).map((w) => w.canny_id);
@@ -320,7 +347,7 @@ export async function getDashboardData(
     const idea = easyWinIdeaMap[w.canny_id];
     return {
       canny_id: w.canny_id,
-      title: idea?.title ?? "",
+      title: w.synthesis_title ?? idea?.title ?? "",
       board_slug: idea?.board_slug ?? "",
       board_name: idea?.board_name ?? "",
       reason: w.reason,
@@ -329,8 +356,94 @@ export async function getDashboardData(
     };
   });
 
-  const persistentSelections = selections.filter((s) => s.is_persistent);
-  const newSelections = selections.filter((s) => s.is_new_this_week);
+  // All Jira-linked items — both active (done_at IS NULL) and done (done_at IS NOT NULL).
+  // Fetching all rows so we can filter surfaced lists correctly regardless of done state.
+  const { data: allJiraLinks } = await supabase
+    .from("jira_links")
+    .select("canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at")
+    .order("accepted_at", { ascending: false });
+
+  // All Jira-tracked IDs suppress items from Top 10 / Easy Wins — Jira owns their state now.
+  const jiraTrackedIds = new Set((allJiraLinks ?? []).map((j) => j.canny_id));
+
+  const acceptedItems: AcceptedItem[] = [];
+  const doneJiraItems: DoneJiraItem[] = [];
+
+  if (allJiraLinks && allJiraLinks.length > 0) {
+    const allJiraCannyIds = allJiraLinks.map((j) => j.canny_id);
+
+    const [{ data: jiraIdeas }, { data: jiraEasyWins }] = await Promise.all([
+      supabase
+        .from("ideas")
+        .select("canny_id, title, selection_reason, selection_week, boards(slug, name)")
+        .in("canny_id", allJiraCannyIds),
+      supabase
+        .from("easy_wins")
+        .select("canny_id, reason, week_of")
+        .in("canny_id", allJiraCannyIds)
+        .order("week_of", { ascending: false }),
+    ]);
+
+    const ideaMap = new Map(
+      (jiraIdeas ?? []).map((i) => {
+        const board = i.boards as unknown as { slug: string; name: string } | null;
+        return [i.canny_id, {
+          title: i.title,
+          board_slug: board?.slug ?? "",
+          board_name: board?.name ?? "",
+          selection_reason: i.selection_reason,
+          selection_week: i.selection_week,
+        }];
+      })
+    );
+
+    // Most recent easy_win reason per canny_id (rows already desc by week_of)
+    const easyWinReasonMap = new Map<string, { reason: string; week_of: string }>();
+    for (const row of jiraEasyWins ?? []) {
+      if (!easyWinReasonMap.has(row.canny_id)) {
+        easyWinReasonMap.set(row.canny_id, { reason: row.reason, week_of: row.week_of });
+      }
+    }
+
+    for (const link of allJiraLinks) {
+      const idea = ideaMap.get(link.canny_id);
+      if (!idea) continue;
+
+      // Same date comparison as the accept route: prefer the more recently generated reason
+      const ideasWeek = idea.selection_week ?? "";
+      const easyWinData = easyWinReasonMap.get(link.canny_id);
+      const easyWinWeek = easyWinData?.week_of ?? "";
+      const reason =
+        easyWinWeek >= ideasWeek
+          ? (easyWinData?.reason ?? idea.selection_reason ?? "")
+          : (idea.selection_reason ?? "");
+
+      const base = {
+        canny_id: link.canny_id,
+        title: idea.title,
+        board_slug: idea.board_slug,
+        board_name: idea.board_name,
+        reason,
+        jira_issue_key: link.jira_issue_key,
+        jira_url: link.jira_url,
+        jira_status: link.jira_status,
+        accepted_at: link.accepted_at,
+      };
+
+      if (link.done_at === null) {
+        acceptedItems.push(base);
+      } else {
+        doneJiraItems.push({ ...base, done_at: link.done_at });
+      }
+    }
+  }
+
+  // Filter all Jira-tracked items from surfaced lists — Jira owns their state from here
+  const surfacedSelections = selections.filter((s) => !jiraTrackedIds.has(s.canny_id));
+  const surfacedEasyWins = easy_wins.filter((w) => !jiraTrackedIds.has(w.canny_id));
+
+  const persistentSelections = surfacedSelections.filter((s) => s.is_persistent);
+  const newSelections = surfacedSelections.filter((s) => s.is_new_this_week);
 
   return {
     data: {
@@ -341,9 +454,11 @@ export async function getDashboardData(
       duration_ms: promptRun?.duration_ms ?? null,
       input_item_count: promptRun?.input_item_count ?? null,
       board_distribution,
-      selections,
+      selections: surfacedSelections,
       patterns,
-      easy_wins,
+      easy_wins: surfacedEasyWins,
+      accepted_items: acceptedItems,
+      done_jira_items: doneJiraItems,
       persistent_count: persistentSelections.length,
       new_count: newSelections.length,
       persistent_titles: persistentSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),

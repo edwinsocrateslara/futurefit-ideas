@@ -1,0 +1,2 @@
+ALTER TABLE ideas
+  ADD COLUMN IF NOT EXISTS synthesis_title TEXT;

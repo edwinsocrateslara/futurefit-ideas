@@ -16,10 +16,11 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { DashboardData, DashboardEasyWin, DashboardSelection, DoneItem } from "@/lib/data/dashboard";
+import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem } from "@/lib/data/dashboard";
+import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Copy, Check, Pin, TrendingUp } from "lucide-react";
+import { Pin, TrendingUp } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -57,6 +58,118 @@ function BoardTag({ slug }: { slug: string }) {
     >
       <span style={{ width: 6, height: 6, borderRadius: "50%", background: accent }} />
       {label}
+    </span>
+  );
+}
+
+// ── Jira status badge ──────────────────────────────────────────────────────
+
+const JIRA_STATUS_STYLES: Record<
+  "open" | "in-progress" | "on-hold",
+  { bg: string; color: string; border: string }
+> = {
+  "open":        { bg: "oklch(0.20 0 0)",        color: "oklch(0.62 0 0)",        border: "oklch(1 0 0 / 0.10)" },
+  "in-progress": { bg: "oklch(0.20 0.05 295)",   color: "oklch(0.72 0.18 295)",   border: "oklch(0.72 0.18 295 / 0.30)" },
+  "on-hold":     { bg: "oklch(0.20 0.05 75)",    color: "oklch(0.78 0.14 75)",    border: "oklch(0.78 0.14 75 / 0.30)" },
+};
+
+function JiraStatusBadge({ status }: { status: string }) {
+  const category = JIRA_STATUS_CATEGORY[status];
+  const style = (category && JIRA_STATUS_STYLES[category]) ?? JIRA_STATUS_STYLES["open"];
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "2px 8px",
+        fontSize: 11,
+        fontWeight: 500,
+        lineHeight: 1,
+        letterSpacing: 0.1,
+        borderRadius: 9999,
+        background: style.bg,
+        color: style.color,
+        border: `1px solid ${style.border}`,
+        whiteSpace: "nowrap",
+      }}
+    >
+      {status}
+    </span>
+  );
+}
+
+// ── Accept button ──────────────────────────────────────────────────────────
+
+interface JiraAcceptResult {
+  key: string;
+  url: string;
+  status: string;
+}
+
+function AcceptButton({
+  cannyId,
+  onSuccess,
+}: {
+  cannyId: string;
+  onSuccess: (cannyId: string, result: JiraAcceptResult) => void;
+}) {
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [hovered, setHovered] = useState(false);
+
+  async function handleClick() {
+    setLoading(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/ideas/${cannyId}/accept`, { method: "POST" });
+      const data = await res.json() as JiraAcceptResult & { error?: string };
+      if (!res.ok) {
+        setError(data.error ?? "Failed to create ticket");
+      } else {
+        onSuccess(cannyId, { key: data.key, url: data.url, status: data.status });
+      }
+    } catch {
+      setError("Network error — try again");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 8 }}>
+      <button
+        type="button"
+        onClick={handleClick}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        disabled={loading}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          padding: "4px 10px",
+          fontSize: 11,
+          fontWeight: 600,
+          letterSpacing: 0.2,
+          borderRadius: 6,
+          border: "none",
+          background: loading
+            ? "oklch(0.35 0.15 295)"
+            : hovered
+            ? "oklch(0.50 0.20 295)"
+            : "oklch(0.45 0.20 295)",
+          color: "oklch(1 0 0)",
+          cursor: loading ? "default" : "pointer",
+          transition: "background 120ms",
+          whiteSpace: "nowrap",
+        }}
+      >
+        {loading ? "Accepting…" : "Accept"}
+      </button>
+      {error && (
+        <span style={{ fontSize: 11, color: "oklch(0.65 0.20 25)", lineHeight: 1.3 }}>
+          {error}
+        </span>
+      )}
     </span>
   );
 }
@@ -155,13 +268,15 @@ function MetricCard({
 
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
-type TabId = "signals" | "easy-wins" | "patterns" | "done";
+type TabId = "signals" | "easy-wins" | "patterns" | "accepted" | "deferred" | "done";
 
 function TabBar({
   active,
   signalCount,
   easyWinCount,
   patternCount,
+  acceptedCount,
+  deferredCount,
   doneCount,
   onSelect,
 }: {
@@ -169,6 +284,8 @@ function TabBar({
   signalCount: number;
   easyWinCount: number;
   patternCount: number;
+  acceptedCount: number;
+  deferredCount: number;
   doneCount: number;
   onSelect: (id: TabId) => void;
 }) {
@@ -176,6 +293,8 @@ function TabBar({
     { id: "signals",   label: "Top 10 Signals" },
     { id: "easy-wins", label: `Easy Wins · ${easyWinCount}` },
     { id: "patterns",  label: `Patterns · ${patternCount}` },
+    { id: "accepted",  label: `Accepted · ${acceptedCount}` },
+    { id: "deferred",  label: `Deferred · ${deferredCount}` },
     { id: "done",      label: `Done · ${doneCount}` },
   ];
 
@@ -231,6 +350,7 @@ function SignalRow({
   isOverridden,
   doneSet,
   onToggleDone,
+  onAccepted,
   suppressNewBadge = false,
   dragHandleListeners,
 }: {
@@ -239,28 +359,19 @@ function SignalRow({
   isOverridden: boolean;
   doneSet: Set<string>;
   onToggleDone: (item: DashboardSelection) => void;
+  onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   suppressNewBadge?: boolean;
   dragHandleListeners?: Record<string, unknown>;
 }) {
   const isDone = doneSet.has(item.canny_id);
-  const [copied, setCopied] = useState(false);
-  const [jiraHovered, setJiraHovered] = useState(false);
-  const [doneHovered, setDoneHovered] = useState(false);
-
-  function handleCopy() {
-    if (!item.jira_story) return;
-    navigator.clipboard.writeText(item.jira_story).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
+  const [deferHovered, setDeferHovered] = useState(false);
 
   return (
     <div
       id={`signal-${item.canny_id}`}
       style={{
         display: "grid",
-        gridTemplateColumns: "44px 1fr auto",
+        gridTemplateColumns: "44px 1fr",
         gap: 20,
         padding: "20px 24px",
         background: "oklch(0.18 0 0)",
@@ -345,27 +456,58 @@ function SignalRow({
 
       {/* Content */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-          <BoardTag slug={item.board_slug} />
-          {item.is_new_this_week && !suppressNewBadge && (
-            <span
+        {/* Top row: board chip + badges left, action buttons right */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <BoardTag slug={item.board_slug} />
+            {item.is_new_this_week && !suppressNewBadge && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "2px 6px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  letterSpacing: 0.1,
+                  borderRadius: 9999,
+                  background: "oklch(0.20 0.06 145)",
+                  color: "oklch(0.72 0.18 145)",
+                  border: "1px solid oklch(0.72 0.18 145 / 0.25)",
+                }}
+              >
+                New
+              </span>
+            )}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+            {item.jira_story && (
+              <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
+            )}
+            <button
+              type="button"
+              onClick={() => onToggleDone(item)}
+              onMouseEnter={() => setDeferHovered(true)}
+              onMouseLeave={() => setDeferHovered(false)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                padding: "2px 6px",
+                padding: "4px 10px",
                 fontSize: 11,
                 fontWeight: 600,
-                lineHeight: 1,
-                letterSpacing: 0.1,
-                borderRadius: 9999,
-                background: "oklch(0.20 0.06 145)",
-                color: "oklch(0.72 0.18 145)",
-                border: "1px solid oklch(0.72 0.18 145 / 0.25)",
+                letterSpacing: 0.2,
+                borderRadius: 6,
+                border: `1px solid ${deferHovered ? "oklch(0.45 0 0)" : "oklch(0.35 0 0)"}`,
+                background: deferHovered ? "oklch(0.20 0 0)" : "transparent",
+                color: "oklch(0.85 0 0)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background 120ms, border-color 120ms",
               }}
             >
-              New
-            </span>
-          )}
+              {isDone ? "Undo" : "Defer"}
+            </button>
+          </div>
         </div>
         <p
           style={{
@@ -390,99 +532,25 @@ function SignalRow({
         >
           {item.reason}
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          {item.jira_story && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              onMouseEnter={() => setJiraHovered(true)}
-              onMouseLeave={() => setJiraHovered(false)}
-              disabled={copied}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: 0,
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: 0.2,
-                border: "none",
-                background: "transparent",
-                color: copied
-                  ? "oklch(0.70 0.20 145)"
-                  : jiraHovered
-                  ? "oklch(1 0 0)"
-                  : "oklch(0.85 0 0)",
-                cursor: copied ? "default" : "pointer",
-                transition: "color 120ms",
-              }}
-            >
-              {copied ? "Copied" : "Copy Jira Ticket"}
-              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
-            </button>
-          )}
-          {item.canny_url && (
-            <a
-              href={item.canny_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="canny-link"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 11,
-                color: "oklch(0.55 0 0)",
-                textDecoration: "none",
-                letterSpacing: 0.2,
-              }}
-            >
-              View in Canny →
-            </a>
-          )}
-        </div>
-      </div>
-
-      {/* Done toggle */}
-      <div style={{ paddingTop: 2 }}>
-        <button
-          type="button"
-          onClick={() => onToggleDone(item)}
-          onMouseEnter={() => setDoneHovered(true)}
-          onMouseLeave={() => setDoneHovered(false)}
-          title={isDone ? "Mark undone" : "Mark done"}
-          style={{
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            border: isDone
-              ? "1.5px solid oklch(0.55 0.16 145)"
-              : doneHovered
-              ? "1.5px solid oklch(0.70 0.20 145)"
-              : "1.5px solid oklch(1 0 0 / 0.12)",
-            background: isDone
-              ? "oklch(0.24 0.06 145)"
-              : doneHovered
-              ? "oklch(0.70 0.20 145)"
-              : "transparent",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            transition: "border-color 150ms, background 150ms",
-          }}
-        >
-          {isDone ? (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="oklch(0.70 0.20 145)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          ) : (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke={doneHovered ? "oklch(0.15 0 0)" : "oklch(0.40 0 0)"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          )}
-        </button>
+        {item.canny_url && (
+          <a
+            href={item.canny_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="canny-link"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              color: "oklch(0.55 0 0)",
+              textDecoration: "none",
+              letterSpacing: 0.2,
+            }}
+          >
+            View in Canny →
+          </a>
+        )}
       </div>
     </div>
   );
@@ -496,6 +564,7 @@ function SortableSignalRow(props: {
   isOverridden: boolean;
   doneSet: Set<string>;
   onToggleDone: (item: DashboardSelection) => void;
+  onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   suppressNewBadge: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -512,7 +581,7 @@ function SortableSignalRow(props: {
         position: "relative",
       }}
     >
-      <SignalRow {...props} dragHandleListeners={listeners as Record<string, unknown>} />
+      <SignalRow {...props} dragHandleListeners={listeners as Record<string, unknown>} onAccepted={props.onAccepted} />
     </div>
   );
 }
@@ -523,29 +592,21 @@ function EasyWinCard({
   win,
   doneSet,
   onToggleDone,
+  onAccepted,
 }: {
   win: DashboardEasyWin;
   doneSet: Set<string>;
   onToggleDone: (win: DashboardEasyWin) => void;
+  onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
 }) {
   const isDone = doneSet.has(win.canny_id);
-  const [copied, setCopied] = useState(false);
-  const [jiraHovered, setJiraHovered] = useState(false);
-  const [doneHovered, setDoneHovered] = useState(false);
-
-  function handleCopy() {
-    if (!win.jira_story) return;
-    navigator.clipboard.writeText(win.jira_story).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
+  const [deferHovered, setDeferHovered] = useState(false);
 
   return (
     <div
       style={{
         display: "grid",
-        gridTemplateColumns: "1fr auto",
+        gridTemplateColumns: "1fr",
         gap: 20,
         padding: "20px 24px",
         background: "oklch(0.18 0 0)",
@@ -558,8 +619,39 @@ function EasyWinCard({
     >
       {/* Content */}
       <div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-          <BoardTag slug={win.board_slug} />
+        {/* Top row: board chip left, action buttons right */}
+        <div style={{ display: "flex", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <BoardTag slug={win.board_slug} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+            {win.jira_story && (
+              <AcceptButton cannyId={win.canny_id} onSuccess={onAccepted} />
+            )}
+            <button
+              type="button"
+              onClick={() => onToggleDone(win)}
+              onMouseEnter={() => setDeferHovered(true)}
+              onMouseLeave={() => setDeferHovered(false)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "4px 10px",
+                fontSize: 11,
+                fontWeight: 600,
+                letterSpacing: 0.2,
+                borderRadius: 6,
+                border: `1px solid ${deferHovered ? "oklch(0.45 0 0)" : "oklch(0.35 0 0)"}`,
+                background: deferHovered ? "oklch(0.20 0 0)" : "transparent",
+                color: "oklch(0.85 0 0)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background 120ms, border-color 120ms",
+              }}
+            >
+              {isDone ? "Undo" : "Defer"}
+            </button>
+          </div>
         </div>
         <p
           style={{
@@ -584,100 +676,181 @@ function EasyWinCard({
         >
           {win.reason}
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
-          {win.jira_story && (
-            <button
-              type="button"
-              onClick={handleCopy}
-              onMouseEnter={() => setJiraHovered(true)}
-              onMouseLeave={() => setJiraHovered(false)}
-              disabled={copied}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 5,
-                padding: 0,
-                fontSize: 11,
-                fontWeight: 500,
-                letterSpacing: 0.2,
-                border: "none",
-                background: "transparent",
-                color: copied
-                  ? "oklch(0.70 0.20 145)"
-                  : jiraHovered
-                  ? "oklch(1 0 0)"
-                  : "oklch(0.85 0 0)",
-                cursor: copied ? "default" : "pointer",
-                transition: "color 120ms",
-              }}
-            >
-              {copied ? "Copied" : "Copy Jira Ticket"}
-              {copied ? <Check size={13} strokeWidth={2.5} /> : <Copy size={13} strokeWidth={2} />}
-            </button>
-          )}
-          {win.canny_url && (
-            <a
-              href={win.canny_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="canny-link"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 11,
-                color: "oklch(0.55 0 0)",
-                textDecoration: "none",
-                letterSpacing: 0.2,
-              }}
-            >
-              View in Canny →
-            </a>
-          )}
-        </div>
+        {win.canny_url && (
+          <a
+            href={win.canny_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="canny-link"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              color: "oklch(0.55 0 0)",
+              textDecoration: "none",
+              letterSpacing: 0.2,
+            }}
+          >
+            View in Canny →
+          </a>
+        )}
       </div>
+    </div>
+  );
+}
 
-      {/* Done toggle */}
-      <div style={{ paddingTop: 2 }}>
-        <button
-          type="button"
-          onClick={() => onToggleDone(win)}
-          onMouseEnter={() => setDoneHovered(true)}
-          onMouseLeave={() => setDoneHovered(false)}
-          title={isDone ? "Mark undone" : "Mark done"}
+// ── Accepted tab ──────────────────────────────────────────────────────────────
+
+function AcceptedTab({ items }: { items: AcceptedItem[] }) {
+  if (items.length === 0) {
+    return (
+      <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
+        No accepted ideas yet. Click Accept on any signal or easy win to create a Jira ticket.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {items.map((item) => (
+        <div
+          key={item.canny_id}
           style={{
-            width: 28,
-            height: 28,
-            borderRadius: "50%",
-            border: isDone
-              ? "1.5px solid oklch(0.55 0.16 145)"
-              : doneHovered
-              ? "1.5px solid oklch(0.70 0.20 145)"
-              : "1.5px solid oklch(1 0 0 / 0.12)",
-            background: isDone
-              ? "oklch(0.24 0.06 145)"
-              : doneHovered
-              ? "oklch(0.70 0.20 145)"
-              : "transparent",
-            cursor: "pointer",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            flexShrink: 0,
-            transition: "border-color 150ms, background 150ms",
+            display: "grid",
+            gridTemplateColumns: "1fr",
+            padding: "20px 24px",
+            background: "oklch(0.18 0 0)",
+            border: "1px solid oklch(1 0 0 / 0.08)",
+            borderRadius: 12,
           }}
         >
-          {isDone ? (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke="oklch(0.70 0.20 145)" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          ) : (
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path d="M2 6l3 3 5-5" stroke={doneHovered ? "oklch(0.15 0 0)" : "oklch(0.40 0 0)"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+            <BoardTag slug={item.board_slug} />
+            <JiraStatusBadge status={item.jira_status} />
+          </div>
+          <p
+            style={{
+              margin: "0 0 8px 0",
+              fontSize: 16,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              color: "oklch(0.97 0 0)",
+              letterSpacing: -0.2,
+              textWrap: "pretty",
+            }}
+          >
+            {item.title}
+          </p>
+          {item.reason && (
+            <p
+              style={{
+                margin: "0 0 8px 0",
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: "oklch(0.85 0 0)",
+                textWrap: "pretty",
+              }}
+            >
+              {item.reason}
+            </p>
           )}
-        </button>
-      </div>
+          <a
+            href={item.jira_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              color: "oklch(0.55 0 0)",
+              textDecoration: "none",
+              letterSpacing: 0.2,
+            }}
+          >
+            {item.jira_issue_key} · View in Jira →
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+// ── Jira done tab ─────────────────────────────────────────────────────────────
+
+function JiraDoneTab({ items }: { items: DoneJiraItem[] }) {
+  if (items.length === 0) {
+    return (
+      <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
+        No tickets have reached a done-equivalent status yet.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+      {items.map((item) => (
+        <div
+          key={item.canny_id}
+          style={{
+            display: "grid",
+            gridTemplateColumns: "1fr",
+            padding: "20px 24px",
+            background: "oklch(0.18 0 0)",
+            border: "1px solid oklch(1 0 0 / 0.08)",
+            borderRadius: 12,
+            opacity: 0.75,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
+            <BoardTag slug={item.board_slug} />
+            <JiraStatusBadge status={item.jira_status} />
+          </div>
+          <p
+            style={{
+              margin: "0 0 8px 0",
+              fontSize: 16,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              color: "oklch(0.97 0 0)",
+              letterSpacing: -0.2,
+              textWrap: "pretty",
+            }}
+          >
+            {item.title}
+          </p>
+          {item.reason && (
+            <p
+              style={{
+                margin: "0 0 8px 0",
+                fontSize: 13,
+                lineHeight: 1.6,
+                color: "oklch(0.85 0 0)",
+                textWrap: "pretty",
+              }}
+            >
+              {item.reason}
+            </p>
+          )}
+          <a
+            href={item.jira_url}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: 4,
+              fontSize: 11,
+              color: "oklch(0.55 0 0)",
+              textDecoration: "none",
+              letterSpacing: 0.2,
+            }}
+          >
+            {item.jira_issue_key} · View in Jira →
+          </a>
+        </div>
+      ))}
     </div>
   );
 }
@@ -782,6 +955,9 @@ export default function Dashboard({
 }) {
   const [activeTab, setActiveTab] = useState<TabId>("signals");
   const [doneItems, setDoneItems] = useState<DoneItem[]>(initialDoneItems);
+  const [acceptedItems, setAcceptedItems] = useState<AcceptedItem[]>(
+    () => data.accepted_items
+  );
   const [, startTransition] = useTransition();
 
   // Drag-and-drop state
@@ -811,6 +987,29 @@ export default function Dashboard({
   );
 
   const doneSet = new Set(doneItems.map((d) => d.canny_id));
+  const acceptedSet = new Set(acceptedItems.map((a) => a.canny_id));
+
+  function handleAccepted(cannyId: string, result: JiraAcceptResult) {
+    const signal = data.selections.find((s) => s.canny_id === cannyId);
+    const win = data.easy_wins.find((w) => w.canny_id === cannyId);
+    const item = signal ?? win;
+    if (!item) return;
+
+    setAcceptedItems((prev) => [
+      {
+        canny_id: cannyId,
+        title: item.title,
+        board_slug: item.board_slug,
+        board_name: item.board_name,
+        reason: item.reason,
+        jira_issue_key: result.key,
+        jira_url: result.url,
+        jira_status: result.status,
+        accepted_at: new Date().toISOString(),
+      },
+      ...prev,
+    ]);
+  }
 
   async function handleToggleDone(item: DashboardSelection) {
     const wasDone = doneSet.has(item.canny_id);
@@ -913,7 +1112,9 @@ export default function Dashboard({
   const selectionMap = new Map(data.selections.map((s) => [s.canny_id, s]));
   const displaySignals = localOrderIds
     .map((id) => selectionMap.get(id))
-    .filter((s): s is DashboardSelection => s !== undefined && !doneSet.has(s.canny_id));
+    .filter((s): s is DashboardSelection =>
+      s !== undefined && !doneSet.has(s.canny_id) && !acceptedSet.has(s.canny_id)
+    );
   const activeSignalIds = displaySignals.map((s) => s.canny_id);
 
   const isColdStart = data.selections.length > 0 && data.new_count === data.selections.length;
@@ -1108,7 +1309,9 @@ export default function Dashboard({
         signalCount={data.selections.length}
         easyWinCount={data.easy_wins.length}
         patternCount={data.patterns.length}
-        doneCount={doneItems.length}
+        acceptedCount={acceptedItems.length}
+        deferredCount={doneItems.length}
+        doneCount={data.done_jira_items.length}
         onSelect={setActiveTab}
       />
 
@@ -1126,6 +1329,7 @@ export default function Dashboard({
                     isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
                     doneSet={doneSet}
                     onToggleDone={handleToggleDone}
+                    onAccepted={handleAccepted}
                     suppressNewBadge={isColdStart}
                   />
                 ))}
@@ -1147,6 +1351,7 @@ export default function Dashboard({
                 isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
                 doneSet={doneSet}
                 onToggleDone={handleToggleDone}
+                onAccepted={handleAccepted}
                 suppressNewBadge={isColdStart}
               />
             ))}
@@ -1253,6 +1458,7 @@ export default function Dashboard({
               win={win}
               doneSet={doneSet}
               onToggleDone={handleEasyWinToggleDone}
+              onAccepted={handleAccepted}
             />
           ))}
           {data.easy_wins.length > 0 && data.easy_wins.every((w) => doneSet.has(w.canny_id)) && (
@@ -1276,8 +1482,16 @@ export default function Dashboard({
         </div>
       )}
 
-      {activeTab === "done" && (
+      {activeTab === "accepted" && (
+        <AcceptedTab items={acceptedItems} />
+      )}
+
+      {activeTab === "deferred" && (
         <DoneTab items={doneItems} onUnmark={handleUnmark} />
+      )}
+
+      {activeTab === "done" && (
+        <JiraDoneTab items={data.done_jira_items} />
       )}
     </>
   );

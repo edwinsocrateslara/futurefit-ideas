@@ -18,13 +18,6 @@ const MODEL = "claude-sonnet-4-6";
 const TEMPERATURE = 0.3;
 const STRATEGY_DIR = join(process.cwd(), "strategy");
 
-// Week boundary: Monday 00:00:00 UTC (we store in Pacific but compare in UTC after offset)
-function getWeekBounds(weekMonday: Date): { start: Date; end: Date } {
-  const start = new Date(weekMonday);
-  const end = new Date(start);
-  end.setUTCDate(end.getUTCDate() + 7);
-  return { start, end };
-}
 
 function loadStrategyDocs(): Record<string, string> {
   const docs: Record<string, string> = {};
@@ -73,22 +66,18 @@ export async function runSynthesis(
     );
   }
 
-  // Date-bounded query: ONLY this week's ideas, never an unbounded select
   const weekMonday = new Date(weekOf + "T00:00:00Z");
-  const { start, end } = getWeekBounds(weekMonday);
 
   const { data: weekIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select("canny_id, title, description, vote_count, board_id, created_at, boards(slug, name)")
     .is("removed_at", null)
-    .gte("created_at", start.toISOString())
-    .lt("created_at", end.toISOString())
     .order("vote_count", { ascending: false });
 
   if (ideasError) throw new Error(`Failed to fetch ideas: ${ideasError.message}`);
 
   if (!weekIdeas || weekIdeas.length === 0) {
-    throw new Error(`No ideas found for week ${weekOf}. Cannot run synthesis.`);
+    throw new Error(`No ideas found. Cannot run synthesis.`);
   }
 
   // Group ideas by board
@@ -276,6 +265,7 @@ async function writeSynthesisResults(
         selection_week: weekOf,
         selection_priority_rank: selection.priority_rank,
         jira_story: selection.jira_story,
+        synthesis_title: selection.title,
       })
       .eq("canny_id", selection.canny_id);
 
@@ -343,6 +333,7 @@ async function writeSynthesisResults(
       week_of: weekOf,
       reason: win.reason,
       jira_story: win.jira_story,
+      synthesis_title: win.title,
     });
   }
 }

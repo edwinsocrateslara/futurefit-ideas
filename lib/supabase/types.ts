@@ -94,6 +94,18 @@ export interface PatternItemRow {
   idea_id: string;
 }
 
+export interface JiraLinkRow {
+  id: string;
+  canny_id: string;
+  jira_issue_key: string;
+  jira_issue_id: string;
+  jira_url: string;
+  jira_status: string;
+  accepted_at: string;
+  last_synced_at: string | null;
+  done_at: string | null;
+}
+
 export interface SyncRunRow {
   id: string;
   started_at: string;

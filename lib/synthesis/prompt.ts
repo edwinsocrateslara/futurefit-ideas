@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v2.7";
+export const PROMPT_VERSION = "synthesis-v2.9";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -166,6 +166,20 @@ Select exactly 10 items across all boards. Rank them 1–10 by strategic importa
 
 **Rank is the primary signal.** Item 1 is the most consequential signal leadership should act on this week. Use the full 1–10 range deliberately — the ordering itself communicates urgency and strategic weight. Do not compress rankings artificially. If the top three items are genuinely more critical than the rest, that separation should be legible in how you reason about each one.
 
+**How to write the title field:**
+Write a problem-oriented title that names what's broken, missing, or at risk — not the activity or process being performed. This title appears on the leadership dashboard; it is distinct from the Jira ticket title inside the jira_story field. Max 80 characters.
+
+Good — names the problem:
+- "Colorado Thrives can't ingest employer outcome data"
+- "Workforce Pell compliance gap before July deadline"
+- "Skills extraction missing entry-level role pathways"
+
+Bad — names an activity (the style being replaced):
+- "Leveraging outcomes from employer data collection"
+- "Improving the candidate matching experience"
+
+Test: a leader reading the title should immediately know what's wrong or at risk, without reading the reason field. If the title could describe a project rather than a problem, rewrite it.
+
 **How to write the reason field:**
 The reason must be one sentence. It must be strategic, not descriptive. It should explain why this item deserves leadership attention relative to the strategy — not what the idea says.
 
@@ -182,7 +196,7 @@ Reference specific things from the strategy documents when they apply: OKR langu
 **How to write the jira_story field:**
 For each selected item, generate a complete, self-contained user story in this exact format. The story describes the work — not the priority or strategic rationale. An engineer must be able to read it and understand what to build without consulting the feedback item or the reason field.
 
-Title: [action-oriented title, max 80 chars — what is being built, not the problem]
+Title: [copy the title field exactly — same string, verbatim. Do not write a different action-oriented title here.]
 
 User story:
 As a [specific role — "administrator," "coach," "job seeker," "employer," "business services rep," etc.], I want [specific capability], so that [concrete outcome].
@@ -280,6 +294,20 @@ Identify exactly 5 items from the same idea pool that qualify as easy wins — t
 
 **Prefer different items from the top 10.** If an item genuinely qualifies for both, it may appear in both. But easy wins should be additive — surface items that might not rank in the top 10 for strategic reasons but are clearly shippable.
 
+**How to write the title field:**
+Write a solution-oriented title that names exactly what gets shipped. This appears on the leadership dashboard. Specific enough that an engineer reading it knows what to build. Max 80 characters.
+
+Good — names the solution:
+- "Change 'Paid' label to 'Cost to Enroll'"
+- "Add filter for hidden vs visible job postings"
+- "Update error message on invalid CSV upload"
+
+Bad — too vague to act on:
+- "Improve job posting filters"
+- "Better upload error handling"
+
+Test: an engineer reading the title should know what to build without reading the reason field. If the title could describe a general area of improvement rather than a specific deliverable, rewrite it.
+
 **How to write the reason field:**
 Two sentences. First: what the item is asking for, in plain language. Second: why it qualifies as an easy win — what makes the solution obvious and the scope bounded.
 
@@ -288,6 +316,8 @@ Good: "Administrators want to filter the manage table by a user's assigned coach
 
 **How to write the jira_story field:**
 Same format as TASK 1 — Title, User story, Context, Acceptance criteria. For easy wins, the Context paragraph may be brief (1–2 sentences) if the scope is already clear from the feedback. Same rules apply: no UX patterns or interaction counts in acceptance criteria, specific role names, independently testable criteria.
+
+The Title line must be an exact copy of the title field for that item — same string, verbatim. Do not rephrase, make it action-oriented, or write a different title here.
 
 ---
 
@@ -302,6 +332,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
     {
       "canny_id": "<id from the feedback items above>",
       "priority_rank": <integer 1–10, where 1 is most important>,
+      "title": "<problem-oriented dashboard title — what's broken, missing, or at risk, max 80 chars>",
       "reason": "<one strategic sentence referencing the strategy documents>",
       "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
@@ -321,6 +352,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
   "easy_wins": [
     {
       "canny_id": "<id from the feedback items above>",
+      "title": "<solution-oriented dashboard title — what gets shipped, max 80 chars>",
       "reason": "<two sentences: what the item asks for, then why it qualifies as an easy win>",
       "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
