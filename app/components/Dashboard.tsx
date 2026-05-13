@@ -2329,39 +2329,21 @@ export default function Dashboard({
       </section>
 
       {/* Metric cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
-        <div>
-          <p style={{ margin: "0 0 6px 0", fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: "oklch(0.42 0 0)" }}>
-            Top 10
-          </p>
-          <div style={{ display: "flex", gap: 12 }}>
-            <MetricCard
-              count={data.persistent_count}
-              label="Persistent · 4+ weeks running"
-              accentColor="oklch(0.72 0.14 75)"
-              icon={<Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
-            />
-            <MetricCard
-              count={data.new_count}
-              label="New this week"
-              accentColor="oklch(0.70 0.20 145)"
-              icon={<ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
-            />
+      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+        {(
+          [
+            { section: "Top 10",     count: data.persistent_count,    label: "Persistent · 4+ weeks running", accentColor: "oklch(0.72 0.14 75)",  icon: <Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+            { section: "Top 10",     count: data.new_count,           label: "New this week",                 accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+            { section: "Quick Wins", count: data.new_easy_wins_count, label: "New this week",                 accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+          ] as const
+        ).map(({ section, count, label, accentColor, icon }, i) => (
+          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+            <p style={{ margin: "0 0 6px 0", fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: "oklch(0.42 0 0)" }}>
+              {section}
+            </p>
+            <MetricCard count={count} label={label} accentColor={accentColor} icon={icon} />
           </div>
-        </div>
-        <div>
-          <p style={{ margin: "0 0 6px 0", fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: "oklch(0.42 0 0)" }}>
-            Quick Wins
-          </p>
-          <div style={{ display: "flex", gap: 12 }}>
-            <MetricCard
-              count={data.new_easy_wins_count}
-              label="New this week"
-              accentColor="oklch(0.70 0.20 145)"
-              icon={<ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
-            />
-          </div>
-        </div>
+        ))}
       </div>
 
       {/* Tab navigation */}
