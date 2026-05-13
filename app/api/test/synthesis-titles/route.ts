@@ -94,20 +94,32 @@ export async function GET() {
       }),
   })).filter((g) => g.ideas.length > 0);
 
-  // Load strategy docs
+  // Load strategy docs — same split as production: arch ref goes to TASK 3 section
   const strategyDir = join(process.cwd(), "strategy");
-  const docs: Record<string, string> = {};
-  for (const filename of ["okrs.md", "product-diagnosis.md", "build-strategy.md"]) {
+  const allDocs: Record<string, string> = {};
+  for (const filename of [
+    "okrs.md",
+    "product-diagnosis.md",
+    "build-strategy.md",
+    "futurefit-north-star.md",
+    "north-star-strategy-memo.md",
+    "futurefit-architecture-reference.md",
+  ]) {
     const filepath = join(strategyDir, filename);
-    if (existsSync(filepath)) docs[filename] = readFileSync(filepath, "utf-8");
+    if (existsSync(filepath)) allDocs[filename] = readFileSync(filepath, "utf-8");
   }
-  if (Object.keys(docs).length === 0) {
+  if (Object.keys(allDocs).length === 0) {
     return NextResponse.json({ error: "No strategy docs found in /strategy" }, { status: 500 });
   }
 
-  const strategyString = buildStrategyDocsString(docs);
+  const { "futurefit-architecture-reference.md": archContent, ...strategyOnlyDocs } = allDocs;
+  const strategyString = buildStrategyDocsString(strategyOnlyDocs);
+  const architectureString = archContent
+    ? buildStrategyDocsString({ "futurefit-architecture-reference.md": archContent })
+    : "";
+
   const systemMessage = buildSystemMessage();
-  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf);
+  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf, [], [], architectureString);
 
   // Call Claude
   const client = new Anthropic();

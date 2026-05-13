@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v2.9";
+export const PROMPT_VERSION = "synthesis-v3.0";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -118,7 +118,8 @@ export function buildUserMessage(
   strategyDocs: string,
   weekOf: string,
   previousPatterns: PreviousPattern[] = [],
-  overrideSignals: OverrideSignal[] = []
+  overrideSignals: OverrideSignal[] = [],
+  architectureDocs: string = ""
 ): string {
   const totalItems = boards.reduce((n, b) => n + b.ideas.length, 0);
   const boardsSection = boards.map(formatBoard).join("\n\n---\n\n");
@@ -158,6 +159,9 @@ ${formatOverrideSignals(overrideSignals)}
 ## TASK 1: SELECT THE TOP 10 ITEMS
 
 Select exactly 10 items across all boards. Rank them 1–10 by strategic importance, where 1 is the most important signal leadership should discuss this week.
+
+**Strategic context for this task:**
+Five documents constitute the strategic frame for top 10 selection: OKRs, Product Diagnosis, Build Strategy, FutureFit North Star, and North Star Strategy Memo. All five carry equal weight. The North Star documents describe the 2031 vision, the three winning levers (distribution, the transition engine, proximity to dollars), must-have capabilities, and where-to-play discipline. They are strategic documents on equal footing with the OKRs and build priorities — an item's connection to the North Star vision (e.g. transition graph, orchestration toward outcomes, payments proximity, multi-stakeholder town square) is as valid grounds for selection as its connection to a specific OKR or build priority.
 
 **What strategic importance means:**
 - How directly the item connects to a gap, risk, or opportunity in the strategy documents above
@@ -274,9 +278,17 @@ Incorrect (different structural problem): "Outcomes loop broken" → "Employer p
 
 ---
 
+## ARCHITECTURE REFERENCE
+${architectureDocs ? `\nThe following document describes how the FutureFit AI Pathways product is built — its service structure, entity types, permission model, and established conventions. Use it as informational context for TASK 3.\n\n${architectureDocs}\n` : "\n(Architecture reference not loaded.)\n"}
+
+---
+
 ## TASK 3: IDENTIFY EASY WINS
 
 Identify exactly 5 items from the same idea pool that qualify as easy wins — things the engineering team could ship in a single sprint with no discovery work required, where the solution is obvious from the feedback itself.
+
+**Architecture context for this task:**
+The Architecture Reference above describes how FutureFit AI Pathways is built. Use it when judging *low effort* and *fast to ship*: items that operate within established patterns (a new filter on an existing entity, a field added to an existing GraphQL operation, a copy change, a new toggle on an existing config surface) are inherently easier to ship. Items that would require new services, cross-service schema migrations, new infrastructure, or fight the existing architecture are not easy wins regardless of how modest they sound in the feedback. Architectural fit is a tiebreaker that informs the effort judgment — it does not override the other criteria. An item with a clear, scoped solution that fits the existing architecture is a better easy win than one that fights it.
 
 **What qualifies (all must be true):**
 - Clear and simple solution: the request names what to build. A developer reading it should be able to write a ticket in sprint planning without further questions.

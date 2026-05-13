@@ -21,7 +21,14 @@ const STRATEGY_DIR = join(process.cwd(), "strategy");
 
 function loadStrategyDocs(): Record<string, string> {
   const docs: Record<string, string> = {};
-  const filenames = ["okrs.md", "product-diagnosis.md", "build-strategy.md"];
+  const filenames = [
+    "okrs.md",
+    "product-diagnosis.md",
+    "build-strategy.md",
+    "futurefit-north-star.md",
+    "north-star-strategy-memo.md",
+    "futurefit-architecture-reference.md",
+  ];
 
   for (const filename of filenames) {
     const filepath = join(STRATEGY_DIR, filename);
@@ -104,9 +111,14 @@ export async function runSynthesis(
 
   const totalItems = boardGroups.reduce((n, g) => n + g.ideas.length, 0);
 
-  // Load strategy docs from disk
-  const strategyDocs = loadStrategyDocs();
-  const strategyString = buildStrategyDocsString(strategyDocs);
+  // Load strategy docs from disk — split architecture reference into a separate string
+  // so it can be injected contextually before TASK 3 rather than in the main strategy block
+  const allDocs = loadStrategyDocs();
+  const { "futurefit-architecture-reference.md": archContent, ...strategyOnlyDocs } = allDocs;
+  const strategyString = buildStrategyDocsString(strategyOnlyDocs);
+  const architectureString = archContent
+    ? buildStrategyDocsString({ "futurefit-architecture-reference.md": archContent })
+    : "";
 
   // Fetch last 4 weeks of patterns for lineage context
   const fourWeeksAgo = new Date(weekMonday);
@@ -146,7 +158,7 @@ export async function runSynthesis(
 
   // Build prompt
   const systemMessage = buildSystemMessage();
-  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf, previousPatterns, overrideSignals);
+  const userMessage = buildUserMessage(boardGroups, strategyString, weekOf, previousPatterns, overrideSignals, architectureString);
 
   // Call Claude
   let rawOutput: string;
