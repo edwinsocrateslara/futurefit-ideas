@@ -20,7 +20,7 @@ import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection,
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, TrendingUp } from "lucide-react";
+import { Pin, ArrowUpRight } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -1291,7 +1291,7 @@ export default function Dashboard({
           count={data.new_count}
           label="New this week"
           accentColor="oklch(0.70 0.20 145)"
-          icon={<TrendingUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
+          icon={<ArrowUpRight size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
         />
       </div>
 
