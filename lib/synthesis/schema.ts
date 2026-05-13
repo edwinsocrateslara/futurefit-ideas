@@ -32,6 +32,9 @@ export const SelectionSchema = z.object({
   status: z.enum(STATUS_VALUES),
   impact_rating: z.number().int().min(1).max(4),
   confidence_rating: z.number().int().min(1).max(4),
+  why_callout: z.string().nullable(),
+  customers_prospects_callout: z.string().nullable(),
+  hard_deadline_notes_callout: z.string().nullable(),
   jira_story: z.string().min(1),
 });
 

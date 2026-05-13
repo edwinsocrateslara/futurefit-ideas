@@ -1255,7 +1255,7 @@ function SignalRow({
         >
           {item.reason}
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
           <StatusBadgeWithOverride
             cannyId={item.canny_id}
             status={item.status}
@@ -1273,6 +1273,43 @@ function SignalRow({
             itemTitle={item.title}
           />
         </div>
+
+        {/* Callouts — rendered only when content exists */}
+        {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+            {item.why_callout && (
+              <div>
+                <p style={{ margin: "0 0 2px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
+                  Why
+                </p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "oklch(0.78 0 0)" }}>
+                  {item.why_callout}
+                </p>
+              </div>
+            )}
+            {item.customers_prospects_callout && (
+              <div>
+                <p style={{ margin: "0 0 2px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
+                  Customers & Prospects
+                </p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "oklch(0.78 0 0)" }}>
+                  {item.customers_prospects_callout}
+                </p>
+              </div>
+            )}
+            {item.hard_deadline_notes_callout && (
+              <div>
+                <p style={{ margin: "0 0 2px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
+                  Hard Deadline / Notes
+                </p>
+                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "oklch(0.78 0 0)" }}>
+                  {item.hard_deadline_notes_callout}
+                </p>
+              </div>
+            )}
+          </div>
+        )}
+
         {item.canny_url && (
           <a
             href={item.canny_url}

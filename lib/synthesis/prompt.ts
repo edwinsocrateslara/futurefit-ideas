@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v3.4";
+export const PROMPT_VERSION = "synthesis-v3.5";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -256,6 +256,51 @@ Confidence rating heuristic:
 
 The team will manually override confidence_rating when they have evidence you cannot see.
 
+After assigning ratings, generate three structured callout fields for each selected item. Like status and ratings, callouts are produced after selection and do NOT influence which items are selected or ranked.
+
+**why_callout** — A single concise sentence naming the one most important driver of strategic urgency for this item. Distinct from the reason field: the reason synthesizes the full strategic context; the why_callout names the single forcing function — the cost of delay — that makes this matter now rather than next quarter.
+
+Examples (illustrative, not exhaustive):
+- "Last credible ship window before Workforce Pell July 1 go-live"
+- "Without this, WCG renewal slips from Green to Yellow at Q3 QBR"
+- "Sequencing: outcomes infrastructure must ship before MA portal launch"
+
+Return null if no sharper single driver can be named beyond what the reason already states.
+
+**customers_prospects_callout** — Named accounts, prospect categories, or market segments involved or affected. Comma-separated short phrases.
+Examples: "MA EOLWD (contractual, July deadline). All future enterprise/state customers requiring federated identity" | "WCG, Connecticut — renewal risk. SEMI, Year Up — active prospects."
+Return null if no specific customers, prospects, or segments are named or clearly implied.
+
+**hard_deadline_notes_callout** — Timing constraints, action items, or critical context that a leadership reader needs to act on. Dates, dependencies, ownership notes.
+Examples: "July 1, 2026 go-live · ship by May" | "Q2 board review needs status update. ACTION: Scope with Josh + Mark Sprint 1."
+Return null if no specific deadlines, action items, or time-sensitive dependencies exist.
+
+**Critical: the reason field must remain complete and standalone.** Callouts do not replace or summarize the reason. They surface structured data points (names, dates, categories) that a reader can use in addition to the reason. If you find yourself moving specifics out of the reason and into a callout, you have misunderstood the relationship — put the specifics in both places, or keep them in the reason. The reason field must communicate the full strategic case regardless of whether the reader sees the callouts.
+
+Good example:
+
+  reason: "Workforce Pell goes live July 1, 2026, and the Market Diagnosis explicitly identifies institutions that cannot report outcomes as structurally disadvantaged before end of 2026. This item directly maps WIOA/PIRL event capture to Pell eligibility tracking, addressing 11 Some/Believed accounts whose funders will face downstream reporting requirements."
+
+  why_callout: "Last credible ship window before funder compliance asks come due."
+
+  customers_prospects_callout: "11 Some/Believed accounts; workforce boards first."
+
+  hard_deadline_notes_callout: "July 1, 2026 go-live · ship by May"
+
+  The reason names accounts, dates, and regulatory framing. The callouts independently surface those same data points for quick scanning. Both have the specifics.
+
+Bad example (reason hollowed out):
+
+  reason: "Workforce Pell goes live July 1, 2026 and outcome tracking infrastructure is needed."
+
+  why_callout: "Last credible ship window before funder compliance asks come due."
+
+  customers_prospects_callout: "11 Some/Believed accounts; workforce boards first."
+
+  hard_deadline_notes_callout: "July 1, 2026 go-live · ship by May"
+
+  Why this is wrong: the reason has been stripped of account counts, regulatory framing, and strategic stake. Anyone reading it without the callouts gets a hollow summary. The reason field must stand alone.
+
 ---
 
 ## PATTERN LINEAGE CONTEXT (up to last 4 weeks — may be fewer if recent)
@@ -384,6 +429,9 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "status": "<Contractual Requirement | Renewal Risk | Strategic | Need to Do>",
       "impact_rating": <integer 1–4>,
       "confidence_rating": <integer 1–4>,
+      "why_callout": "<single sentence — the primary forcing function — or null>",
+      "customers_prospects_callout": "<named accounts, prospects, or segments — or null>",
+      "hard_deadline_notes_callout": "<deadline, action items, or critical context — or null>",
       "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
   ],
