@@ -252,7 +252,7 @@ async function writeSynthesisResults(
   output: SynthesisOutput,
   weekOf: string
 ) {
-  // Clear previous selections for this week before writing new ones
+  // Reset all ideas to unselected — unconditional so historical flags never persist
   await supabase
     .from("ideas")
     .update({
@@ -267,7 +267,7 @@ async function writeSynthesisResults(
       selection_week: null,
       jira_story: null,
     })
-    .eq("selection_week", weekOf);
+    .neq("id", "00000000-0000-0000-0000-000000000000");
 
   // Clear selections history for this week (handles re-runs)
   await supabase.from("selections").delete().eq("week_of", weekOf);
