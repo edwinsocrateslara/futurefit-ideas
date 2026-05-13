@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v3.2";
+export const PROMPT_VERSION = "synthesis-v3.4";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -237,6 +237,25 @@ When multiple statuses could apply, assign the one that reflects the primary for
 
 Example: An item that fits all four (contractual delivery, renewal-blocking, strategically aligned, and operationally needed) gets tagged Contractual Requirement because the contract is the most binding forcing function. The other categories describe additional context but don't change the primary tag.
 
+After assigning status, assign two independent ratings to each selected item. Like status, these ratings are produced after selection and do NOT influence which items are selected or ranked.
+
+**Impact Rating (1–4)** — How many customers or prospects would move from detractor or passive to promoter if this item ships:
+
+1 — A single customer or prospect moves from detractor/passive to promoter
+2 — 2–3 customers or prospects move from detractor/passive to promoter
+3 — Three or more priority customers or prospects move from detractor/passive to promoter (Tier 1 accounts: currently WCG, Connecticut, Massachusetts)
+4 — All customers or prospects move from detractor/passive to promoter
+
+**Confidence Rating (1–4)** — Evidence supporting the impact prediction. You only have access to what appears in the Canny post content. You do NOT see internal emails, call transcripts, or team conversations. Default to conservative scoring rather than overconfident.
+
+Confidence rating heuristic:
+- Post does not reference specific customer conversations or supporting data → confidence_rating = 1
+- Post mentions feedback from named customers or specific accounts → confidence_rating = 2
+- Post cites both qualitative customer feedback AND quantitative data (metrics, vote counts as adoption signals, or measured outcomes) → confidence_rating = 3
+- confidence_rating = 4: assign conservatively. Only when the post contains overwhelming documented evidence of impact OR the strategic framework documents explicitly identify this as a high-conviction priority.
+
+The team will manually override confidence_rating when they have evidence you cannot see.
+
 ---
 
 ## PATTERN LINEAGE CONTEXT (up to last 4 weeks — may be fewer if recent)
@@ -363,6 +382,8 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "title": "<problem-oriented dashboard title — what's broken, missing, or at risk, max 80 chars>",
       "reason": "<one strategic sentence referencing the strategy documents>",
       "status": "<Contractual Requirement | Renewal Risk | Strategic | Need to Do>",
+      "impact_rating": <integer 1–4>,
+      "confidence_rating": <integer 1–4>,
       "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
   ],

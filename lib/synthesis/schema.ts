@@ -1,5 +1,21 @@
 import { z } from "zod";
 
+// ── Canonical metadata values (single source of truth for prompt + UI) ───────
+
+export const STATUS_VALUES = [
+  "Contractual Requirement",
+  "Renewal Risk",
+  "Strategic",
+  "Need to Do",
+] as const;
+export type StatusValue = typeof STATUS_VALUES[number];
+
+export const IMPACT_RATING_VALUES = [1, 2, 3, 4] as const;
+export type ImpactRating = typeof IMPACT_RATING_VALUES[number];
+
+export const CONFIDENCE_RATING_VALUES = [1, 2, 3, 4] as const;
+export type ConfidenceRating = typeof CONFIDENCE_RATING_VALUES[number];
+
 // ── Building blocks ───────────────────────────────────────────────────────────
 
 export const AnglesSchema = z.object({
@@ -13,7 +29,9 @@ export const SelectionSchema = z.object({
   priority_rank: z.number().int().min(1).max(10),
   title: z.string().min(1),
   reason: z.string().min(1),
-  status: z.enum(["Contractual Requirement", "Renewal Risk", "Strategic", "Need to Do"]),
+  status: z.enum(STATUS_VALUES),
+  impact_rating: z.number().int().min(1).max(4),
+  confidence_rating: z.number().int().min(1).max(4),
   jira_story: z.string().min(1),
 });
 

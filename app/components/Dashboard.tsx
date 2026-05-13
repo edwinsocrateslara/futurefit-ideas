@@ -17,6 +17,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem } from "@/lib/data/dashboard";
+import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES } from "@/lib/synthesis/schema";
+import type { StatusValue } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
@@ -89,14 +91,7 @@ function Tier1Badge({ value }: { value: string | null | undefined }) {
 
 // ── Status badge + override ────────────────────────────────────────────────
 
-type StatusValue = "Contractual Requirement" | "Renewal Risk" | "Strategic" | "Need to Do";
-
-const STATUS_OPTIONS: StatusValue[] = [
-  "Contractual Requirement",
-  "Renewal Risk",
-  "Strategic",
-  "Need to Do",
-];
+const STATUS_OPTIONS = STATUS_VALUES;
 
 const STATUS_STYLES: Record<StatusValue, { bg: string; color: string; border: string }> = {
   "Contractual Requirement": {
@@ -335,6 +330,489 @@ function StatusBadgeWithOverride({
         />
       )}
     </div>
+  );
+}
+
+// ── Impact rating modal ────────────────────────────────────────────────────
+
+const IMPACT_CRITERIA: Record<number, string> = {
+  1: "Single customer or prospect moves from detractor/passive to promoter",
+  2: "2–3 customers or prospects move from detractor/passive to promoter",
+  3: "3+ priority customers or prospects move from detractor/passive to promoter",
+  4: "All customers or prospects move from detractor/passive to promoter",
+};
+
+const CONFIDENCE_CRITERIA: Record<number, string> = {
+  1: "No documentation to drive confidence of impact",
+  2: "Some emails or conversations to drive confidence of impact",
+  3: "Emails AND data to drive confidence of impact",
+  4: "Regardless of documentation, would bet $10K of personal funds on the impact",
+};
+
+function RatingOption({
+  value,
+  criteria,
+  isSelected,
+  onClick,
+}: {
+  value: number;
+  criteria: string;
+  isSelected: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "grid",
+        gridTemplateColumns: "28px 1fr",
+        alignItems: "start",
+        gap: 12,
+        width: "100%",
+        padding: "11px 14px",
+        borderRadius: 8,
+        border: isSelected
+          ? "1px solid oklch(0.55 0.18 295 / 0.65)"
+          : "1px solid oklch(1 0 0 / 0.07)",
+        background: isSelected ? "oklch(0.24 0.06 295)" : "oklch(0.155 0 0)",
+        cursor: "pointer",
+        textAlign: "left",
+        transition: "background 80ms, border-color 80ms",
+      }}
+    >
+      <span
+        style={{
+          fontFamily: "var(--font-mono)",
+          fontSize: 17,
+          fontWeight: 600,
+          color: isSelected ? "oklch(0.72 0.20 295)" : "oklch(0.38 0 0)",
+          lineHeight: 1.5,
+        }}
+      >
+        {value}
+      </span>
+      <span
+        style={{
+          fontSize: 13,
+          lineHeight: 1.55,
+          color: isSelected ? "oklch(0.88 0 0)" : "oklch(0.60 0 0)",
+          paddingTop: 1,
+        }}
+      >
+        {criteria}
+      </span>
+    </button>
+  );
+}
+
+function ImpactRatingModal({
+  itemTitle,
+  initialImpact,
+  initialConfidence,
+  synthesisImpact,
+  synthesisConfidence,
+  isCurrentlyOverridden,
+  onSave,
+  onReset,
+  onClose,
+}: {
+  itemTitle: string;
+  initialImpact: number | null;
+  initialConfidence: number | null;
+  synthesisImpact: number | null;
+  synthesisConfidence: number | null;
+  isCurrentlyOverridden: boolean;
+  onSave: (impact: number, confidence: number) => void;
+  onReset: () => void;
+  onClose: () => void;
+}) {
+  const [impact, setImpact] = useState<number | null>(initialImpact);
+  const [confidence, setConfidence] = useState<number | null>(initialConfidence);
+
+  const combinedScore = impact !== null && confidence !== null ? impact * confidence : null;
+  const synthCombined =
+    synthesisImpact !== null && synthesisConfidence !== null
+      ? synthesisImpact * synthesisConfidence
+      : null;
+  const hasChangedFromSynthesis =
+    impact !== synthesisImpact || confidence !== synthesisConfidence;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "oklch(0 0 0 / 0.60)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 200,
+        padding: 24,
+      }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        style={{
+          background: "oklch(0.18 0 0)",
+          border: "1px solid oklch(1 0 0 / 0.12)",
+          borderRadius: 16,
+          width: "100%",
+          maxWidth: 640,
+          maxHeight: "90vh",
+          overflowY: "auto",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "20px 24px 0",
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 15,
+              fontWeight: 600,
+              letterSpacing: -0.2,
+              color: "oklch(0.97 0 0)",
+              flex: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              paddingRight: 12,
+            }}
+          >
+            {itemTitle}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              border: "none",
+              background: "transparent",
+              color: "oklch(0.50 0 0)",
+              cursor: "pointer",
+              fontSize: 20,
+              lineHeight: 1,
+              transition: "background 100ms, color 100ms",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.80 0 0)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0 0)";
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 22 }}>
+          {/* Impact Rating */}
+          <div>
+            <div style={{ marginBottom: 10 }}>
+              <h3
+                style={{
+                  margin: "0 0 2px 0",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "oklch(0.85 0 0)",
+                  letterSpacing: -0.1,
+                }}
+              >
+                Impact Rating
+              </h3>
+              <p style={{ margin: 0, fontSize: 12, color: "oklch(0.50 0 0)", lineHeight: 1.4 }}>
+                How many customers/prospects would move from detractor/passive to promoter?
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {IMPACT_RATING_VALUES.map((n) => (
+                <RatingOption
+                  key={n}
+                  value={n}
+                  criteria={IMPACT_CRITERIA[n]}
+                  isSelected={impact === n}
+                  onClick={() => setImpact(n)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Confidence Rating */}
+          <div>
+            <div style={{ marginBottom: 10 }}>
+              <h3
+                style={{
+                  margin: "0 0 2px 0",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  color: "oklch(0.85 0 0)",
+                  letterSpacing: -0.1,
+                }}
+              >
+                Confidence Rating
+              </h3>
+              <p style={{ margin: 0, fontSize: 12, color: "oklch(0.50 0 0)", lineHeight: 1.4 }}>
+                How much evidence supports this impact prediction?
+              </p>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+              {CONFIDENCE_RATING_VALUES.map((n) => (
+                <RatingOption
+                  key={n}
+                  value={n}
+                  criteria={CONFIDENCE_CRITERIA[n]}
+                  isSelected={confidence === n}
+                  onClick={() => setConfidence(n)}
+                />
+              ))}
+            </div>
+          </div>
+
+          {/* Combined result */}
+          <div
+            style={{
+              padding: "16px 20px",
+              background: "oklch(0.145 0 0)",
+              borderRadius: 12,
+              border: "1px solid oklch(1 0 0 / 0.08)",
+            }}
+          >
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 30,
+                fontWeight: 700,
+                letterSpacing: -0.5,
+                color: combinedScore !== null ? "oklch(0.72 0.20 295)" : "oklch(0.35 0 0)",
+                lineHeight: 1,
+                marginBottom: combinedScore !== null ? 6 : 0,
+              }}
+            >
+              {combinedScore !== null ? `Impact Score  ${combinedScore}` : "—"}
+            </div>
+            {combinedScore !== null && impact !== null && confidence !== null && (
+              <p style={{ margin: 0, fontSize: 12, color: "oklch(0.42 0 0)", lineHeight: 1.4 }}>
+                Impact {impact} × Confidence {confidence} = {combinedScore}
+              </p>
+            )}
+            {hasChangedFromSynthesis && synthCombined !== null && (
+              <p
+                style={{
+                  margin: "8px 0 0",
+                  paddingTop: 8,
+                  borderTop: "1px solid oklch(1 0 0 / 0.06)",
+                  fontSize: 12,
+                  color: "oklch(0.42 0 0)",
+                  lineHeight: 1.4,
+                }}
+              >
+                Synthesis: Impact {synthesisImpact} × Confidence {synthesisConfidence} = {synthCombined}
+              </p>
+            )}
+          </div>
+
+          {/* Footer */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 8 }}>
+            <div>
+              {isCurrentlyOverridden && (
+                <button
+                  type="button"
+                  onClick={onReset}
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: 6,
+                    padding: "8px 14px",
+                    fontSize: 12,
+                    fontWeight: 500,
+                    borderRadius: 6,
+                    border: "1px solid oklch(1 0 0 / 0.10)",
+                    background: "transparent",
+                    color: "oklch(0.52 0 0)",
+                    cursor: "pointer",
+                    transition: "background 100ms",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.04)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+                >
+                  <RotateCcw size={11} strokeWidth={2} />
+                  Reset to synthesis
+                </button>
+              )}
+            </div>
+            <div style={{ display: "flex", gap: 8 }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: "8px 16px",
+                  fontSize: 13,
+                  fontWeight: 500,
+                  borderRadius: 6,
+                  border: "1px solid oklch(1 0 0 / 0.12)",
+                  background: "transparent",
+                  color: "oklch(0.60 0 0)",
+                  cursor: "pointer",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => { if (impact !== null && confidence !== null) onSave(impact, confidence); }}
+                disabled={impact === null || confidence === null}
+                style={{
+                  padding: "8px 20px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 6,
+                  border: "none",
+                  background: impact !== null && confidence !== null
+                    ? "oklch(0.45 0.20 295)"
+                    : "oklch(0.28 0 0)",
+                  color: "oklch(1 0 0)",
+                  cursor: impact !== null && confidence !== null ? "pointer" : "default",
+                  transition: "background 120ms",
+                }}
+                onMouseEnter={(e) => {
+                  if (impact !== null && confidence !== null)
+                    (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.50 0.20 295)";
+                }}
+                onMouseLeave={(e) => {
+                  if (impact !== null && confidence !== null)
+                    (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.45 0.20 295)";
+                }}
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── Impact × Confidence pill (opens modal) ────────────────────────────────
+
+function ImpactConfidenceWithOverride({
+  cannyId,
+  impactRating,
+  confidenceRating,
+  synthesisImpact,
+  synthesisConfidence,
+  isImpactOverridden,
+  isConfidenceOverridden,
+  itemTitle,
+}: {
+  cannyId: string;
+  impactRating: number | null;
+  confidenceRating: number | null;
+  synthesisImpact: number | null;
+  synthesisConfidence: number | null;
+  isImpactOverridden: boolean;
+  isConfidenceOverridden: boolean;
+  itemTitle: string;
+}) {
+  const [modalOpen, setModalOpen] = useState(false);
+  const [localImpact, setLocalImpact] = useState<number | null>(impactRating);
+  const [localConf, setLocalConf] = useState<number | null>(confidenceRating);
+  const [localImpactOverridden, setLocalImpactOverridden] = useState(isImpactOverridden);
+  const [localConfOverridden, setLocalConfOverridden] = useState(isConfidenceOverridden);
+
+  if (localImpact === null || localConf === null) return null;
+
+  const combinedScore = localImpact * localConf;
+  const isEitherOverridden = localImpactOverridden || localConfOverridden;
+  const pillColor = "oklch(0.65 0.18 295)";
+
+  async function handleSave(impact: number, confidence: number) {
+    setLocalImpact(impact);
+    setLocalConf(confidence);
+    setLocalImpactOverridden(true);
+    setLocalConfOverridden(true);
+    setModalOpen(false);
+    await fetch(`/api/ideas/${cannyId}/impact`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ impact_rating: impact, confidence_rating: confidence }),
+    });
+  }
+
+  async function handleReset() {
+    setLocalImpact(synthesisImpact);
+    setLocalConf(synthesisConfidence);
+    setLocalImpactOverridden(false);
+    setLocalConfOverridden(false);
+    setModalOpen(false);
+    await fetch(`/api/ideas/${cannyId}/impact`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ impact_rating: null, confidence_rating: null }),
+    });
+  }
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={() => setModalOpen(true)}
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 5,
+          padding: "3px 8px",
+          fontSize: 11,
+          fontWeight: 500,
+          lineHeight: 1,
+          borderRadius: 9999,
+          background: "oklch(0.20 0.04 295)",
+          color: pillColor,
+          border: "1px solid oklch(0.45 0.18 295 / 0.35)",
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          fontStyle: isEitherOverridden ? "italic" : "normal",
+        }}
+      >
+        <span>Impact Score {combinedScore}</span>
+        {isEitherOverridden && (
+          <span style={{ width: 4, height: 4, borderRadius: "50%", background: pillColor, opacity: 0.6, flexShrink: 0 }} />
+        )}
+        <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
+      </button>
+
+      {modalOpen && (
+        <ImpactRatingModal
+          itemTitle={itemTitle}
+          initialImpact={localImpact}
+          initialConfidence={localConf}
+          synthesisImpact={synthesisImpact}
+          synthesisConfidence={synthesisConfidence}
+          isCurrentlyOverridden={isEitherOverridden}
+          onSave={handleSave}
+          onReset={handleReset}
+          onClose={() => setModalOpen(false)}
+        />
+      )}
+    </>
   );
 }
 
@@ -777,12 +1255,22 @@ function SignalRow({
         >
           {item.reason}
         </p>
-        <div style={{ marginBottom: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8, flexWrap: "wrap" }}>
           <StatusBadgeWithOverride
             cannyId={item.canny_id}
             status={item.status}
             synthesisStatus={item.synthesis_status}
             isOverridden={item.is_status_overridden}
+          />
+          <ImpactConfidenceWithOverride
+            cannyId={item.canny_id}
+            impactRating={item.impact_rating}
+            confidenceRating={item.confidence_rating}
+            synthesisImpact={item.synthesis_impact_rating}
+            synthesisConfidence={item.synthesis_confidence_rating}
+            isImpactOverridden={item.is_impact_overridden}
+            isConfidenceOverridden={item.is_confidence_overridden}
+            itemTitle={item.title}
           />
         </div>
         {item.canny_url && (

@@ -22,6 +22,12 @@ export interface DashboardSelection {
   status: string | null;
   synthesis_status: string | null;
   is_status_overridden: boolean;
+  impact_rating: number | null;
+  synthesis_impact_rating: number | null;
+  is_impact_overridden: boolean;
+  confidence_rating: number | null;
+  synthesis_confidence_rating: number | null;
+  is_confidence_overridden: boolean;
 }
 
 export interface DoneItem {
@@ -169,7 +175,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -289,6 +295,12 @@ export async function getDashboardData(
       status: (idea.manual_status ?? idea.selection_status) ?? null,
       synthesis_status: idea.selection_status ?? null,
       is_status_overridden: idea.manual_status !== null,
+      impact_rating: (idea.manual_impact_rating ?? idea.impact_rating) ?? null,
+      synthesis_impact_rating: idea.impact_rating ?? null,
+      is_impact_overridden: idea.manual_impact_rating !== null,
+      confidence_rating: (idea.manual_confidence_rating ?? idea.confidence_rating) ?? null,
+      synthesis_confidence_rating: idea.confidence_rating ?? null,
+      is_confidence_overridden: idea.manual_confidence_rating !== null,
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
       is_persistent: weeks >= 4,

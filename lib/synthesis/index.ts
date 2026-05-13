@@ -259,6 +259,8 @@ async function writeSynthesisResults(
       selected_this_week: false,
       selection_reason: null,
       selection_status: null,
+      impact_rating: null,
+      confidence_rating: null,
       selection_week: null,
       jira_story: null,
     })
@@ -275,6 +277,8 @@ async function writeSynthesisResults(
         selected_this_week: true,
         selection_reason: selection.reason,
         selection_status: selection.status,
+        impact_rating: selection.impact_rating,
+        confidence_rating: selection.confidence_rating,
         selection_week: weekOf,
         selection_priority_rank: selection.priority_rank,
         jira_story: selection.jira_story,
