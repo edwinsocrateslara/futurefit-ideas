@@ -264,6 +264,7 @@ async function writeSynthesisResults(
       why_callout: null,
       customers_prospects_callout: null,
       hard_deadline_notes_callout: null,
+      team_classification: null,
       selection_week: null,
       jira_story: null,
     })
@@ -285,6 +286,7 @@ async function writeSynthesisResults(
         why_callout: selection.why_callout,
         customers_prospects_callout: selection.customers_prospects_callout,
         hard_deadline_notes_callout: selection.hard_deadline_notes_callout,
+        team_classification: selection.team_classification,
         selection_week: weekOf,
         selection_priority_rank: selection.priority_rank,
         jira_story: selection.jira_story,

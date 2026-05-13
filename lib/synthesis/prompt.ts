@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v3.5";
+export const PROMPT_VERSION = "synthesis-v3.6";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -301,6 +301,21 @@ Bad example (reason hollowed out):
 
   Why this is wrong: the reason has been stripped of account counts, regulatory framing, and strategic stake. Anyone reading it without the callouts gets a hollow summary. The reason field must stand alone.
 
+**Team classification** — After generating callouts, assign a team classification to each selected item. This is the final field-tagging step and does NOT influence which items are selected or ranked.
+
+Assign exactly one of the following values:
+
+- "Engineering" — work that primarily involves software development: building features, fixing bugs, implementing integrations, UI/UX changes, backend services and APIs, database schema changes.
+
+- "Data" — work that primarily involves data infrastructure or analysis: building analytics and reporting, setting up tracking and instrumentation, configuring dashboards, defining metrics, data pipeline work, data mapping and ETL.
+
+When work spans both teams, assign whichever represents the PRIMARY type of work needed to ship it — which team owns the core deliverable?
+
+Examples:
+- Engineering: "Add bulk upload for employer outcome data" (feature build), "Fix permission bug in admin portal" (bug fix), "Build Canny custom field sync" (integration)
+- Data: "Build provider analytics dashboard" (reporting), "Set up event tracking for Apply button" (instrumentation), "Define and surface conversion funnel metrics" (metrics)
+- Mixed with reasoning: "Add candidate count to talent search results" — classify as Data because the work is primarily defining and surfacing the count metric, not building a new UI surface (the search results already exist)
+
 ---
 
 ## PATTERN LINEAGE CONTEXT (up to last 4 weeks — may be fewer if recent)
@@ -432,6 +447,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "why_callout": "<single sentence — the primary forcing function — or null>",
       "customers_prospects_callout": "<named accounts, prospects, or segments — or null>",
       "hard_deadline_notes_callout": "<deadline, action items, or critical context — or null>",
+      "team_classification": "<Engineering | Data>",
       "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
   ],

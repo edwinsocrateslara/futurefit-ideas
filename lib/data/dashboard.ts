@@ -31,6 +31,9 @@ export interface DashboardSelection {
   why_callout: string | null;
   customers_prospects_callout: string | null;
   hard_deadline_notes_callout: string | null;
+  team_classification: string | null;
+  synthesis_team_classification: string | null;
+  is_team_overridden: boolean;
 }
 
 export interface DoneItem {
@@ -178,7 +181,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, team_classification, manual_team_classification, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -307,6 +310,9 @@ export async function getDashboardData(
       why_callout: idea.why_callout ?? null,
       customers_prospects_callout: idea.customers_prospects_callout ?? null,
       hard_deadline_notes_callout: idea.hard_deadline_notes_callout ?? null,
+      team_classification: (idea.manual_team_classification ?? idea.team_classification) ?? null,
+      synthesis_team_classification: idea.team_classification ?? null,
+      is_team_overridden: idea.manual_team_classification !== null,
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
       is_persistent: weeks >= 4,

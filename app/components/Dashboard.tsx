@@ -17,12 +17,12 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem } from "@/lib/data/dashboard";
-import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES } from "@/lib/synthesis/schema";
-import type { StatusValue } from "@/lib/synthesis/schema";
+import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES, TEAM_CLASSIFICATION_VALUES } from "@/lib/synthesis/schema";
+import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, Scale, AlertTriangle, Compass, Wrench, RotateCcw, ChevronDown } from "lucide-react";
+import { Pin, ArrowUp, Scale, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -816,6 +816,240 @@ function ImpactConfidenceWithOverride({
   );
 }
 
+// ── Team classification badge + override ──────────────────────────────────
+
+const TEAM_STYLES: Record<TeamClassification, { bg: string; color: string; border: string }> = {
+  "Engineering": {
+    bg:     "oklch(0.20 0.06 235)",
+    color:  "oklch(0.72 0.16 235)",
+    border: "oklch(0.55 0.15 235 / 0.35)",
+  },
+  "Data": {
+    bg:     "oklch(0.20 0.07 290)",
+    color:  "oklch(0.72 0.18 290)",
+    border: "oklch(0.55 0.20 290 / 0.35)",
+  },
+};
+
+const TEAM_ICONS: Record<TeamClassification, React.ReactNode> = {
+  "Engineering": <Wrench size={10} strokeWidth={2} />,
+  "Data":        <BarChart2 size={10} strokeWidth={2} />,
+};
+
+function TeamBadge({
+  classification,
+  isOverridden,
+  onClick,
+}: {
+  classification: TeamClassification;
+  isOverridden: boolean;
+  onClick: () => void;
+}) {
+  const s = TEAM_STYLES[classification];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "3px 8px",
+        fontSize: 11,
+        fontWeight: 500,
+        lineHeight: 1,
+        letterSpacing: 0.1,
+        borderRadius: 9999,
+        background: s.bg,
+        color: s.color,
+        border: `1px solid ${s.border}`,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        fontStyle: isOverridden ? "italic" : "normal",
+      }}
+    >
+      {TEAM_ICONS[classification]}
+      {classification}
+      {isOverridden && (
+        <span
+          style={{
+            width: 4,
+            height: 4,
+            borderRadius: "50%",
+            background: s.color,
+            opacity: 0.6,
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
+    </button>
+  );
+}
+
+function TeamOverridePopover({
+  cannyId,
+  current,
+  synthesis,
+  isOverridden,
+  onClose,
+  onChange,
+}: {
+  cannyId: string;
+  current: TeamClassification;
+  synthesis: TeamClassification | null;
+  isOverridden: boolean;
+  onClose: () => void;
+  onChange: (value: TeamClassification | null) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [onClose]);
+
+  async function select(value: TeamClassification | null) {
+    onChange(value);
+    onClose();
+    if (value === null) {
+      await fetch(`/api/ideas/${cannyId}/team-classification`, { method: "DELETE" });
+    } else {
+      await fetch(`/api/ideas/${cannyId}/team-classification`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ team_classification: value }),
+      });
+    }
+  }
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "absolute",
+        top: "calc(100% + 6px)",
+        left: 0,
+        zIndex: 50,
+        background: "oklch(0.20 0 0)",
+        border: "1px solid oklch(1 0 0 / 0.12)",
+        borderRadius: 10,
+        padding: "6px",
+        minWidth: 160,
+        boxShadow: "0 8px 24px oklch(0 0 0 / 0.50)",
+      }}
+    >
+      {TEAM_CLASSIFICATION_VALUES.map((option) => {
+        const s = TEAM_STYLES[option];
+        const isSelected = current === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => select(option)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              width: "100%",
+              padding: "7px 10px",
+              fontSize: 12,
+              fontWeight: isSelected ? 600 : 400,
+              borderRadius: 6,
+              border: "none",
+              background: isSelected ? "oklch(1 0 0 / 0.06)" : "transparent",
+              color: isSelected ? s.color : "oklch(0.75 0 0)",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "background 100ms",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isSelected ? "oklch(1 0 0 / 0.06)" : "transparent"; }}
+          >
+            <span style={{ color: s.color, display: "flex" }}>{TEAM_ICONS[option]}</span>
+            {option}
+          </button>
+        );
+      })}
+      {isOverridden && synthesis && (
+        <>
+          <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", margin: "4px 0" }} />
+          <button
+            type="button"
+            onClick={() => select(null)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              width: "100%",
+              padding: "7px 10px",
+              fontSize: 12,
+              fontWeight: 400,
+              borderRadius: 6,
+              border: "none",
+              background: "transparent",
+              color: "oklch(0.55 0 0)",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+          >
+            <RotateCcw size={10} strokeWidth={2} />
+            Reset to synthesis ({synthesis})
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function TeamClassificationWithOverride({
+  cannyId,
+  classification,
+  synthesisClassification,
+  isOverridden,
+}: {
+  cannyId: string;
+  classification: string | null;
+  synthesisClassification: string | null;
+  isOverridden: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [local, setLocal] = useState<TeamClassification | null>(classification as TeamClassification | null);
+  const [localOverridden, setLocalOverridden] = useState(isOverridden);
+
+  if (!local) return null;
+
+  function handleChange(value: TeamClassification | null) {
+    setLocal(value ?? (synthesisClassification as TeamClassification | null));
+    setLocalOverridden(value !== null);
+  }
+
+  return (
+    <div style={{ position: "relative", display: "inline-flex" }}>
+      <TeamBadge
+        classification={local}
+        isOverridden={localOverridden}
+        onClick={() => setOpen((o) => !o)}
+      />
+      {open && (
+        <TeamOverridePopover
+          cannyId={cannyId}
+          current={local}
+          synthesis={synthesisClassification as TeamClassification | null}
+          isOverridden={localOverridden}
+          onClose={() => setOpen(false)}
+          onChange={handleChange}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Jira status badge ──────────────────────────────────────────────────────
 
 const JIRA_STATUS_STYLES: Record<
@@ -1261,6 +1495,12 @@ function SignalRow({
             status={item.status}
             synthesisStatus={item.synthesis_status}
             isOverridden={item.is_status_overridden}
+          />
+          <TeamClassificationWithOverride
+            cannyId={item.canny_id}
+            classification={item.team_classification}
+            synthesisClassification={item.synthesis_team_classification}
+            isOverridden={item.is_team_overridden}
           />
           <ImpactConfidenceWithOverride
             cannyId={item.canny_id}

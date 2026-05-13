@@ -16,6 +16,9 @@ export type ImpactRating = typeof IMPACT_RATING_VALUES[number];
 export const CONFIDENCE_RATING_VALUES = [1, 2, 3, 4] as const;
 export type ConfidenceRating = typeof CONFIDENCE_RATING_VALUES[number];
 
+export const TEAM_CLASSIFICATION_VALUES = ["Engineering", "Data"] as const;
+export type TeamClassification = typeof TEAM_CLASSIFICATION_VALUES[number];
+
 // ── Building blocks ───────────────────────────────────────────────────────────
 
 export const AnglesSchema = z.object({
@@ -35,6 +38,7 @@ export const SelectionSchema = z.object({
   why_callout: z.string().nullable(),
   customers_prospects_callout: z.string().nullable(),
   hard_deadline_notes_callout: z.string().nullable(),
+  team_classification: z.enum(TEAM_CLASSIFICATION_VALUES),
   jira_story: z.string().min(1),
 });
 
