@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v3.0";
+export const PROMPT_VERSION = "synthesis-v3.1";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -161,7 +161,10 @@ ${formatOverrideSignals(overrideSignals)}
 Select exactly 10 items across all boards. Rank them 1–10 by strategic importance, where 1 is the most important signal leadership should discuss this week.
 
 **Strategic context for this task:**
-Five documents constitute the strategic frame for top 10 selection: OKRs, Product Diagnosis, Build Strategy, FutureFit North Star, and North Star Strategy Memo. All five carry equal weight. The North Star documents describe the 2031 vision, the three winning levers (distribution, the transition engine, proximity to dollars), must-have capabilities, and where-to-play discipline. They are strategic documents on equal footing with the OKRs and build priorities — an item's connection to the North Star vision (e.g. transition graph, orchestration toward outcomes, payments proximity, multi-stakeholder town square) is as valid grounds for selection as its connection to a specific OKR or build priority.
+Five documents constitute the strategic frame for top 10 selection: OKRs, Product Diagnosis, Build Strategy, FutureFit North Star, and North Star Strategy Memo. All five carry equal weight. The North Star documents describe the 2031 vision, the three winning levers (distribution, the transition engine, proximity to dollars), must-have capabilities, and where-to-play discipline. They are strategic documents on equal footing with the OKRs and build priorities — an item's connection to the North Star vision (e.g. transition graph, orchestration toward outcomes, payments proximity, multi-stakeholder town square) is as valid grounds for selection as its connection to a specific OKR or build priority. Vision-aligned items must have a near-term forcing function — a named at-risk account, an OKR with current performance gap, a contractual deadline, or a specific customer pressure point — to qualify for top 10 inclusion. Connection to the 2031 vision is necessary but not sufficient; pure long-range alignment without near-term grounding belongs in the broader strategy conversation, not the weekly top 10.
+
+**Hard deadlines are first-tier considerations:**
+Items with hard external deadlines (contractual obligations to named customers, regulatory compliance dates, signed agreements with delivery commitments) are first-tier considerations and should not be displaced from the top 10 by strategic alignment alone. If an item has a documented hard deadline within the next 90 days and represents a contractual or compliance obligation, it warrants inclusion regardless of how strongly other items connect to strategic frameworks. The North Star vision, OKRs, and build priorities help rank strategically comparable items — they do not override real-world deadlines.
 
 **What strategic importance means:**
 - How directly the item connects to a gap, risk, or opportunity in the strategy documents above
