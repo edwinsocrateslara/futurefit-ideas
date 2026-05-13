@@ -274,6 +274,7 @@ async function writeSynthesisResults(
       .update({
         selected_this_week: true,
         selection_reason: selection.reason,
+        selection_status: selection.status,
         selection_week: weekOf,
         selection_priority_rank: selection.priority_rank,
         jira_story: selection.jira_story,

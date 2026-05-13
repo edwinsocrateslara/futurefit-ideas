@@ -19,6 +19,9 @@ export interface DashboardSelection {
   is_overridden: boolean;
   original_rank: number | null;
   tier_1_customer: string | null;
+  status: string | null;
+  synthesis_status: string | null;
+  is_status_overridden: boolean;
 }
 
 export interface DoneItem {
@@ -166,7 +169,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -283,6 +286,9 @@ export async function getDashboardData(
       posted_at: idea.created_at,
       jira_story: idea.jira_story,
       tier_1_customer: idea.tier_1_customer ?? null,
+      status: (idea.manual_status ?? idea.selection_status) ?? null,
+      synthesis_status: idea.selection_status ?? null,
+      is_status_overridden: idea.manual_status !== null,
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
       is_persistent: weeks >= 4,

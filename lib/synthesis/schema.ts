@@ -13,6 +13,7 @@ export const SelectionSchema = z.object({
   priority_rank: z.number().int().min(1).max(10),
   title: z.string().min(1),
   reason: z.string().min(1),
+  status: z.enum(["Contractual Requirement", "Renewal Risk", "Strategic", "Need to Do"]),
   jira_story: z.string().min(1),
 });
 

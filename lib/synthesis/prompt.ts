@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v3.1";
+export const PROMPT_VERSION = "synthesis-v3.2";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -224,6 +224,19 @@ Rules for jira_story:
 - Each acceptance criterion must be independently testable
 - Acceptance criteria describe behavior and outcomes only — not UX patterns, interaction counts, visual design, or layout. UX decisions are made during design review with engineers and designers, not in tickets. Bad: "Completable in three taps or fewer from the home screen." Good: "The flow is accessible on mobile." Bad: "Displayed in a left-aligned sidebar." Good: "Visible to coaches and administrators in their portal views."
 
+**Field tagging for selected items:**
+After completing selection and ranking, assign a status to each of the 10 selected items. This is a second pass — status does NOT influence which items are selected or how they are ranked.
+
+Assign exactly one of the following values:
+- Contractual Requirement: bound by customer contract with explicit delivery commitment
+- Renewal Risk: directly tied to a customer account at risk of not renewing
+- Strategic: discretionary investment, advances long-range vision
+- Need to Do: standard work that needs to happen to operate the business
+
+When multiple statuses could apply, assign the one that reflects the primary forcing function — the most binding source of urgency. Contractual obligations override renewal risk. Renewal risk overrides strategic investment. Strategic investment overrides standard maintenance.
+
+Example: An item that fits all four (contractual delivery, renewal-blocking, strategically aligned, and operationally needed) gets tagged Contractual Requirement because the contract is the most binding forcing function. The other categories describe additional context but don't change the primary tag.
+
 ---
 
 ## PATTERN LINEAGE CONTEXT (up to last 4 weeks — may be fewer if recent)
@@ -349,6 +362,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "priority_rank": <integer 1–10, where 1 is most important>,
       "title": "<problem-oriented dashboard title — what's broken, missing, or at risk, max 80 chars>",
       "reason": "<one strategic sentence referencing the strategy documents>",
+      "status": "<Contractual Requirement | Renewal Risk | Strategic | Need to Do>",
       "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
   ],

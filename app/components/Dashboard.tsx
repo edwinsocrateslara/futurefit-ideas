@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useTransition } from "react";
+import { useState, useEffect, useTransition, useRef } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -20,7 +20,7 @@ import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection,
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp } from "lucide-react";
+import { Pin, ArrowUp, Scale, AlertTriangle, Compass, Wrench, RotateCcw, ChevronDown } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -84,6 +84,257 @@ function Tier1Badge({ value }: { value: string | null | undefined }) {
     >
       {value}
     </span>
+  );
+}
+
+// ── Status badge + override ────────────────────────────────────────────────
+
+type StatusValue = "Contractual Requirement" | "Renewal Risk" | "Strategic" | "Need to Do";
+
+const STATUS_OPTIONS: StatusValue[] = [
+  "Contractual Requirement",
+  "Renewal Risk",
+  "Strategic",
+  "Need to Do",
+];
+
+const STATUS_STYLES: Record<StatusValue, { bg: string; color: string; border: string }> = {
+  "Contractual Requirement": {
+    bg:     "oklch(0.22 0.08 25)",
+    color:  "oklch(0.75 0.20 25)",
+    border: "oklch(0.55 0.20 25 / 0.35)",
+  },
+  "Renewal Risk": {
+    bg:     "oklch(0.22 0.06 75)",
+    color:  "oklch(0.82 0.18 75)",
+    border: "oklch(0.72 0.18 75 / 0.35)",
+  },
+  "Strategic": {
+    bg:     "oklch(0.22 0.06 235)",
+    color:  "oklch(0.70 0.15 235)",
+    border: "oklch(0.55 0.15 235 / 0.35)",
+  },
+  "Need to Do": {
+    bg:     "oklch(0.20 0 0)",
+    color:  "oklch(0.62 0 0)",
+    border: "oklch(1 0 0 / 0.12)",
+  },
+};
+
+const STATUS_ICONS: Record<StatusValue, React.ReactNode> = {
+  "Contractual Requirement": <Scale size={10} strokeWidth={2} />,
+  "Renewal Risk":            <AlertTriangle size={10} strokeWidth={2} />,
+  "Strategic":               <Compass size={10} strokeWidth={2} />,
+  "Need to Do":              <Wrench size={10} strokeWidth={2} />,
+};
+
+function StatusBadge({
+  status,
+  isOverridden,
+  onClick,
+}: {
+  status: StatusValue;
+  isOverridden: boolean;
+  onClick: () => void;
+}) {
+  const s = STATUS_STYLES[status];
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: 5,
+        padding: "3px 8px",
+        fontSize: 11,
+        fontWeight: 500,
+        lineHeight: 1,
+        letterSpacing: 0.1,
+        borderRadius: 9999,
+        background: s.bg,
+        color: s.color,
+        border: `1px solid ${s.border}`,
+        cursor: "pointer",
+        whiteSpace: "nowrap",
+        fontStyle: isOverridden ? "italic" : "normal",
+      }}
+    >
+      {STATUS_ICONS[status]}
+      {status}
+      {isOverridden && (
+        <span
+          style={{
+            width: 4,
+            height: 4,
+            borderRadius: "50%",
+            background: s.color,
+            opacity: 0.6,
+            flexShrink: 0,
+          }}
+        />
+      )}
+      <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
+    </button>
+  );
+}
+
+function StatusOverridePopover({
+  cannyId,
+  currentStatus,
+  synthesisStatus,
+  isOverridden,
+  onClose,
+  onStatusChange,
+}: {
+  cannyId: string;
+  currentStatus: StatusValue | null;
+  synthesisStatus: StatusValue | null;
+  isOverridden: boolean;
+  onClose: () => void;
+  onStatusChange: (status: StatusValue | null) => void;
+}) {
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [onClose]);
+
+  async function selectStatus(value: StatusValue | null) {
+    onStatusChange(value);
+    onClose();
+    await fetch(`/api/ideas/${cannyId}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ status: value }),
+    });
+  }
+
+  return (
+    <div
+      ref={ref}
+      style={{
+        position: "absolute",
+        top: "calc(100% + 6px)",
+        left: 0,
+        zIndex: 50,
+        background: "oklch(0.20 0 0)",
+        border: "1px solid oklch(1 0 0 / 0.12)",
+        borderRadius: 10,
+        padding: "6px",
+        minWidth: 220,
+        boxShadow: "0 8px 24px oklch(0 0 0 / 0.50)",
+      }}
+    >
+      {STATUS_OPTIONS.map((option) => {
+        const s = STATUS_STYLES[option];
+        const isSelected = currentStatus === option;
+        return (
+          <button
+            key={option}
+            type="button"
+            onClick={() => selectStatus(option)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              width: "100%",
+              padding: "7px 10px",
+              fontSize: 12,
+              fontWeight: isSelected ? 600 : 400,
+              borderRadius: 6,
+              border: "none",
+              background: isSelected ? "oklch(1 0 0 / 0.06)" : "transparent",
+              color: isSelected ? s.color : "oklch(0.75 0 0)",
+              cursor: "pointer",
+              textAlign: "left",
+              transition: "background 100ms",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isSelected ? "oklch(1 0 0 / 0.06)" : "transparent"; }}
+          >
+            <span style={{ color: s.color, display: "flex" }}>{STATUS_ICONS[option]}</span>
+            {option}
+          </button>
+        );
+      })}
+      {isOverridden && synthesisStatus && (
+        <>
+          <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", margin: "4px 0" }} />
+          <button
+            type="button"
+            onClick={() => selectStatus(null)}
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: 8,
+              width: "100%",
+              padding: "7px 10px",
+              fontSize: 12,
+              fontWeight: 400,
+              borderRadius: 6,
+              border: "none",
+              background: "transparent",
+              color: "oklch(0.55 0 0)",
+              cursor: "pointer",
+              textAlign: "left",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+          >
+            <RotateCcw size={10} strokeWidth={2} />
+            Reset to synthesis ({synthesisStatus})
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
+function StatusBadgeWithOverride({
+  cannyId,
+  status,
+  synthesisStatus,
+  isOverridden,
+}: {
+  cannyId: string;
+  status: string | null;
+  synthesisStatus: string | null;
+  isOverridden: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [localStatus, setLocalStatus] = useState<StatusValue | null>(status as StatusValue | null);
+  const [localOverridden, setLocalOverridden] = useState(isOverridden);
+
+  if (!localStatus) return null;
+
+  function handleStatusChange(value: StatusValue | null) {
+    setLocalStatus(value ?? (synthesisStatus as StatusValue | null));
+    setLocalOverridden(value !== null);
+  }
+
+  return (
+    <div style={{ position: "relative", display: "inline-flex" }}>
+      <StatusBadge
+        status={localStatus}
+        isOverridden={localOverridden}
+        onClick={() => setOpen((o) => !o)}
+      />
+      {open && (
+        <StatusOverridePopover
+          cannyId={cannyId}
+          currentStatus={localStatus}
+          synthesisStatus={synthesisStatus as StatusValue | null}
+          isOverridden={localOverridden}
+          onClose={() => setOpen(false)}
+          onStatusChange={handleStatusChange}
+        />
+      )}
+    </div>
   );
 }
 
@@ -517,7 +768,7 @@ function SignalRow({
         </p>
         <p
           style={{
-            margin: "0 0 8px 0",
+            margin: "0 0 10px 0",
             fontSize: 13,
             lineHeight: 1.6,
             color: "oklch(0.85 0 0)",
@@ -526,6 +777,14 @@ function SignalRow({
         >
           {item.reason}
         </p>
+        <div style={{ marginBottom: 8 }}>
+          <StatusBadgeWithOverride
+            cannyId={item.canny_id}
+            status={item.status}
+            synthesisStatus={item.synthesis_status}
+            isOverridden={item.is_status_overridden}
+          />
+        </div>
         {item.canny_url && (
           <a
             href={item.canny_url}
