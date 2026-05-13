@@ -284,7 +284,7 @@ function TabBar({
 }) {
   const tabs: { id: TabId; label: string }[] = [
     { id: "signals",   label: "Top 10 Signals" },
-    { id: "easy-wins", label: `Easy Wins · ${easyWinCount}` },
+    { id: "easy-wins", label: `Quick Wins · ${easyWinCount}` },
     { id: "patterns",  label: `Patterns · ${patternCount}` },
     { id: "accepted",  label: `Accepted · ${acceptedCount}` },
     { id: "deferred",  label: `Deferred · ${deferredCount}` },
@@ -701,7 +701,7 @@ function AcceptedTab({ items }: { items: AcceptedItem[] }) {
   if (items.length === 0) {
     return (
       <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
-        No accepted ideas yet. Click Accept on any signal or easy win to create a Jira ticket.
+        No accepted ideas yet. Click Accept on any signal or quick win to create a Jira ticket.
       </p>
     );
   }
@@ -1455,7 +1455,7 @@ export default function Dashboard({
           ))}
           {data.easy_wins.length > 0 && data.easy_wins.every((w) => doneSet.has(w.canny_id)) && (
             <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
-              All easy wins marked done.
+              All quick wins marked done.
             </p>
           )}
         </div>
