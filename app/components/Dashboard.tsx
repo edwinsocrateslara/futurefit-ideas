@@ -206,19 +206,12 @@ function MetricCard({
   label,
   accentColor,
   icon,
-  items,
-  onItemClick,
-  coldStart = false,
 }: {
   count: number;
   label: string;
   accentColor: string;
   icon?: React.ReactNode;
-  items: { canny_id: string; title: string }[];
-  onItemClick: (cannyId: string) => void;
-  coldStart?: boolean;
 }) {
-  const showItems = !coldStart && items.length > 0;
   return (
     <div
       style={{
@@ -258,35 +251,10 @@ function MetricCard({
           letterSpacing: 1.0,
           textTransform: "uppercase",
           color: accentColor,
-          marginBottom: showItems || coldStart ? 12 : 0,
         }}
       >
         {label}
       </div>
-      {showItems && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {items.map((item) => (
-            <button
-              key={item.canny_id}
-              type="button"
-              onClick={() => onItemClick(item.canny_id)}
-              style={{
-                background: "none",
-                border: "none",
-                padding: 0,
-                cursor: "pointer",
-                textAlign: "left",
-                fontSize: 12,
-                color: "oklch(0.68 0 0)",
-                lineHeight: 1.4,
-                textWrap: "pretty",
-              }}
-            >
-              {item.title}
-            </button>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
@@ -1318,18 +1286,12 @@ export default function Dashboard({
           label="Persistent · 4+ weeks running"
           accentColor="oklch(0.72 0.14 75)"
           icon={<Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
-          items={data.persistent_titles}
-          onItemClick={scrollToSignal}
-          coldStart={isColdStart}
         />
         <MetricCard
           count={data.new_count}
           label="New this week"
           accentColor="oklch(0.70 0.20 145)"
           icon={<TrendingUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
-          items={data.new_titles}
-          onItemClick={scrollToSignal}
-          coldStart={isColdStart}
         />
       </div>
 
