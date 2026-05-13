@@ -1637,11 +1637,36 @@ function EasyWinCard({
     >
       {/* Content */}
       <div>
-        {/* Top row: board chip left, action buttons right */}
+        {/* Top row: board chip + badges left, action buttons right */}
         <div style={{ display: "flex", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <BoardTag slug={win.board_slug} />
             <Tier1Badge value={win.tier_1_customer} />
+            {win.is_new_this_week && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "2px 6px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  letterSpacing: 0.1,
+                  borderRadius: 9999,
+                  background: "oklch(0.20 0.06 145)",
+                  color: "oklch(0.72 0.18 145)",
+                  border: "1px solid oklch(0.72 0.18 145 / 0.25)",
+                }}
+              >
+                New
+              </span>
+            )}
+            <TeamClassificationWithOverride
+              cannyId={win.canny_id}
+              classification={win.team_classification}
+              synthesisClassification={win.synthesis_team_classification}
+              isOverridden={win.is_team_overridden}
+            />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
             {win.jira_story && (
@@ -2304,19 +2329,39 @@ export default function Dashboard({
       </section>
 
       {/* Metric cards */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
-        <MetricCard
-          count={data.persistent_count}
-          label="Persistent · 4+ weeks running"
-          accentColor="oklch(0.72 0.14 75)"
-          icon={<Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
-        />
-        <MetricCard
-          count={data.new_count}
-          label="New this week"
-          accentColor="oklch(0.70 0.20 145)"
-          icon={<ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
-        />
+      <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 24 }}>
+        <div>
+          <p style={{ margin: "0 0 6px 0", fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: "oklch(0.42 0 0)" }}>
+            Top 10
+          </p>
+          <div style={{ display: "flex", gap: 12 }}>
+            <MetricCard
+              count={data.persistent_count}
+              label="Persistent · 4+ weeks running"
+              accentColor="oklch(0.72 0.14 75)"
+              icon={<Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
+            />
+            <MetricCard
+              count={data.new_count}
+              label="New this week"
+              accentColor="oklch(0.70 0.20 145)"
+              icon={<ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
+            />
+          </div>
+        </div>
+        <div>
+          <p style={{ margin: "0 0 6px 0", fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: "oklch(0.42 0 0)" }}>
+            Quick Wins
+          </p>
+          <div style={{ display: "flex", gap: 12 }}>
+            <MetricCard
+              count={data.new_easy_wins_count}
+              label="New this week"
+              accentColor="oklch(0.70 0.20 145)"
+              icon={<ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} />}
+            />
+          </div>
+        </div>
       </div>
 
       {/* Tab navigation */}

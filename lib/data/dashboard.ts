@@ -55,6 +55,10 @@ export interface DashboardEasyWin {
   jira_story: string | null;
   canny_url: string | null;
   tier_1_customer: string | null;
+  is_new_this_week: boolean;
+  team_classification: string | null;
+  synthesis_team_classification: string | null;
+  is_team_overridden: boolean;
 }
 
 export interface AcceptedItem {
@@ -109,6 +113,7 @@ export interface DashboardData {
   done_jira_items: DoneJiraItem[];
   persistent_count: number;
   new_count: number;
+  new_easy_wins_count: number;
   persistent_titles: { canny_id: string; title: string }[];
   new_titles: { canny_id: string; title: string }[];
   sync: {
@@ -355,17 +360,26 @@ export async function getDashboardData(
   // Easy wins
   const { data: easyWinRows } = await supabase
     .from("easy_wins")
-    .select("canny_id, reason, jira_story, synthesis_title")
+    .select("canny_id, reason, jira_story, synthesis_title, team_classification")
     .eq("week_of", resolvedWeek);
 
   const easyWinCannyIds = (easyWinRows ?? []).map((w) => w.canny_id);
-  const easyWinIdeaMap: Record<string, { title: string; canny_url: string | null; board_slug: string; board_name: string; tier_1_customer: string | null }> = {};
+  const easyWinIdeaMap: Record<string, { title: string; canny_url: string | null; board_slug: string; board_name: string; tier_1_customer: string | null; manual_team_classification: string | null }> = {};
 
+  // Easy win history — count appearances per canny_id to derive is_new_this_week
+  const easyWinWeeksByCanny: Record<string, number> = {};
   if (easyWinCannyIds.length > 0) {
-    const { data: easyWinIdeas } = await supabase
-      .from("ideas")
-      .select("canny_id, title, tier_1_customer, canny_url, boards(slug, name)")
-      .in("canny_id", easyWinCannyIds);
+    const [{ data: easyWinIdeas }, { data: easyWinHistory }] = await Promise.all([
+      supabase
+        .from("ideas")
+        .select("canny_id, title, tier_1_customer, canny_url, manual_team_classification, boards(slug, name)")
+        .in("canny_id", easyWinCannyIds),
+      supabase
+        .from("easy_wins")
+        .select("canny_id")
+        .in("canny_id", easyWinCannyIds)
+        .lte("week_of", resolvedWeek),
+    ]);
 
     for (const row of easyWinIdeas ?? []) {
       const board = row.boards as unknown as { slug: string; name: string } | null;
@@ -375,12 +389,19 @@ export async function getDashboardData(
         board_slug: board?.slug ?? "",
         board_name: board?.name ?? "",
         tier_1_customer: row.tier_1_customer ?? null,
+        manual_team_classification: row.manual_team_classification ?? null,
       };
+    }
+
+    for (const row of easyWinHistory ?? []) {
+      easyWinWeeksByCanny[row.canny_id] = (easyWinWeeksByCanny[row.canny_id] ?? 0) + 1;
     }
   }
 
   const easy_wins: DashboardEasyWin[] = (easyWinRows ?? []).map((w) => {
     const idea = easyWinIdeaMap[w.canny_id];
+    const weeksIn = easyWinWeeksByCanny[w.canny_id] ?? 1;
+    const manualClassification = idea?.manual_team_classification ?? null;
     return {
       canny_id: w.canny_id,
       title: w.synthesis_title ?? idea?.title ?? "",
@@ -390,6 +411,10 @@ export async function getDashboardData(
       jira_story: w.jira_story,
       canny_url: idea?.canny_url ?? null,
       tier_1_customer: idea?.tier_1_customer ?? null,
+      is_new_this_week: weeksIn === 1,
+      team_classification: (manualClassification ?? w.team_classification) ?? null,
+      synthesis_team_classification: w.team_classification ?? null,
+      is_team_overridden: manualClassification !== null,
     };
   });
 
@@ -483,6 +508,7 @@ export async function getDashboardData(
 
   const persistentSelections = surfacedSelections.filter((s) => s.is_persistent);
   const newSelections = surfacedSelections.filter((s) => s.is_new_this_week);
+  const newEasyWins = surfacedEasyWins.filter((w) => w.is_new_this_week);
 
   return {
     data: {
@@ -500,6 +526,7 @@ export async function getDashboardData(
       done_jira_items: doneJiraItems,
       persistent_count: persistentSelections.length,
       new_count: newSelections.length,
+      new_easy_wins_count: newEasyWins.length,
       persistent_titles: persistentSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
       new_titles: newSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
       sync: syncRun

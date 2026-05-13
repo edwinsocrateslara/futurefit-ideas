@@ -357,6 +357,7 @@ async function writeSynthesisResults(
       canny_id: win.canny_id,
       week_of: weekOf,
       reason: win.reason,
+      team_classification: win.team_classification,
       jira_story: win.jira_story,
       synthesis_title: win.title,
     });

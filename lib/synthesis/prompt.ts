@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v3.6";
+export const PROMPT_VERSION = "synthesis-v3.7";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -426,6 +426,8 @@ Same format as TASK 1 — Title, User story, Context, Acceptance criteria. For e
 
 The Title line must be an exact copy of the title field for that item — same string, verbatim. Do not rephrase, make it action-oriented, or write a different title here.
 
+**Team classification for easy wins** — Assign a team classification to each easy win using the same Engineering/Data values and primary-team reasoning as TASK 1. Easy wins are typically more clear-cut: a copy change or UI toggle is Engineering; a new metric or tracking event is Data. Assign whichever team owns the core deliverable.
+
 ---
 
 ## OUTPUT FORMAT
@@ -468,6 +470,7 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "canny_id": "<id from the feedback items above>",
       "title": "<solution-oriented dashboard title — what gets shipped, max 80 chars>",
       "reason": "<two sentences: what the item asks for, then why it qualifies as an easy win>",
+      "team_classification": "<Engineering | Data>",
       "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
     }
   ]

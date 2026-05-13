@@ -56,6 +56,7 @@ export const EasyWinSchema = z.object({
   canny_id: z.string().min(1),
   title: z.string().min(1),
   reason: z.string().min(1),
+  team_classification: z.enum(TEAM_CLASSIFICATION_VALUES),
   jira_story: z.string().min(1),
 });
 
