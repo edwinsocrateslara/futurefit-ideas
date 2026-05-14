@@ -22,7 +22,7 @@ import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, MoveVertical } from "lucide-react";
+import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -352,15 +352,14 @@ function RatingOption({
       type="button"
       onClick={onClick}
       style={{
-        display: "grid",
-        gridTemplateColumns: "28px 1fr",
-        alignItems: "start",
+        display: "flex",
+        alignItems: "center",
         gap: 12,
         width: "100%",
-        padding: "11px 14px",
-        borderRadius: 8,
+        padding: "10px 14px",
+        borderRadius: 9999,
         border: isSelected
-          ? "1px solid oklch(0.55 0.18 295 / 0.65)"
+          ? "1px solid oklch(0.55 0.18 295 / 0.40)"
           : "1px solid oklch(1 0 0 / 0.08)",
         background: isSelected ? "oklch(0.24 0.06 295)" : "oklch(0.155 0 0)",
         cursor: "pointer",
@@ -368,23 +367,39 @@ function RatingOption({
         transition: "background 80ms, border-color 80ms",
       }}
     >
-      <span
+      {/* Circular indicator */}
+      <div
         style={{
-          fontFamily: "var(--font-mono)",
-          fontSize: 16,
-          fontWeight: 600,
-          color: isSelected ? "oklch(0.72 0.20 295)" : "oklch(0.35 0 0)",
-          lineHeight: 1.5,
+          width: 32,
+          height: 32,
+          borderRadius: 9999,
+          flexShrink: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: isSelected ? "oklch(0.55 0.18 295 / 0.20)" : "transparent",
+          border: isSelected
+            ? "1px solid oklch(0.55 0.18 295 / 0.40)"
+            : "1px solid oklch(1 0 0 / 0.15)",
         }}
       >
-        {value}
-      </span>
+        <span
+          style={{
+            fontSize: 18,
+            fontWeight: 600,
+            fontVariantNumeric: "tabular-nums",
+            color: isSelected ? "oklch(0.97 0 0)" : "oklch(0.55 0 0)",
+            lineHeight: 1,
+          }}
+        >
+          {value}
+        </span>
+      </div>
       <span
         style={{
           fontSize: 14,
           lineHeight: 1.55,
           color: isSelected ? "oklch(0.85 0 0)" : "oklch(0.65 0 0)",
-          paddingTop: 1,
         }}
       >
         {criteria}
@@ -442,8 +457,8 @@ function ImpactRatingModal({
       <div
         style={{
           background: "oklch(0.18 0 0)",
-          border: "1px solid oklch(1 0 0 / 0.12)",
-          borderRadius: 16,
+          border: "1px solid oklch(1 0 0 / 0.08)",
+          borderRadius: 12,
           width: "100%",
           maxWidth: 640,
           maxHeight: "90vh",
@@ -498,8 +513,8 @@ function ImpactRatingModal({
               transition: "background 100ms, color 100ms",
             }}
             onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
-              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.80 0 0)";
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.04)";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.78 0 0)";
             }}
             onMouseLeave={(e) => {
               (e.currentTarget as HTMLButtonElement).style.background = "transparent";
@@ -510,16 +525,16 @@ function ImpactRatingModal({
           </button>
         </div>
 
-        <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 22 }}>
+        <div style={{ padding: "16px 24px 24px", display: "flex", flexDirection: "column", gap: 20 }}>
           {/* Impact Rating */}
           <div>
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 8 }}>
               <h3
                 style={{
                   margin: "0 0 2px 0",
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "oklch(0.85 0 0)",
+                  color: "oklch(0.65 0 0)",
                   letterSpacing: -0.1,
                 }}
               >
@@ -529,7 +544,7 @@ function ImpactRatingModal({
                 How many customers/prospects would move from detractor/passive to promoter?
               </p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {IMPACT_RATING_VALUES.map((n) => (
                 <RatingOption
                   key={n}
@@ -544,13 +559,13 @@ function ImpactRatingModal({
 
           {/* Confidence Rating */}
           <div>
-            <div style={{ marginBottom: 10 }}>
+            <div style={{ marginBottom: 8 }}>
               <h3
                 style={{
                   margin: "0 0 2px 0",
                   fontSize: 14,
                   fontWeight: 600,
-                  color: "oklch(0.85 0 0)",
+                  color: "oklch(0.65 0 0)",
                   letterSpacing: -0.1,
                 }}
               >
@@ -560,7 +575,7 @@ function ImpactRatingModal({
                 How much evidence supports this impact prediction?
               </p>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 5 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
               {CONFIDENCE_RATING_VALUES.map((n) => (
                 <RatingOption
                   key={n}
@@ -582,30 +597,34 @@ function ImpactRatingModal({
               border: "1px solid oklch(1 0 0 / 0.08)",
             }}
           >
-            <div
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 28,
-                fontWeight: 700,
-                letterSpacing: -0.5,
-                color: combinedScore !== null ? "oklch(0.72 0.20 295)" : "oklch(0.35 0 0)",
-                lineHeight: 1,
-                marginBottom: combinedScore !== null ? 6 : 0,
-              }}
-            >
-              {combinedScore !== null ? `Impact Score  ${combinedScore}` : "—"}
-            </div>
-            {combinedScore !== null && impact !== null && confidence !== null && (
-              <p style={{ margin: 0, fontSize: 12, color: "oklch(0.45 0 0)", lineHeight: 1.4 }}>
-                Impact {impact} × Confidence {confidence} = {combinedScore}
+            <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+              <div
+                style={{
+                  fontSize: 48,
+                  fontWeight: 600,
+                  fontVariantNumeric: "tabular-nums",
+                  color: combinedScore !== null ? "oklch(0.97 0 0)" : "oklch(0.35 0 0)",
+                  lineHeight: 1,
+                  letterSpacing: -1,
+                }}
+              >
+                {combinedScore !== null ? combinedScore : "—"}
+              </div>
+              <p style={{ margin: 0, fontSize: 12, color: "oklch(0.55 0 0)", lineHeight: 1 }}>
+                Impact Score
               </p>
-            )}
+              {combinedScore !== null && impact !== null && confidence !== null && (
+                <p style={{ margin: 0, fontSize: 11, color: "oklch(0.45 0 0)", lineHeight: 1.4 }}>
+                  Impact {impact} × Confidence {confidence} = {combinedScore}
+                </p>
+              )}
+            </div>
             {hasChangedFromSynthesis && synthCombined !== null && (
               <p
                 style={{
                   margin: "8px 0 0",
                   paddingTop: 8,
-                  borderTop: "1px solid oklch(1 0 0 / 0.06)",
+                  borderTop: "1px solid oklch(1 0 0 / 0.08)",
                   fontSize: 12,
                   color: "oklch(0.45 0 0)",
                   lineHeight: 1.4,
@@ -628,10 +647,10 @@ function ImpactRatingModal({
                     alignItems: "center",
                     gap: 6,
                     padding: "8px 14px",
-                    fontSize: 14,
-                    fontWeight: 500,
-                    borderRadius: 6,
-                    border: "1px solid oklch(1 0 0 / 0.10)",
+                    fontSize: 13,
+                    fontWeight: 600,
+                    borderRadius: 9999,
+                    border: "none",
                     background: "transparent",
                     color: "oklch(0.55 0 0)",
                     cursor: "pointer",
@@ -650,11 +669,11 @@ function ImpactRatingModal({
                 type="button"
                 onClick={onClose}
                 style={{
-                  padding: "8px 16px",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  borderRadius: 6,
-                  border: "1px solid oklch(1 0 0 / 0.12)",
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 9999,
+                  border: "none",
                   background: "transparent",
                   color: "oklch(0.65 0 0)",
                   cursor: "pointer",
@@ -667,10 +686,10 @@ function ImpactRatingModal({
                 onClick={() => { if (impact !== null && confidence !== null) onSave(impact, confidence); }}
                 disabled={impact === null || confidence === null}
                 style={{
-                  padding: "8px 20px",
-                  fontSize: 14,
+                  padding: "8px 18px",
+                  fontSize: 13,
                   fontWeight: 600,
-                  borderRadius: 6,
+                  borderRadius: 9999,
                   border: "none",
                   background: impact !== null && confidence !== null
                     ? "oklch(0.45 0.20 295)"
@@ -1330,10 +1349,10 @@ function SignalRow({
           userSelect: "none",
         }}
       >
-        {/* Inner wrapper: centers icon above number on the same axis */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+        {/* Inner wrapper: centers icon above number on the same axis; marginTop aligns grip center with Board badge center */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 2 }}>
           {dragHandleListeners && (
-            <MoveVertical size={16} strokeWidth={1.75} aria-hidden
+            <GripVertical size={16} strokeWidth={1.75} aria-hidden
               style={{ opacity: 0.25 }}
             />
           )}
@@ -2398,29 +2417,29 @@ export default function Dashboard({
           style={{
             position: "fixed",
             inset: 0,
-            background: "oklch(0 0 0 / 0.55)",
+            background: "oklch(0 0 0 / 0.60)",
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            zIndex: 100,
+            zIndex: 200,
           }}
         >
           <div
             style={{
               background: "oklch(0.18 0 0)",
-              border: "1px solid oklch(1 0 0 / 0.12)",
-              borderRadius: 16,
-              padding: "28px 32px",
+              border: "1px solid oklch(1 0 0 / 0.08)",
+              borderRadius: 12,
+              padding: "24px 24px",
               maxWidth: 420,
               width: "calc(100% - 48px)",
             }}
           >
             <h2
               style={{
-                margin: "0 0 10px 0",
+                margin: "0 0 8px 0",
                 fontSize: 16,
                 fontWeight: 600,
-                letterSpacing: -0.3,
+                letterSpacing: -0.2,
                 color: "oklch(0.97 0 0)",
               }}
             >
@@ -2431,7 +2450,7 @@ export default function Dashboard({
                 margin: "0 0 24px 0",
                 fontSize: 14,
                 lineHeight: 1.6,
-                color: "oklch(0.65 0 0)",
+                color: "oklch(0.85 0 0)",
               }}
             >
               You&apos;re changing the order for this week. This will inform what gets prioritized in next week&apos;s synthesis as your team&apos;s top priorities.
@@ -2441,11 +2460,11 @@ export default function Dashboard({
                 type="button"
                 onClick={handleCancelReorder}
                 style={{
-                  padding: "8px 16px",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  borderRadius: 6,
-                  border: "1px solid oklch(1 0 0 / 0.12)",
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 9999,
+                  border: "none",
                   background: "transparent",
                   color: "oklch(0.65 0 0)",
                   cursor: "pointer",
@@ -2461,10 +2480,10 @@ export default function Dashboard({
                 onMouseDown={() => setConfirmActive(true)}
                 onMouseUp={() => setConfirmActive(false)}
                 style={{
-                  padding: "8px 16px",
-                  fontSize: 14,
-                  fontWeight: 500,
-                  borderRadius: 6,
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  borderRadius: 9999,
                   border: "none",
                   background: confirmActive
                     ? "oklch(0.40 0.20 295)"
