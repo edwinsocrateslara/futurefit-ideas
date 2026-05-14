@@ -1438,9 +1438,6 @@ function SignalRow({
             )}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-            {item.jira_story && (
-              <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
-            )}
             <button
               type="button"
               onClick={() => onToggleDone(item)}
@@ -1464,6 +1461,9 @@ function SignalRow({
             >
               {isDone ? "Undo" : "Defer"}
             </button>
+            {item.jira_story && (
+              <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
+            )}
           </div>
         </div>
         <p
