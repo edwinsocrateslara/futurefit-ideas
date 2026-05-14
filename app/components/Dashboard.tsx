@@ -1669,9 +1669,6 @@ function EasyWinCard({
             />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-            {win.jira_story && (
-              <AcceptButton cannyId={win.canny_id} onSuccess={onAccepted} />
-            )}
             <button
               type="button"
               onClick={() => onToggleDone(win)}
@@ -1695,6 +1692,9 @@ function EasyWinCard({
             >
               {isDone ? "Undo" : "Defer"}
             </button>
+            {win.jira_story && (
+              <AcceptButton cannyId={win.canny_id} onSuccess={onAccepted} />
+            )}
           </div>
         </div>
         <p
