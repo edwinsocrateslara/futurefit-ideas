@@ -1103,11 +1103,11 @@ function AcceptButton({
         style={{
           display: "inline-flex",
           alignItems: "center",
-          padding: "4px 10px",
-          fontSize: 12,
+          padding: "8px 18px",
+          fontSize: 13,
           fontWeight: 600,
           letterSpacing: 0.2,
-          borderRadius: 6,
+          borderRadius: 9999,
           border: "none",
           background: loading
             ? "oklch(0.35 0.15 295)"
@@ -1214,13 +1214,13 @@ function TabBar({
   doneCount: number;
   onSelect: (id: TabId) => void;
 }) {
-  const tabs: { id: TabId; label: string }[] = [
+  const tabs: { id: TabId; label: string; count?: number }[] = [
     { id: "signals",   label: "Top 10 Ideas" },
-    { id: "easy-wins", label: `Quick Wins · ${easyWinCount}` },
-    { id: "patterns",  label: `Patterns · ${patternCount}` },
-    { id: "accepted",  label: `Accepted · ${acceptedCount}` },
-    { id: "deferred",  label: `Deferred · ${deferredCount}` },
-    { id: "done",      label: `Done · ${doneCount}` },
+    { id: "easy-wins", label: "Quick Wins",  count: easyWinCount },
+    { id: "patterns",  label: "Patterns",    count: patternCount },
+    { id: "accepted",  label: "Accepted",    count: acceptedCount },
+    { id: "deferred",  label: "Deferred",    count: deferredCount },
+    { id: "done",      label: "Done",        count: doneCount },
   ];
 
   return (
@@ -1260,6 +1260,11 @@ function TabBar({
             }}
           >
             {t.label}
+            {t.count != null && (
+              <span style={{ color: isActive ? "oklch(1 0 0 / 0.50)" : "oklch(0.45 0 0)" }}>
+                {` · ${t.count}`}
+              </span>
+            )}
           </button>
         );
       })}
@@ -1296,9 +1301,9 @@ function SignalRow({
       id={`signal-${item.canny_id}`}
       style={{
         display: "grid",
-        gridTemplateColumns: "44px 1fr",
+        gridTemplateColumns: "56px 1fr",
         gap: 20,
-        padding: "20px 24px",
+        padding: "20px 24px 20px 16px",
         background: "oklch(0.18 0 0)",
         border: "1px solid oklch(1 0 0 / 0.08)",
         borderRadius: 12,
@@ -1312,35 +1317,40 @@ function SignalRow({
         {...(dragHandleListeners as React.HTMLAttributes<HTMLDivElement>)}
         style={{
           alignSelf: "stretch",
-          position: "relative",
-          paddingTop: 2,
           display: "flex",
           flexDirection: "column",
-          alignItems: "center",
-          gap: 6,
+          alignItems: "flex-start",
+          paddingTop: 20,
+          paddingBottom: 20,
+          marginTop: -20,
+          marginBottom: -20,
+          borderRight: "0.5px solid oklch(1 0 0 / 0.08)",
           cursor: dragHandleListeners ? "grab" : "default",
           touchAction: "none",
           userSelect: "none",
         }}
       >
-        {dragHandleListeners && (
-          <MoveVertical size={20} strokeWidth={1.75} aria-hidden
-            style={{ position: "absolute", top: "50%", transform: "translateY(-50%)", opacity: 0.25 }}
-          />
-        )}
-        <span
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: 20,
-            fontWeight: 500,
-            fontVariantNumeric: "tabular-nums",
-            color: "oklch(0.32 0 0)",
-            lineHeight: 1,
-            letterSpacing: -0.5,
-          }}
-        >
-          {String(displayRank).padStart(2, "0")}
-        </span>
+        {/* Inner wrapper: centers icon above number on the same axis */}
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+          {dragHandleListeners && (
+            <MoveVertical size={16} strokeWidth={1.75} aria-hidden
+              style={{ opacity: 0.25 }}
+            />
+          )}
+          <span
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: 28,
+              fontWeight: 500,
+              fontVariantNumeric: "tabular-nums",
+              color: "oklch(0.65 0 0)",
+              lineHeight: 1,
+              letterSpacing: -0.5,
+            }}
+          >
+            {String(displayRank).padStart(2, "0")}
+          </span>
+        </div>
         {isOverridden && (
           <span
             style={{
@@ -1457,33 +1467,32 @@ function SignalRow({
         {/* Callouts — rendered only when content exists */}
         {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
           <div style={{
-            display: "grid",
-            gridTemplateColumns: "96px 1fr",
-            columnGap: 12,
-            rowGap: 6,
-            alignItems: "start",
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
             marginTop: 16,
             padding: "12px 16px",
-            background: "oklch(0.155 0 0)",
+            background: "oklch(0.18 0 0)",
+            border: "0.5px solid oklch(1 0 0 / 0.08)",
             borderRadius: 8,
           }}>
             {item.why_callout && (
-              <>
-                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.55 0 0)" }}>Why</span>
-                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
-              </>
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Why: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
+              </p>
             )}
             {item.customers_prospects_callout && (
-              <>
-                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.55 0 0)" }}>Customers</span>
-                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
-              </>
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Customers: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
+              </p>
             )}
             {item.hard_deadline_notes_callout && (
-              <>
-                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.55 0 0)" }}>Deadline</span>
-                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
-              </>
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Deadline: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
+              </p>
             )}
           </div>
         )}
@@ -1502,7 +1511,9 @@ function SignalRow({
                 gap: 4,
                 fontSize: 12,
                 color: "oklch(0.55 0 0)",
-                textDecoration: "none",
+                textDecoration: "underline",
+                textUnderlineOffset: 3,
+                textDecorationThickness: 1,
                 letterSpacing: 0.2,
               }}
             >
@@ -1518,17 +1529,17 @@ function SignalRow({
             style={{
               display: "inline-flex",
               alignItems: "center",
-              padding: "4px 10px",
-              fontSize: 12,
+              padding: "8px 18px",
+              fontSize: 13,
               fontWeight: 600,
               letterSpacing: 0.2,
-              borderRadius: 6,
-              border: `1px solid ${deferHovered ? "oklch(0.45 0 0)" : "oklch(0.35 0 0)"}`,
-              background: deferHovered ? "oklch(0.20 0 0)" : "transparent",
+              borderRadius: 9999,
+              border: "none",
+              background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
               color: "oklch(0.85 0 0)",
               cursor: "pointer",
               whiteSpace: "nowrap",
-              transition: "background 120ms, border-color 120ms",
+              transition: "background 120ms",
             }}
           >
             {isDone ? "Undo" : "Defer"}
@@ -1677,7 +1688,9 @@ function EasyWinCard({
                 gap: 4,
                 fontSize: 12,
                 color: "oklch(0.55 0 0)",
-                textDecoration: "none",
+                textDecoration: "underline",
+                textUnderlineOffset: 3,
+                textDecorationThickness: 1,
                 letterSpacing: 0.2,
               }}
             >
@@ -1693,17 +1706,17 @@ function EasyWinCard({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                padding: "4px 10px",
-                fontSize: 12,
+                padding: "8px 18px",
+                fontSize: 13,
                 fontWeight: 600,
                 letterSpacing: 0.2,
-                borderRadius: 6,
-                border: `1px solid ${deferHovered ? "oklch(0.45 0 0)" : "oklch(0.35 0 0)"}`,
-                background: deferHovered ? "oklch(0.20 0 0)" : "transparent",
+                borderRadius: 9999,
+                border: "none",
+                background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
                 color: "oklch(0.85 0 0)",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
-                transition: "background 120ms, border-color 120ms",
+                transition: "background 120ms",
               }}
             >
               {isDone ? "Undo" : "Defer"}
@@ -1784,7 +1797,9 @@ function AcceptedTab({ items }: { items: AcceptedItem[] }) {
               gap: 4,
               fontSize: 12,
               color: "oklch(0.55 0 0)",
-              textDecoration: "none",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+              textDecorationThickness: 1,
               letterSpacing: 0.2,
             }}
           >
@@ -1863,7 +1878,9 @@ function JiraDoneTab({ items }: { items: DoneJiraItem[] }) {
               gap: 4,
               fontSize: 12,
               color: "oklch(0.55 0 0)",
-              textDecoration: "none",
+              textDecoration: "underline",
+              textUnderlineOffset: 3,
+              textDecorationThickness: 1,
               letterSpacing: 0.2,
             }}
           >
@@ -2198,9 +2215,11 @@ export default function Dashboard({
           width: "100vw",
           marginLeft: "calc(50% - 50vw)",
           marginBottom: 32,
-          paddingTop: 16,
-          paddingBottom: 16,
-          background: "oklch(0.145 0 0)",
+          paddingTop: 6,
+          paddingBottom: 6,
+          background: "oklch(0.145 0 0 / 0.80)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
           borderBottom: "1px solid oklch(1 0 0 / 0.08)",
         }}
       >
@@ -2237,7 +2256,7 @@ export default function Dashboard({
             margin: "0 0 6px 0",
           }}
         >
-          Synthesized Ideas{data.input_item_count != null ? ` (${data.input_item_count})` : ""}
+          Synthesized Ideas{data.input_item_count != null ? <span style={{ color: "oklch(0.45 0 0)" }}>{` (${data.input_item_count})`}</span> : ""}
         </h2>
         <p
           style={{
