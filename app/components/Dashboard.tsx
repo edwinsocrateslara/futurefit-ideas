@@ -1404,7 +1404,7 @@ function SignalRow({
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <BoardTag slug={item.board_slug} />
             <Tier1Badge value={item.tier_1_customer} />
-            {item.is_new_this_week && !suppressNewBadge && (
+            {item.is_new_this_week && !suppressNewBadge ? (
               <span
                 style={{
                   display: "inline-flex",
@@ -1422,7 +1422,25 @@ function SignalRow({
               >
                 New
               </span>
-            )}
+            ) : item.is_persistent ? (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "2px 6px",
+                  fontSize: 11,
+                  fontWeight: 600,
+                  lineHeight: 1,
+                  letterSpacing: 0.1,
+                  borderRadius: 9999,
+                  background: "oklch(0.20 0.06 75)",
+                  color: "oklch(0.72 0.18 75)",
+                  border: "1px solid oklch(0.72 0.18 75 / 0.25)",
+                }}
+              >
+                4+ Weeks
+              </span>
+            ) : null}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
             <button
