@@ -2323,11 +2323,8 @@ export default function Dashboard({
             { section: "Top 10",     count: data.new_count,           label: "New Ideas this Week",           accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
             { section: "Quick Wins", count: data.new_easy_wins_count, label: "New Quick Wins this Week",      accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
           ] as const
-        ).map(({ section, count, label, accentColor, icon }, i) => (
-          <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column" }}>
-            <p style={{ margin: "0 0 6px 0", fontSize: 10, fontWeight: 600, letterSpacing: 0.8, textTransform: "uppercase", color: "oklch(0.42 0 0)" }}>
-              {section}
-            </p>
+        ).map(({ count, label, accentColor, icon }, i) => (
+          <div key={i} style={{ flex: 1 }}>
             <MetricCard count={count} label={label} accentColor={accentColor} icon={icon} />
           </div>
         ))}
