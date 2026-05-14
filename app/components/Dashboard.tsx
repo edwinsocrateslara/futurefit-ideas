@@ -1246,7 +1246,7 @@ function TabBar({
   onSelect: (id: TabId) => void;
 }) {
   const tabs: { id: TabId; label: string }[] = [
-    { id: "signals",   label: "Top 10 Signals" },
+    { id: "signals",   label: "Top 10 Ideas" },
     { id: "easy-wins", label: `Quick Wins · ${easyWinCount}` },
     { id: "patterns",  label: `Patterns · ${patternCount}` },
     { id: "accepted",  label: `Accepted · ${acceptedCount}` },
