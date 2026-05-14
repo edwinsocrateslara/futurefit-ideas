@@ -1920,7 +1920,7 @@ function DoneTab({
   if (items.length === 0) {
     return (
       <p style={{ fontSize: 13, color: "oklch(0.50 0 0)", margin: 0 }}>
-        No items marked done yet.
+        No deferred items yet.
       </p>
     );
   }
