@@ -1379,19 +1379,6 @@ function SignalRow({
         >
           {String(displayRank).padStart(2, "0")}
         </span>
-        {item.is_persistent && (
-          <span
-            aria-label="Persistent signal"
-            style={{
-              display: "block",
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: "oklch(0.75 0.18 75)",
-              flexShrink: 0,
-            }}
-          />
-        )}
         {isOverridden && (
           <span
             style={{
