@@ -2319,7 +2319,7 @@ export default function Dashboard({
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         {(
           [
-            { section: "Top 10",     count: data.persistent_count,    label: "Persistent · 4+ weeks running", accentColor: "oklch(0.72 0.14 75)",  icon: <Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+            { section: "Top 10",     count: data.persistent_count,    label: "Persistent Ideas (4+ Weeks)", accentColor: "oklch(0.72 0.14 75)",  icon: <Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
             { section: "Top 10",     count: data.new_count,           label: "New this week",                 accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
             { section: "Quick Wins", count: data.new_easy_wins_count, label: "New this week",                 accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
           ] as const
