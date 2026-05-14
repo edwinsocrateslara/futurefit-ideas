@@ -4,7 +4,7 @@ import { fetchBoardPosts } from "./client";
 import type { CannyPost } from "./client";
 
 // Canny statuses that mean the item is done — filter these out at sync time
-const COMPLETE_STATUSES = new Set(["complete", "closed"]);
+const COMPLETE_STATUSES = new Set(["complete", "closed", "in progress"]);
 
 const TIER_1_CUSTOMER_FIELD_ID = "6a036c6f71be4b65f43a7fb0";
 
