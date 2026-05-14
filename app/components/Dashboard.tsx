@@ -22,7 +22,7 @@ import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, Scale, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown } from "lucide-react";
+import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -118,10 +118,10 @@ const STATUS_STYLES: Record<StatusValue, { bg: string; color: string; border: st
 };
 
 const STATUS_ICONS: Record<StatusValue, React.ReactNode> = {
-  "Contractual Requirement": <Scale size={10} strokeWidth={2} />,
-  "Renewal Risk":            <AlertTriangle size={10} strokeWidth={2} />,
-  "Strategic":               <Compass size={10} strokeWidth={2} />,
-  "Need to Do":              <Wrench size={10} strokeWidth={2} />,
+  "Contractual Requirement": <FileText size={12} strokeWidth={2} />,
+  "Renewal Risk":            <AlertTriangle size={12} strokeWidth={2} />,
+  "Strategic":               <Compass size={12} strokeWidth={2} />,
+  "Need to Do":              <Check size={12} strokeWidth={2} />,
 };
 
 function StatusBadge({
@@ -268,7 +268,7 @@ function StatusOverridePopover({
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
           >
-            <RotateCcw size={10} strokeWidth={2} />
+            <RotateCcw size={12} strokeWidth={2} />
             Reset to synthesis ({synthesisStatus})
           </button>
         </>
@@ -815,8 +815,8 @@ const TEAM_STYLES: Record<TeamClassification, { bg: string; color: string; borde
 };
 
 const TEAM_ICONS: Record<TeamClassification, React.ReactNode> = {
-  "Engineering": <Wrench size={10} strokeWidth={2} />,
-  "Data":        <BarChart2 size={10} strokeWidth={2} />,
+  "Engineering": <Terminal size={12} strokeWidth={2} />,
+  "Data":        <Database size={12} strokeWidth={2} />,
 };
 
 function TeamBadge({
@@ -967,7 +967,7 @@ function TeamOverridePopover({
             onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
           >
-            <RotateCcw size={10} strokeWidth={2} />
+            <RotateCcw size={12} strokeWidth={2} />
             Reset to synthesis ({synthesis})
           </button>
         </>
@@ -2324,8 +2324,8 @@ export default function Dashboard({
         {(
           [
             { section: "Top 10",     count: data.persistent_count,    label: "Persistent Ideas (4+ Weeks)", accentColor: "oklch(0.72 0.14 75)",  icon: <Pin size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
-            { section: "Top 10",     count: data.new_count,           label: "New Ideas this Week",           accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
-            { section: "Quick Wins", count: data.new_easy_wins_count, label: "New Quick Wins this Week",      accentColor: "oklch(0.70 0.20 145)", icon: <ArrowUp size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+            { section: "Top 10",     count: data.new_count,           label: "New Ideas this Week",           accentColor: "oklch(0.70 0.20 145)", icon: <PackageOpen size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+            { section: "Quick Wins", count: data.new_easy_wins_count, label: "New Quick Wins this Week",      accentColor: "oklch(0.70 0.20 145)", icon: <Zap size={22} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
           ] as const
         ).map(({ count, label, accentColor, icon }, i) => (
           <div key={i} style={{ flex: 1 }}>
