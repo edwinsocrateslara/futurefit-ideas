@@ -1457,43 +1457,33 @@ function SignalRow({
         {/* Callouts — rendered only when content exists */}
         {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
           <div style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
+            display: "grid",
+            gridTemplateColumns: "96px 1fr",
+            columnGap: 12,
+            rowGap: 6,
+            alignItems: "start",
             marginTop: 16,
             padding: "12px 16px",
             background: "oklch(0.155 0 0)",
             borderRadius: 8,
           }}>
             {item.why_callout && (
-              <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: 12, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
-                  Why
-                </p>
-                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "oklch(0.78 0 0)" }}>
-                  {item.why_callout}
-                </p>
-              </div>
+              <>
+                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.55 0 0)" }}>Why</span>
+                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
+              </>
             )}
             {item.customers_prospects_callout && (
-              <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: 12, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
-                  Customers & Prospects
-                </p>
-                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "oklch(0.78 0 0)" }}>
-                  {item.customers_prospects_callout}
-                </p>
-              </div>
+              <>
+                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.55 0 0)" }}>Customers</span>
+                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
+              </>
             )}
             {item.hard_deadline_notes_callout && (
-              <div>
-                <p style={{ margin: "0 0 2px 0", fontSize: 12, fontWeight: 600, letterSpacing: 0.5, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
-                  Hard Deadline / Notes
-                </p>
-                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "oklch(0.78 0 0)" }}>
-                  {item.hard_deadline_notes_callout}
-                </p>
-              </div>
+              <>
+                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.55 0 0)" }}>Deadline</span>
+                <span style={{ fontSize: 11, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
+              </>
             )}
           </div>
         )}
