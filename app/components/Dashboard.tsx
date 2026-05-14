@@ -46,15 +46,15 @@ function BoardTag({ slug }: { slug: string }) {
         display: "inline-flex",
         alignItems: "center",
         gap: 4,
-        padding: "2px 8px",
-        fontSize: 11,
+        padding: "4px 8px",
+        fontSize: 12,
         fontWeight: 500,
         lineHeight: 1,
         letterSpacing: 0.1,
         borderRadius: 9999,
-        color: "oklch(0.78 0 0)",
-        background: "transparent",
-        boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.10)",
+        color: "oklch(0.72 0 0)",
+        background: "oklch(0.20 0 0)",
+        boxShadow: "inset 0 0 0 1px oklch(1 0 0 / 0.12)",
         whiteSpace: "nowrap",
       }}
     >
@@ -73,14 +73,15 @@ function Tier1Badge({ value }: { value: string | null | undefined }) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        padding: "2px 8px",
-        fontSize: 11,
+        padding: "4px 8px",
+        fontSize: 12,
         fontWeight: 600,
         lineHeight: 1,
         letterSpacing: 0.1,
         borderRadius: 9999,
-        background: "oklch(0.45 0.20 295)",
-        color: "oklch(0.97 0 0)",
+        background: "oklch(0.20 0 0)",
+        color: "oklch(0.72 0 0)",
+        border: "1px solid oklch(1 0 0 / 0.12)",
         whiteSpace: "nowrap",
       }}
     >
@@ -141,8 +142,8 @@ function StatusBadge({
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
-        padding: "3px 8px",
-        fontSize: 11,
+        padding: "4px 8px",
+        fontSize: 12,
         fontWeight: 500,
         lineHeight: 1,
         letterSpacing: 0.1,
@@ -152,23 +153,9 @@ function StatusBadge({
         border: `1px solid ${s.border}`,
         cursor: "pointer",
         whiteSpace: "nowrap",
-        fontStyle: isOverridden ? "italic" : "normal",
       }}
     >
-      {STATUS_ICONS[status]}
       {status}
-      {isOverridden && (
-        <span
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: "50%",
-            background: s.color,
-            opacity: 0.6,
-            flexShrink: 0,
-          }}
-        />
-      )}
       <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
     </button>
   );
@@ -779,23 +766,19 @@ function ImpactConfidenceWithOverride({
           display: "inline-flex",
           alignItems: "center",
           gap: 5,
-          padding: "3px 8px",
-          fontSize: 11,
+          padding: "4px 8px",
+          fontSize: 12,
           fontWeight: 500,
           lineHeight: 1,
           borderRadius: 9999,
-          background: "oklch(0.20 0.04 295)",
-          color: pillColor,
-          border: "1px solid oklch(0.45 0.18 295 / 0.35)",
+          background: "oklch(0.20 0.06 295)",
+          color: "oklch(0.72 0.18 295)",
+          border: "1px solid oklch(0.55 0.20 295 / 0.35)",
           cursor: "pointer",
           whiteSpace: "nowrap",
-          fontStyle: isEitherOverridden ? "italic" : "normal",
         }}
       >
         <span>Impact Score {combinedScore}</span>
-        {isEitherOverridden && (
-          <span style={{ width: 4, height: 4, borderRadius: "50%", background: pillColor, opacity: 0.6, flexShrink: 0 }} />
-        )}
         <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
       </button>
 
@@ -820,14 +803,14 @@ function ImpactConfidenceWithOverride({
 
 const TEAM_STYLES: Record<TeamClassification, { bg: string; color: string; border: string }> = {
   "Engineering": {
-    bg:     "oklch(0.20 0.06 235)",
-    color:  "oklch(0.72 0.16 235)",
-    border: "oklch(0.55 0.15 235 / 0.35)",
+    bg:     "oklch(0.20 0 0)",
+    color:  "oklch(0.72 0 0)",
+    border: "oklch(1 0 0 / 0.12)",
   },
   "Data": {
-    bg:     "oklch(0.20 0.07 290)",
-    color:  "oklch(0.72 0.18 290)",
-    border: "oklch(0.55 0.20 290 / 0.35)",
+    bg:     "oklch(0.20 0 0)",
+    color:  "oklch(0.72 0 0)",
+    border: "oklch(1 0 0 / 0.12)",
   },
 };
 
@@ -854,8 +837,8 @@ function TeamBadge({
         display: "inline-flex",
         alignItems: "center",
         gap: 5,
-        padding: "3px 8px",
-        fontSize: 11,
+        padding: "4px 8px",
+        fontSize: 12,
         fontWeight: 500,
         lineHeight: 1,
         letterSpacing: 0.1,
@@ -865,23 +848,9 @@ function TeamBadge({
         border: `1px solid ${s.border}`,
         cursor: "pointer",
         whiteSpace: "nowrap",
-        fontStyle: isOverridden ? "italic" : "normal",
       }}
     >
-      {TEAM_ICONS[classification]}
       {classification}
-      {isOverridden && (
-        <span
-          style={{
-            width: 4,
-            height: 4,
-            borderRadius: "50%",
-            background: s.color,
-            opacity: 0.6,
-            flexShrink: 0,
-          }}
-        />
-      )}
       <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
     </button>
   );
@@ -1069,8 +1038,8 @@ function JiraStatusBadge({ status }: { status: string }) {
       style={{
         display: "inline-flex",
         alignItems: "center",
-        padding: "2px 8px",
-        fontSize: 11,
+        padding: "4px 8px",
+        fontSize: 12,
         fontWeight: 500,
         lineHeight: 1,
         letterSpacing: 0.1,
@@ -1399,18 +1368,17 @@ function SignalRow({
 
       {/* Content */}
       <div>
-        {/* Top row: board chip + badges left, action buttons right */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+        {/* Top row: identity badges left, classification badges right */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <BoardTag slug={item.board_slug} />
-            <Tier1Badge value={item.tier_1_customer} />
             {item.is_new_this_week && !suppressNewBadge ? (
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  padding: "2px 6px",
-                  fontSize: 11,
+                  padding: "4px 8px",
+                  fontSize: 12,
                   fontWeight: 600,
                   lineHeight: 1,
                   letterSpacing: 0.1,
@@ -1427,8 +1395,8 @@ function SignalRow({
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  padding: "2px 6px",
-                  fontSize: 11,
+                  padding: "4px 8px",
+                  fontSize: 12,
                   fontWeight: 600,
                   lineHeight: 1,
                   letterSpacing: 0.1,
@@ -1441,36 +1409,34 @@ function SignalRow({
                 4+ Weeks
               </span>
             ) : null}
+            <Tier1Badge value={item.tier_1_customer} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-            <button
-              type="button"
-              onClick={() => onToggleDone(item)}
-              onMouseEnter={() => setDeferHovered(true)}
-              onMouseLeave={() => setDeferHovered(false)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "4px 10px",
-                fontSize: 11,
-                fontWeight: 600,
-                letterSpacing: 0.2,
-                borderRadius: 6,
-                border: `1px solid ${deferHovered ? "oklch(0.45 0 0)" : "oklch(0.35 0 0)"}`,
-                background: deferHovered ? "oklch(0.20 0 0)" : "transparent",
-                color: "oklch(0.85 0 0)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: "background 120ms, border-color 120ms",
-              }}
-            >
-              {isDone ? "Undo" : "Defer"}
-            </button>
-            {item.jira_story && (
-              <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
-            )}
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <StatusBadgeWithOverride
+              cannyId={item.canny_id}
+              status={item.status}
+              synthesisStatus={item.synthesis_status}
+              isOverridden={item.is_status_overridden}
+            />
+            <ImpactConfidenceWithOverride
+              cannyId={item.canny_id}
+              impactRating={item.impact_rating}
+              confidenceRating={item.confidence_rating}
+              synthesisImpact={item.synthesis_impact_rating}
+              synthesisConfidence={item.synthesis_confidence_rating}
+              isImpactOverridden={item.is_impact_overridden}
+              isConfidenceOverridden={item.is_confidence_overridden}
+              itemTitle={item.title}
+            />
+            <TeamClassificationWithOverride
+              cannyId={item.canny_id}
+              classification={item.team_classification}
+              synthesisClassification={item.synthesis_team_classification}
+              isOverridden={item.is_team_overridden}
+            />
           </div>
         </div>
+
         <p
           style={{
             margin: "0 0 8px 0",
@@ -1485,7 +1451,7 @@ function SignalRow({
         </p>
         <p
           style={{
-            margin: "0 0 10px 0",
+            margin: "0 0 8px 0",
             fontSize: 13,
             lineHeight: 1.6,
             color: "oklch(0.85 0 0)",
@@ -1494,40 +1460,24 @@ function SignalRow({
         >
           {item.reason}
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12, flexWrap: "wrap" }}>
-          <StatusBadgeWithOverride
-            cannyId={item.canny_id}
-            status={item.status}
-            synthesisStatus={item.synthesis_status}
-            isOverridden={item.is_status_overridden}
-          />
-          <TeamClassificationWithOverride
-            cannyId={item.canny_id}
-            classification={item.team_classification}
-            synthesisClassification={item.synthesis_team_classification}
-            isOverridden={item.is_team_overridden}
-          />
-          <ImpactConfidenceWithOverride
-            cannyId={item.canny_id}
-            impactRating={item.impact_rating}
-            confidenceRating={item.confidence_rating}
-            synthesisImpact={item.synthesis_impact_rating}
-            synthesisConfidence={item.synthesis_confidence_rating}
-            isImpactOverridden={item.is_impact_overridden}
-            isConfidenceOverridden={item.is_confidence_overridden}
-            itemTitle={item.title}
-          />
-        </div>
 
         {/* Callouts — rendered only when content exists */}
         {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
-          <div style={{ display: "flex", flexDirection: "column", gap: 10, marginBottom: 12 }}>
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 8,
+            marginTop: 16,
+            padding: "12px 16px",
+            background: "oklch(0.155 0 0)",
+            borderRadius: 8,
+          }}>
             {item.why_callout && (
               <div>
                 <p style={{ margin: "0 0 2px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
                   Why
                 </p>
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "oklch(0.78 0 0)" }}>
+                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "oklch(0.78 0 0)" }}>
                   {item.why_callout}
                 </p>
               </div>
@@ -1537,7 +1487,7 @@ function SignalRow({
                 <p style={{ margin: "0 0 2px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
                   Customers & Prospects
                 </p>
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "oklch(0.78 0 0)" }}>
+                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "oklch(0.78 0 0)" }}>
                   {item.customers_prospects_callout}
                 </p>
               </div>
@@ -1547,7 +1497,7 @@ function SignalRow({
                 <p style={{ margin: "0 0 2px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.3, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
                   Hard Deadline / Notes
                 </p>
-                <p style={{ margin: 0, fontSize: 13, lineHeight: 1.55, color: "oklch(0.78 0 0)" }}>
+                <p style={{ margin: 0, fontSize: 12, lineHeight: 1.5, color: "oklch(0.78 0 0)" }}>
                   {item.hard_deadline_notes_callout}
                 </p>
               </div>
@@ -1555,25 +1505,56 @@ function SignalRow({
           </div>
         )}
 
-        {item.canny_url && (
-          <a
-            href={item.canny_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="canny-link"
+        {/* Bottom action row: canny link left, buttons right */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
+          {item.canny_url ? (
+            <a
+              href={item.canny_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="canny-link"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "oklch(0.55 0 0)",
+                textDecoration: "none",
+                letterSpacing: 0.2,
+              }}
+            >
+              View in Canny →
+            </a>
+          ) : <span />}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => onToggleDone(item)}
+            onMouseEnter={() => setDeferHovered(true)}
+            onMouseLeave={() => setDeferHovered(false)}
             style={{
               display: "inline-flex",
               alignItems: "center",
-              gap: 4,
+              padding: "4px 10px",
               fontSize: 11,
-              color: "oklch(0.55 0 0)",
-              textDecoration: "none",
+              fontWeight: 600,
               letterSpacing: 0.2,
+              borderRadius: 6,
+              border: `1px solid ${deferHovered ? "oklch(0.45 0 0)" : "oklch(0.35 0 0)"}`,
+              background: deferHovered ? "oklch(0.20 0 0)" : "transparent",
+              color: "oklch(0.85 0 0)",
+              cursor: "pointer",
+              whiteSpace: "nowrap",
+              transition: "background 120ms, border-color 120ms",
             }}
           >
-            View in Canny →
-          </a>
-        )}
+            {isDone ? "Undo" : "Defer"}
+          </button>
+          {item.jira_story && (
+            <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
+          )}
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -1642,18 +1623,17 @@ function EasyWinCard({
     >
       {/* Content */}
       <div>
-        {/* Top row: board chip + badges left, action buttons right */}
-        <div style={{ display: "flex", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+        {/* Top row: identity badges left, team classification right */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
             <BoardTag slug={win.board_slug} />
-            <Tier1Badge value={win.tier_1_customer} />
             {win.is_new_this_week && (
               <span
                 style={{
                   display: "inline-flex",
                   alignItems: "center",
-                  padding: "2px 6px",
-                  fontSize: 11,
+                  padding: "4px 8px",
+                  fontSize: 12,
                   fontWeight: 600,
                   lineHeight: 1,
                   letterSpacing: 0.1,
@@ -1666,14 +1646,62 @@ function EasyWinCard({
                 New
               </span>
             )}
-            <TeamClassificationWithOverride
-              cannyId={win.canny_id}
-              classification={win.team_classification}
-              synthesisClassification={win.synthesis_team_classification}
-              isOverridden={win.is_team_overridden}
-            />
+            <Tier1Badge value={win.tier_1_customer} />
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+          <TeamClassificationWithOverride
+            cannyId={win.canny_id}
+            classification={win.team_classification}
+            synthesisClassification={win.synthesis_team_classification}
+            isOverridden={win.is_team_overridden}
+          />
+        </div>
+
+        <p
+          style={{
+            margin: "0 0 8px 0",
+            fontSize: 16,
+            fontWeight: 600,
+            lineHeight: 1.4,
+            color: "oklch(0.97 0 0)",
+            letterSpacing: -0.2,
+          }}
+        >
+          {win.title}
+        </p>
+        <p
+          style={{
+            margin: "0 0 8px 0",
+            fontSize: 13,
+            lineHeight: 1.6,
+            color: "oklch(0.85 0 0)",
+            textWrap: "pretty",
+          }}
+        >
+          {win.reason}
+        </p>
+
+        {/* Bottom action row: canny link left, buttons right */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
+          {win.canny_url ? (
+            <a
+              href={win.canny_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="canny-link"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 11,
+                color: "oklch(0.55 0 0)",
+                textDecoration: "none",
+                letterSpacing: 0.2,
+              }}
+            >
+              View in Canny →
+            </a>
+          ) : <span />}
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
               type="button"
               onClick={() => onToggleDone(win)}
@@ -1702,48 +1730,6 @@ function EasyWinCard({
             )}
           </div>
         </div>
-        <p
-          style={{
-            margin: "0 0 8px 0",
-            fontSize: 16,
-            fontWeight: 600,
-            lineHeight: 1.4,
-            color: "oklch(0.97 0 0)",
-            letterSpacing: -0.2,
-          }}
-        >
-          {win.title}
-        </p>
-        <p
-          style={{
-            margin: "0 0 8px 0",
-            fontSize: 13,
-            lineHeight: 1.6,
-            color: "oklch(0.85 0 0)",
-            textWrap: "pretty",
-          }}
-        >
-          {win.reason}
-        </p>
-        {win.canny_url && (
-          <a
-            href={win.canny_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="canny-link"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 11,
-              color: "oklch(0.55 0 0)",
-              textDecoration: "none",
-              letterSpacing: 0.2,
-            }}
-          >
-            View in Canny →
-          </a>
-        )}
       </div>
     </div>
   );
