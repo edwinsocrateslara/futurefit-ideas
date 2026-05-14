@@ -41,8 +41,8 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
         <p
           style={{
             margin: "0 0 12px 0",
-            fontSize: 11,
-            color: "oklch(0.48 0 0)",
+            fontSize: 12,
+            color: "oklch(0.45 0 0)",
             letterSpacing: 0.1,
           }}
         >
@@ -54,7 +54,7 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
       <p
         style={{
           margin: "0 0 16px 0",
-          fontSize: 13,
+          fontSize: 14,
           lineHeight: 1.6,
           color: "oklch(0.85 0 0)",
           textWrap: "pretty",
@@ -87,8 +87,8 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
                 aria-selected={active}
                 onClick={() => setTab(t.id)}
                 style={{
-                  padding: "5px 11px",
-                  fontSize: 11,
+                  padding: "4px 12px",
+                  fontSize: 12,
                   fontWeight: 500,
                   lineHeight: 1,
                   letterSpacing: 0.1,
@@ -110,7 +110,7 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
           <p
             style={{
               margin: 0,
-              fontSize: 13,
+              fontSize: 14,
               lineHeight: 1.6,
               color: "oklch(0.85 0 0)",
               fontStyle: "italic",
@@ -141,7 +141,7 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
                   display: "grid",
                   gridTemplateColumns: "16px 1fr",
                   gap: 8,
-                  fontSize: 13,
+                  fontSize: 14,
                   lineHeight: 1.6,
                   color: "oklch(0.85 0 0)",
                 }}
