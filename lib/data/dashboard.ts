@@ -422,7 +422,12 @@ export async function getDashboardData(
   // Fetching all rows so we can filter surfaced lists correctly regardless of done state.
   const { data: allJiraLinks } = await supabase
     .from("jira_links")
-    .select("canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at")
+    .select(
+      "canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at, " +
+      "snapshot_reason, snapshot_why_callout, snapshot_customers_callout, " +
+      "snapshot_deadline_callout, snapshot_impact_rating, snapshot_confidence_rating, " +
+      "snapshot_team_classification, snapshot_status"
+    )
     .order("accepted_at", { ascending: false });
 
   // All Jira-tracked IDs suppress items from Top 10 / Easy Wins — Jira owns their state now.
@@ -472,14 +477,17 @@ export async function getDashboardData(
       const idea = ideaMap.get(link.canny_id);
       if (!idea) continue;
 
-      // Same date comparison as the accept route: prefer the more recently generated reason
-      const ideasWeek = idea.selection_week ?? "";
-      const easyWinData = easyWinReasonMap.get(link.canny_id);
-      const easyWinWeek = easyWinData?.week_of ?? "";
-      const reason =
-        easyWinWeek >= ideasWeek
-          ? (easyWinData?.reason ?? idea.selection_reason ?? "")
-          : (idea.selection_reason ?? "");
+      // Prefer the frozen snapshot written at accept time. Fall back to the live
+      // easy_wins / ideas comparison for rows that predate the snapshot columns.
+      const reason = link.snapshot_reason
+        ?? (() => {
+          const ideasWeek = idea.selection_week ?? "";
+          const easyWinData = easyWinReasonMap.get(link.canny_id);
+          const easyWinWeek = easyWinData?.week_of ?? "";
+          return easyWinWeek >= ideasWeek
+            ? (easyWinData?.reason ?? idea.selection_reason ?? "")
+            : (idea.selection_reason ?? "");
+        })();
 
       const base = {
         canny_id: link.canny_id,

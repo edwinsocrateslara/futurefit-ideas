@@ -627,3 +627,187 @@ CI workflows imply: PR → premerge tests → merge to main → `deploy.yml` tri
 
 - `.husky/pre-commit` runs `lint-staged` (eslint + prettier).
 - Worktrees under `.claude/worktrees/` rely on the root `.eslintrc.js` having `root: true` so ESLint stops config traversal and avoids loading `@typescript-eslint` twice.
+
+---
+
+## Part E — Effort Primitives
+
+A lookup table grounded in the actual codebase. Use this to calibrate whether a request is genuinely fast to ship before calling it an Easy Win.
+
+### Copy / label changes
+
+**i18n-managed string (e.g. "Paid" → "Cost to Enroll")**
+- Confirmed: learning card labels use Locize keys. `CourseCard.component.tsx` renders `t('course.card.paid', 'Paid')` and `t('course.card.free', 'Free')`.
+- Change cost: update the key value in the Locize dashboard — no code change, no deploy. ~30 minutes.
+- How to verify a string is managed: search `web-client/src` for the literal string. If it appears inside a `t('key', 'fallback')` call, it is Locize-managed. If it appears as a bare JSX string literal or template literal, it is hardcoded and requires a code change + PR.
+
+**Hardcoded string**
+- grep-and-replace in `web-client/src`, PR, pre-commit runs full-project `tsc` (can fail if string is also used in a typed context). ~half-day.
+
+### Conditional render / role gate
+
+- Single component file change. Add a role check (`isAdmin`, `hasRole(...)`) or feature flag check (`useFeatures()`) around the element.
+- No service change. No gateway rebuild. One Cypress component test to update or add.
+- ~half-day. Example: "Remove Start button from roadmap steps in coach view" — confirmed easy.
+
+### New feature flag
+
+- **Backend:** Add an entry to `features-service` if a tenant/user-scoped DB override is needed; add the gate to Statsig console.
+- **Frontend:** Add slug to the `Feature` enum (~42 entries currently in `web-client`), add a typed boolean to the feature context type, compute it in the provider's value object, add the shadow-mode Statsig mapping.
+- Shadow mode runs both systems in parallel — both the legacy GraphQL source and Statsig must agree before the flag has authority.
+- ~2–4 hours for a backend-only flag; ~half-day for a frontend-gated flag with shadow mode.
+
+### New field on an existing Prisma model (Postgres-backed service)
+
+- Edit `schema.prisma` → `prisma migrate dev --name <name>` to generate a timestamped migration → update the DTO (`class-validator` / `class-transformer`) → add the resolver field → rebuild `mesh-gateway` to pick up the schema change → run `pnpm run gen` in `web-client` to regenerate typed hooks.
+- Prisma client output is per-service (`output = "../node_modules/.prisma/client/<service>"`); the generator path must be preserved.
+- ~1–2 days end-to-end including gateway rebuild and codegen.
+
+### New field on an existing Mongoose model (Mongo-backed service)
+
+- Add property to the `@Schema()` class and register via `MongooseModule.forFeature`. No migration framework — schema changes are applied live. For index changes, use Atlas console or a one-off script under `scripts/atlas_index_migration`.
+- ~half-day for the schema + DTO + resolver field. Add ~half-day if a gateway rebuild is needed.
+
+### New filter on an existing Postgres query
+
+- Add input field to the resolver DTO, update the service's `where` clause.
+- If the filtered entity is in the urql graphcache, check whether the new field needs a `resolvers` or `updates` entry in `web-client/src/context/GraphContext.tsx` (2,292 lines; 71 mutations already wired in `updates`, 93 entity types in `keys`). Most filter additions do not require a graphcache update — only if the filter result is cached separately.
+- ~1 day.
+
+### New filter on job search (Mongo — job-service)
+
+- Job type filtering uses `classified_job_type` (an ML-derived array field on the search document), not the raw `job_type` field from the source. Filters map through `mapFilters()` → `filter-builders.ts` → Mongo `$match`.
+- WBL specifically uses `expandJobTypeFilters()` which splits into two OR branches for `classified_job_type` and `opportunity_types`.
+- If the data field exists and is populated correctly, a filter fix is a 1–2 file change in `job_search.service.ts` and `filter-builders.ts`. ~1–2 days.
+- If the field is missing or wrong in the Mongo corpus, the fix is in the ML classification pipeline (`job-title-classifier` data service or the ingestion pipeline) — Data team work, not an Engineering sprint task.
+- **Cannot be confirmed as an Easy Win without first querying the Mongo corpus** to check whether documents have the expected `classified_job_type` value populated. Diagnosis required before scoping.
+
+### New GraphQL operation on an existing backend service
+
+- Add a NestJS module (`feature.module.ts`, `feature.resolver.ts`, `feature.service.ts`, `dto/`), register guards, import into `app.module.ts`. The service's `schema.graphql` regenerates from decorators via `gen-typings`.
+- Gateway must be rebuilt to pick up the new subgraph types; check `.meshrc.yml` to confirm the operation isn't filtered out.
+- Run `pnpm run gen` in `web-client` to get typed hooks.
+- ~1–2 days.
+
+### New email notification to a user
+
+- **The existing pattern** (job notifications): EventBridge cron → `find-tenants-for-job-notification-lambda` → SQS → `find-users-to-notify-lambda` → SQS → `send-email-lambda` → SES.
+- `send-email-lambda` processes typed action payloads; adding a new notification type means: (1) adding a new action type to its `types.ts`, (2) adding a handler in its `helper.ts`, (3) creating a multi-locale SES template under `infra/stacks/shared/email-templates/templates/`, and (4) wiring the trigger — either a new Lambda + SQS + CDK stack, or emitting to the existing queue from an existing service.
+- Minimum cost for a fully wired new notification: ~8–12 files across lambdas + infra. New CDK resources are required. **Not an Easy Win.**
+- Exception: if an existing event already fires and only the email send step is missing, the cost can drop to 2–3 files. Confirm whether the triggering event already exists before scoping.
+
+### New email notification when a specific event occurs (e.g., user joins group)
+
+- **Group membership has no event emission today.** `partners-service.assignCoaches()` performs a synchronous three-system update (Postgres + MongoDB via `bulkUpdateEmployerIds` + Cognito via `updateCognitoEmployerIds`) with no SNS, SQS, or EventBridge call.
+- Adding "notify coach/admin when user joins group" requires: (1) adding event emission to the group-assignment code path, (2) a new Lambda or extending `send-email-lambda`, (3) a new SQS queue, (4) a new CDK stack. ~10 files minimum. **Not an Easy Win.**
+
+### Adding a permission slug
+
+- Declare slug in the `permissions` package (source of truth for slugs and default role-to-permission mappings).
+- `access-control-service` re-syncs slugs to its Postgres DB on startup — coordinated redeploy required.
+- Update default-permission mappings for affected roles.
+- Wire the new slug into frontend `useHasPermissions()` callsites.
+- Renames require a coordinated multi-PR effort. ~2–3 days.
+
+### New minimal CRUD subgraph (thin service)
+
+- Reference template: `save-career` (~12 TypeScript files: `main.ts`, `app.module.ts`, `app.controller.ts`, `prisma.service.ts`, feature folder with service + DTOs + types).
+- Add entry to `deploy_config.json`, new Prisma schema, new CDK stack in `infra/stacks/`.
+- ~1 week end-to-end including gateway config and web-client codegen.
+
+### Per-tenant config toggle (customer-management)
+
+- Add field to the relevant Mongo-backed config schema in `customer-management` (~175 TypeScript files). No migration required (Mongo schema-on-write).
+- Expose via GraphQL resolver if needed. ~half-day to 1 day.
+
+---
+
+## Part F — Infrastructure Hooks
+
+For each shared capability: what exists today, what invoking it costs, and what is not yet available.
+
+### Email delivery
+
+**What exists:** `send-email-lambda` → AWS SES. Triggered by SQS messages with a typed `action` discriminator. Currently handles: `SendJobNotification`. Supports four locales: `en-US`, `fr-CA`, `es-ES`, `pt-PT`. Email templates live in `infra/stacks/shared/email-templates/templates/`.
+
+**How to invoke:** Send an SQS message to the send-email queue with the appropriate action type and payload. The lambda is already deployed and running. Adding a new notification type requires extending the lambda's type definitions and handler — no new infrastructure if the trigger event already exists.
+
+**How to add a trigger:** If no event fires today at the point you want to notify, you need: a new SQS queue, a new Lambda (or emission point in an existing service), a new CDK stack. See Effort Primitives above.
+
+**What does NOT exist:** A general "notify this user/role when X happens" dispatch API. Each notification type is its own purpose-built pipeline. There is no central notification service.
+
+### File upload events
+
+**What exists:** `file-management-service` emits SNS events on file uploads (resumes, profile pictures, customer logos). `user-resume-parser` is a downstream SNS consumer. Pattern: upload → SNS topic → Lambda consumer.
+
+**How to invoke:** Subscribe a new Lambda to the SNS topic ARN for the relevant file type. Established pattern; ~1 day to wire a new consumer.
+
+**SNS scope:** SNS is used *only* for file events. It is not used for user lifecycle, group events, or notification dispatch.
+
+### Feature flags
+
+**What exists:** Two systems running in shadow mode. Statsig (`@statsig/js-client` on frontend, `statsig` shared package on backend) is authoritative when shadow mode is off. Legacy GraphQL features (`getUserFeatures`, `getTenantFeatures`) run in parallel. `features-service` (Postgres) handles tenant/user-scoped DB overrides.
+
+**How to invoke:** Add to Statsig console + `Feature` enum in `web-client` + feature context type + provider value. See Effort Primitives.
+
+**Cypress:** Local overrides adapter (`@statsig/js-local-overrides`) is wired for Cypress; tests can flip flags via a global.
+
+### Translations (backend dynamic strings)
+
+**What exists:** `translation-service` (12 TypeScript files, Mongo-backed) serves keyed strings via GraphQL for server-rendered content (emails, exports). This is NOT the frontend i18n system — it is a runtime translation API for dynamic content.
+
+**Frontend i18n:** `web-client` uses i18next + Locize. `en-US` and `fr-CA` are bundled at build time; `es-ES` and `pt-PT` are Locize-only. UI strings that use `t('key', 'fallback')` are Locize-managed and changeable without a deploy. Strings hardcoded as JSX literals require a code change.
+
+**How to tell which is which:** Search `web-client/src` for the literal string. If wrapped in `t('key')`, it is Locize. If it is a bare string, it requires a PR.
+
+### Group membership events
+
+**What exists:** Nothing. Group assignment (`partners-service.assignCoaches()`) is synchronous and fires no events. There is no established hook for "user joined group."
+
+**Cost to add:** Requires adding event emission to `partners-service`, new SQS + Lambda + CDK infrastructure. See Effort Primitives.
+
+### Job type classification
+
+**What exists:** Two fields on Mongo job documents: `job_type` (raw source value from LINKUP/REVELIO) and `classified_job_type` (ML-derived array, populated by the classification pipeline). Filters use `classified_job_type`. WBL is a recognized enum value (`work_based_learning`) with its own schema fields (`opportunity_type`, `time_commitment`, `compensation`, etc.) and special filter handling in `expandJobTypeFilters()`.
+
+**How to invoke (filter):** Pass `classified_job_types: ["work_based_learning"]` as a GraphQL input. The filter is wired end-to-end in `job_search.service.ts` and `filter-builders.ts`.
+
+**Known diagnostic gap:** Whether WBL jobs have `classified_job_type: "work_based_learning"` populated in the Mongo corpus is not determinable from code alone. A zero-results WBL filter is either a query bug (fixable in `job_search.service.ts`) or a data pipeline gap (ML classification not labeling WBL jobs correctly). **Requires a direct Mongo query to diagnose.** Cannot be scoped as an Engineering Easy Win without this check.
+
+---
+
+## Part G — High-Ripple Zones
+
+Areas where a change that sounds small can have outsized downstream effects. Flag these when scoping Easy Wins.
+
+### `mesh-gateway` rebuild (required for all subgraph schema changes)
+
+Every NestJS service's `schema.graphql` is auto-generated from TypeScript decorators. Any change that adds, renames, or removes a GraphQL type, field, or operation requires a `mesh-gateway` rebuild — the generated `.mesh/` output must be regenerated, never hand-edited. After rebuild, `web-client` must run `pnpm run gen` to regenerate the 35k-line typed-hooks module. This is a required step for any backend GraphQL change, not an optional one. Budget ~1–2 hours of CI time on top of the development cost.
+
+### `GraphContext.tsx` — urql graphcache config (`web-client`)
+
+Single file, 2,292 lines. Owns: all urql client config, every cache `keys` entry (93 entity types), every `resolvers` entry, every `updates` entry (71 mutations currently wired), every `optimistic` resolver, all pagination merge functions, and inline fragment definitions for optimistic resolvers.
+
+**When you must touch it:** Any mutation that creates, updates, or deletes a cached entity needs an `updates` entry here. The 71 mutations already wired include: `saveJob`, `saveLearning`, `saveResource`, `saveTalents`, `updateUserProfile`, `createGroup`, `updateGroup`, `upsertUserNextStep`, `deleteUserNextStep`, and 62 others. Adding a new mutation that affects a cached entity without updating this file will produce stale UI.
+
+**Risk:** The optimistic resolvers duplicate fragment shapes inline using tagged-template `gql` literals. Any change to those entity fragments must be mirrored here manually — codegen does not update this file.
+
+### `user-profile-service` (280 TypeScript files — largest service)
+
+De-facto user system of record. Owns: profile, preferences, consent, Cognito integration, Intercom sync, geocoding, profile export, work experience, skill inference, notifications, onboarding config, seeders, CLI, cron jobs. Any user-related feature routes through this service. High file count + broad ownership = high blast radius for changes. Changes here also affect downstream consumers (recommenders, `access-control-service`, coach surfaces).
+
+### `employment-services-connector` (156 TypeScript files) + EAP lambdas
+
+The Employment Ontario / EAP state machine is the most business-rule-heavy area in the repo. A field change can ripple across: `employment-services-connector`, `eo-eap-*` lambdas, `empyra-client`/`eo-client` packages, and the `empyra_api_types`/`eo_api_types` generated type packages. Changes require coordinated multi-service deploys. Never scope EAP-adjacent requests as Easy Wins.
+
+### `job-service` dual datastore (151 TypeScript files)
+
+Job entity is split across two stores inside one service: Postgres (relational metadata — applications, employer joins, saved-job state) and Mongo (`mongo-jobs/ffai_v2` — the search corpus). Filter and search changes touch `job_search.service.ts` + `filter-builders.ts` and may require Mongo index changes. The service has the most `any`-typed surfaces in the monorepo, making test coverage unreliable. The `classified_job_type` field is populated by the ML classification pipeline — it cannot be changed by modifying `job-service` code alone.
+
+### Permission slug changes (`permissions` package + `access-control-service`)
+
+The `permissions` package is the single source of truth for all permission slugs. `access-control-service` syncs slugs to its Postgres DB on startup. Adding or renaming a slug requires: updating the package, adding it to the appropriate role's defaults, redeploying `access-control-service` (to trigger the startup sync), and wiring the new slug into `web-client`'s `useHasPermissions()` callsites. Renames are a coordinated multi-PR effort because of the startup sync — the DB must stay consistent with the package version in production.
+
+### Group assignment (synchronous three-system write)
+
+`partners-service.assignCoaches()` synchronously writes to three systems: Postgres (partners-service DB), MongoDB (calls `user-profile-service.bulkUpdateEmployerIds()`), and Cognito (calls `updateCognitoEmployerIds()`). There is no event emission and no compensating transaction. A failure partway through leaves the three systems in an inconsistent state. Any new side effect added to this code path (e.g., notification dispatch) increases the risk surface of a partial failure. Consider async emission via SQS rather than synchronous addition.

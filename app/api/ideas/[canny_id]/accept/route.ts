@@ -25,23 +25,24 @@ export async function POST(
     );
   }
 
-  // Fetch jira_story from both possible sources in parallel.
+  // Fetch jira_story, reason, and snapshot metadata from both possible sources in parallel.
   //
-  // jira_story can exist in both ideas (from a past top-10 appearance) and easy_wins
-  // (from the current easy win selection). Use whichever was generated more recently —
-  // synthesis refines story content each week, and stale content would create a ticket
-  // with outdated acceptance criteria or framing. Empirically these tables don't overlap
-  // today, but synthesis variance means cross-list movement is possible. The date
-  // comparison ensures correctness either way. Tie-breaks to easy_wins when equal.
+  // Both jira_story and reason can exist in ideas (top-10) or easy_wins. Use whichever
+  // was generated more recently — synthesis refines content each week. Tie-breaks to
+  // easy_wins when equal. Snapshot fields (callouts, ratings, etc.) only exist on ideas.
   const [{ data: idea, error: ideaError }, { data: latestEasyWin }] = await Promise.all([
     supabase
       .from("ideas")
-      .select("canny_id, title, jira_story, selection_week")
+      .select(
+        "canny_id, title, jira_story, selection_week, selection_reason, selection_status, " +
+        "why_callout, customers_prospects_callout, hard_deadline_notes_callout, " +
+        "impact_rating, confidence_rating, team_classification"
+      )
       .eq("canny_id", canny_id)
       .single(),
     supabase
       .from("easy_wins")
-      .select("jira_story, week_of")
+      .select("jira_story, reason, week_of")
       .eq("canny_id", canny_id)
       .order("week_of", { ascending: false })
       .limit(1)
@@ -52,13 +53,19 @@ export async function POST(
     return NextResponse.json({ error: "Idea not found" }, { status: 404 });
   }
 
-  // Pick the more recently generated story. Null weeks sort before any real date.
+  // Pick the more recently generated content. Null weeks sort before any real date.
   const ideasWeek = idea.selection_week ?? "";
   const easyWinWeek = latestEasyWin?.week_of ?? "";
-  const jiraStory =
-    easyWinWeek >= ideasWeek
-      ? (latestEasyWin?.jira_story ?? idea.jira_story)
-      : idea.jira_story;
+  const useEasyWin = easyWinWeek >= ideasWeek;
+
+  const jiraStory = useEasyWin
+    ? (latestEasyWin?.jira_story ?? idea.jira_story)
+    : idea.jira_story;
+
+  // Snapshot reason: same week comparison. Callouts/ratings only live on ideas.
+  const snapshotReason = useEasyWin
+    ? (latestEasyWin?.reason ?? idea.selection_reason ?? null)
+    : (idea.selection_reason ?? null);
 
   if (!jiraStory) {
     return NextResponse.json(
@@ -80,7 +87,9 @@ export async function POST(
     );
   }
 
-  // Write jira_links row. Initial status is always "Triage" — Jira sets it automatically.
+  // Write jira_links row with frozen snapshot of synthesis metadata.
+  // Snapshot fields are set once here and never updated — they reflect why the item
+  // was accepted, regardless of what subsequent synthesis runs produce.
   const { error: insertError } = await supabase.from("jira_links").insert({
     canny_id,
     jira_issue_key: created.key,
@@ -88,6 +97,14 @@ export async function POST(
     jira_url: created.url,
     jira_status: "Triage",
     last_synced_at: new Date().toISOString(),
+    snapshot_reason: snapshotReason,
+    snapshot_why_callout: idea.why_callout ?? null,
+    snapshot_customers_callout: idea.customers_prospects_callout ?? null,
+    snapshot_deadline_callout: idea.hard_deadline_notes_callout ?? null,
+    snapshot_impact_rating: idea.impact_rating ?? null,
+    snapshot_confidence_rating: idea.confidence_rating ?? null,
+    snapshot_team_classification: idea.team_classification ?? null,
+    snapshot_status: idea.selection_status ?? null,
   });
 
   if (insertError) {

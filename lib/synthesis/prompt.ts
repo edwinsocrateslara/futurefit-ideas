@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v3.9";
+export const PROMPT_VERSION = "synthesis-v4.0";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -391,11 +391,15 @@ ${architectureDocs ? `\nThe following document describes how the FutureFit AI Pa
 Identify exactly 5 items from the same idea pool that qualify as easy wins — things the engineering team could ship in a single sprint with no discovery work required, where the solution is obvious from the feedback itself.
 
 **Architecture context for this task:**
-The Architecture Reference above describes how FutureFit AI Pathways is built. Use it when judging *low effort* and *fast to ship*: items that operate within established patterns (a new filter on an existing entity, a field added to an existing GraphQL operation, a copy change, a new toggle on an existing config surface) are inherently easier to ship. Items that would require new services, cross-service schema migrations, new infrastructure, or fight the existing architecture are not easy wins regardless of how modest they sound in the feedback. Architectural fit is a tiebreaker that informs the effort judgment — it does not override the other criteria. An item with a clear, scoped solution that fits the existing architecture is a better easy win than one that fights it.
+The Architecture Reference above describes how FutureFit AI Pathways is built. It now includes three sections that directly support effort assessment — use them before judging any item:
+
+- **Part E (Effort Primitives):** A lookup table of change types mapped to realistic cost. Check this first. A copy change on a Locize-managed string costs ~30 minutes; a new email notification pipeline costs ~10 files and a new Lambda + SQS + CDK stack. The gap between "sounds small" and "actually small" is large in this codebase.
+- **Part F (Infrastructure Hooks):** What shared capabilities exist and what invoking them costs. Key facts: there is no general notification dispatch API — each email notification type is its own pipeline. Group membership events do not exist today — there is nothing to hook into for group-join notifications. Job type filtering uses 'classified_job_type', an ML-derived field; a "broken filter" may be a query fix or a data pipeline gap that requires Data team work.
+- **Part G (High-Ripple Zones):** Areas where a small-sounding change has outsized downstream effects. Every backend GraphQL schema change requires a mesh-gateway rebuild. The urql graphcache config (GraphContext.tsx, 2,292 lines, 71 mutations wired) must be updated for any mutation that affects a cached entity. Changes to user-profile-service (280 files) or employment-services-connector (156 files, EAP state machine) have high blast radius.
 
 **What qualifies (all must be true):**
 - Clear and simple solution: the request names what to build. A developer reading it should be able to write a ticket in sprint planning without further questions.
-- Low effort: small features, toggles, copy changes, single-screen UX changes, narrow filter or sort additions, missing empty states, simple validations, minor workflow tweaks.
+- Low effort: small features, toggles, copy changes on Locize-managed strings, single-screen UX changes, conditional renders, narrow filter or sort additions on existing fields, missing empty states, simple validations, minor workflow tweaks.
 - Fast: shippable within a sprint, ideally a few days of engineering time.
 - High value relative to effort: meaningfully reduces friction despite the small scope — not trivial polish for its own sake.
 
@@ -406,6 +410,10 @@ The Architecture Reference above describes how FutureFit AI Pathways is built. U
 - Ontology, taxonomy, skill graph, or AI model changes
 - New platform services or infrastructure
 - Anything requiring product discovery before scoping — if the solution isn't obvious from reading the feedback, it doesn't belong here
+- Any new email or notification feature — there is no central notification dispatch; each type requires a new Lambda + SQS + CDK stack (~10 files minimum). Not a sprint task.
+- Any feature that depends on group membership events — no such events are emitted today; adding them requires new infrastructure first.
+- Any job search filter bug where the root cause is unknown — "broken filter" may be a query fix (Engineering) or a data pipeline gap in the ML classification system (Data team). Cannot be scoped as an Easy Win without a data diagnosis confirming which it is.
+- Anything touching the EAP / Employment Ontario state machine — changes ripple across multiple lambdas and packages regardless of how small they appear.
 
 **Prefer different items from the top 10.** If an item genuinely qualifies for both, it may appear in both. But easy wins should be additive — surface items that might not rank in the top 10 for strategic reasons but are clearly shippable.
 
