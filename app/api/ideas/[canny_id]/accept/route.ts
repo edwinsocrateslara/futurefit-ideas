@@ -70,10 +70,14 @@ export async function POST(
     );
   }
 
+  // An easy win is any item that has an easy_wins row — row present = easy win.
+  // Easy-win tickets get the quick_wins label so they appear on board 219.
+  const isEasyWin = latestEasyWin !== null;
+
   // Create the Jira ticket
   let created;
   try {
-    created = await createIssue({ jiraStoryRaw: jiraStory });
+    created = await createIssue({ jiraStoryRaw: jiraStory, isEasyWin });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[accept] Jira createIssue failed for ${canny_id}:`, message);

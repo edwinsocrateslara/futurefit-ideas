@@ -114,11 +114,13 @@ async function jiraFetch(path: string, options: RequestInit = {}): Promise<Respo
   });
 }
 
-// Creates a Jira Feature ticket in the FFAI project.
+// Creates a Jira ticket in the FFAI project.
+// Easy-win tickets receive the "quick_wins" label so they appear on board 219.
 // summary defaults to the Title parsed from jiraStoryRaw.
 export async function createIssue(params: {
   jiraStoryRaw: string;
   summaryOverride?: string;
+  isEasyWin?: boolean;
 }): Promise<CreatedIssue> {
   const config = getJiraConfig();
   const parsed = parseJiraStory(params.jiraStoryRaw);
@@ -131,6 +133,7 @@ export async function createIssue(params: {
       summary,
       issuetype: { name: config.issueType },
       description,
+      ...(params.isEasyWin ? { labels: ["quick_wins"] } : {}),
     },
   };
 
