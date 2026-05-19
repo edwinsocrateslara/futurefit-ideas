@@ -422,12 +422,7 @@ export async function getDashboardData(
   // Fetching all rows so we can filter surfaced lists correctly regardless of done state.
   const { data: allJiraLinks } = await supabase
     .from("jira_links")
-    .select(
-      "canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at, " +
-      "snapshot_reason, snapshot_why_callout, snapshot_customers_callout, " +
-      "snapshot_deadline_callout, snapshot_impact_rating, snapshot_confidence_rating, " +
-      "snapshot_team_classification, snapshot_status"
-    )
+    .select("canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at, snapshot_reason, snapshot_why_callout, snapshot_customers_callout, snapshot_deadline_callout, snapshot_impact_rating, snapshot_confidence_rating, snapshot_team_classification, snapshot_status")
     .order("accepted_at", { ascending: false });
 
   // All Jira-tracked IDs suppress items from Top 10 / Easy Wins — Jira owns their state now.

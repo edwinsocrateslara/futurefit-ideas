@@ -33,11 +33,7 @@ export async function POST(
   const [{ data: idea, error: ideaError }, { data: latestEasyWin }] = await Promise.all([
     supabase
       .from("ideas")
-      .select(
-        "canny_id, title, jira_story, selection_week, selection_reason, selection_status, " +
-        "why_callout, customers_prospects_callout, hard_deadline_notes_callout, " +
-        "impact_rating, confidence_rating, team_classification"
-      )
+      .select("canny_id, title, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification")
       .eq("canny_id", canny_id)
       .single(),
     supabase
