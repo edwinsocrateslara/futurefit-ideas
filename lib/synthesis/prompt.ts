@@ -1,6 +1,6 @@
 import type { BoardSlug } from "@/config/boards";
 
-export const PROMPT_VERSION = "synthesis-v4.0";
+export const PROMPT_VERSION = "synthesis-v4.1";
 
 const MAX_DESCRIPTION_CHARS = 300;
 
@@ -388,7 +388,7 @@ ${architectureDocs ? `\nThe following document describes how the FutureFit AI Pa
 
 ## TASK 3: IDENTIFY EASY WINS
 
-Identify exactly 5 items from the same idea pool that qualify as easy wins — things the engineering team could ship in a single sprint with no discovery work required, where the solution is obvious from the feedback itself.
+Identify up to 10 items from the same idea pool that qualify as easy wins — things the engineering team could ship in a single sprint with no discovery work required, where the solution is obvious from the feedback itself. Return as many as genuinely meet the criteria, to a maximum of 10. If fewer than 10 genuinely qualify, return only those — do NOT pad the list with borderline items to reach a target count. A shorter list of real easy wins is better than a padded one.
 
 **Architecture context for this task:**
 The Architecture Reference above describes how FutureFit AI Pathways is built. It now includes three sections that directly support effort assessment — use them before judging any item:

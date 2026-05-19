@@ -67,7 +67,7 @@ export const SynthesisOutputSchema = z.object({
   prompt_version: z.string(),
   selections: z.array(SelectionSchema).length(10),
   patterns: z.array(PatternSchema),
-  easy_wins: z.array(EasyWinSchema).length(5),
+  easy_wins: z.array(EasyWinSchema).min(1).max(10),
 });
 
 // ── Inferred types ────────────────────────────────────────────────────────────
