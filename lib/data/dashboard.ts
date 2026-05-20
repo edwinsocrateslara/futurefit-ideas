@@ -116,6 +116,7 @@ export interface DashboardData {
   new_easy_wins_count: number;
   persistent_titles: { canny_id: string; title: string }[];
   new_titles: { canny_id: string; title: string }[];
+  notes_counts: Record<string, number>;
   sync: {
     id: string;
     started_at: string;
@@ -509,6 +510,35 @@ export async function getDashboardData(
   const surfacedSelections = selections.filter((s) => !jiraTrackedIds.has(s.canny_id));
   const surfacedEasyWins = easy_wins.filter((w) => !jiraTrackedIds.has(w.canny_id));
 
+  // Notes counts — one query covering all visible canny_ids plus currently deferred items.
+  // Deferred items are stored on the ideas table (marked_done=true) and fetched separately
+  // in page.tsx, so we include them here to avoid a second round-trip.
+  const { data: deferredIdRows } = await supabase
+    .from("ideas")
+    .select("canny_id")
+    .eq("marked_done", true);
+
+  const allIdsForCounts = [
+    ...new Set([
+      ...surfacedSelections.map((s) => s.canny_id),
+      ...surfacedEasyWins.map((w) => w.canny_id),
+      ...acceptedItems.map((a) => a.canny_id),
+      ...doneJiraItems.map((d) => d.canny_id),
+      ...(deferredIdRows ?? []).map((r) => r.canny_id),
+    ]),
+  ];
+
+  const notes_counts: Record<string, number> = {};
+  if (allIdsForCounts.length > 0) {
+    const { data: noteRows } = await supabase
+      .from("idea_notes")
+      .select("canny_id")
+      .in("canny_id", allIdsForCounts);
+    for (const row of noteRows ?? []) {
+      notes_counts[row.canny_id] = (notes_counts[row.canny_id] ?? 0) + 1;
+    }
+  }
+
   const persistentSelections = surfacedSelections.filter((s) => s.is_persistent);
   const newSelections = surfacedSelections.filter((s) => s.is_new_this_week);
   const newEasyWins = surfacedEasyWins.filter((w) => w.is_new_this_week);
@@ -532,6 +562,7 @@ export async function getDashboardData(
       new_easy_wins_count: newEasyWins.length,
       persistent_titles: persistentSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
       new_titles: newSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
+      notes_counts,
       sync: syncRun
         ? {
             id: syncRun.id,

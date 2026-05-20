@@ -36,20 +36,6 @@ export default function PatternCard({ pattern }: { pattern: DashboardPattern }) 
         {pattern.title}
       </h3>
 
-      {/* Lineage indicator — only shown when pattern has recurred */}
-      {!pattern.is_first_appearance && (
-        <p
-          style={{
-            margin: "0 0 12px 0",
-            fontSize: 12,
-            color: "oklch(0.45 0 0)",
-            letterSpacing: 0.1,
-          }}
-        >
-          {`Week ${pattern.weeks_active} of this theme`}
-        </p>
-      )}
-
       {/* Summary */}
       <p
         style={{

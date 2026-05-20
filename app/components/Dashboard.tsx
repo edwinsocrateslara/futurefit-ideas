@@ -1293,6 +1293,382 @@ function TabBar({
 
 // ── Signal row ─────────────────────────────────────────────────────────────────
 
+// ── Notes ──────────────────────────────────────────────────────────────────────
+
+interface NoteEntry {
+  id: string;
+  note_text: string;
+  created_at: string;
+}
+
+function formatNoteTime(iso: string): string {
+  const d = new Date(iso);
+  return (
+    d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) +
+    " at " +
+    d.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })
+  );
+}
+
+function NotesModal({
+  title,
+  cannyId,
+  notes,
+  loading,
+  onClose,
+  onNoteAdded,
+  onNoteReplaced,
+  onNoteDeleted,
+}: {
+  title: string;
+  cannyId: string;
+  notes: NoteEntry[];
+  loading: boolean;
+  onClose: () => void;
+  onNoteAdded: (note: NoteEntry) => void;
+  onNoteReplaced: (tempId: string, real: NoteEntry) => void;
+  onNoteDeleted: (noteId: string) => void;
+}) {
+  const [text, setText] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const threadRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    if (threadRef.current) {
+      threadRef.current.scrollTop = threadRef.current.scrollHeight;
+    }
+  }, [notes.length]);
+
+  async function handleSubmit() {
+    const trimmed = text.trim();
+    if (!trimmed || submitting) return;
+    const tempId = `temp-${Date.now()}`;
+    const tempNote: NoteEntry = { id: tempId, note_text: trimmed, created_at: new Date().toISOString() };
+    onNoteAdded(tempNote);
+    setText("");
+    setSubmitting(true);
+    const res = await fetch(`/api/ideas/${cannyId}/notes`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ note_text: trimmed }),
+    });
+    setSubmitting(false);
+    if (res.ok) {
+      const real = await res.json() as NoteEntry;
+      onNoteReplaced(tempId, real);
+    } else {
+      onNoteDeleted(tempId);
+    }
+  }
+
+  async function handleDelete(noteId: string) {
+    onNoteDeleted(noteId);
+    const res = await fetch(`/api/ideas/${cannyId}/notes/${noteId}`, { method: "DELETE" });
+    if (!res.ok) {
+      const restored = notes.find((n) => n.id === noteId);
+      if (restored) onNoteAdded(restored);
+    }
+  }
+
+  const remaining = 2000 - text.length;
+
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        background: "oklch(0 0 0 / 0.60)",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        zIndex: 200,
+        padding: 24,
+      }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div
+        style={{
+          background: "oklch(0.18 0 0)",
+          border: "1px solid oklch(1 0 0 / 0.08)",
+          borderRadius: 12,
+          width: "100%",
+          maxWidth: 640,
+          maxHeight: "90vh",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
+        }}
+      >
+        {/* Header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "20px 24px 0",
+            flexShrink: 0,
+          }}
+        >
+          <h2
+            style={{
+              margin: 0,
+              fontSize: 16,
+              fontWeight: 600,
+              letterSpacing: -0.2,
+              color: "oklch(0.97 0 0)",
+              flex: 1,
+              minWidth: 0,
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              whiteSpace: "nowrap",
+              paddingRight: 12,
+            }}
+          >
+            {title}
+          </h2>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Close"
+            style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 28,
+              height: 28,
+              borderRadius: 6,
+              border: "none",
+              background: "transparent",
+              color: "oklch(0.45 0 0)",
+              cursor: "pointer",
+              fontSize: 20,
+              lineHeight: 1,
+              flexShrink: 0,
+              transition: "background 100ms, color 100ms",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.04)";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.78 0 0)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)";
+            }}
+          >
+            ×
+          </button>
+        </div>
+
+        {/* Section label */}
+        <div style={{ padding: "12px 24px 0", flexShrink: 0 }}>
+          <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
+            Notes
+          </span>
+        </div>
+
+        {/* Thread */}
+        <div
+          ref={threadRef}
+          style={{
+            flex: 1,
+            overflowY: "auto",
+            padding: "12px 24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: 16,
+            minHeight: 80,
+          }}
+        >
+          {loading && (
+            <p style={{ margin: 0, fontSize: 13, color: "oklch(0.45 0 0)" }}>Loading…</p>
+          )}
+          {!loading && notes.length === 0 && (
+            <p style={{ margin: 0, fontSize: 13, color: "oklch(0.45 0 0)" }}>No notes yet.</p>
+          )}
+          {notes.map((note) => (
+            <div key={note.id}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: 8, marginBottom: 4 }}>
+                <span style={{ fontSize: 11, color: "oklch(0.45 0 0)", letterSpacing: 0.1 }}>
+                  {formatNoteTime(note.created_at)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => handleDelete(note.id)}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    padding: 0,
+                    fontSize: 11,
+                    color: "oklch(0.45 0 0)",
+                    cursor: "pointer",
+                    letterSpacing: 0.1,
+                    flexShrink: 0,
+                    transition: "color 100ms",
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)"; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
+                >
+                  Delete
+                </button>
+              </div>
+              <p style={{ margin: 0, fontSize: 13, lineHeight: 1.6, color: "oklch(0.85 0 0)", whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                {note.note_text}
+              </p>
+            </div>
+          ))}
+        </div>
+
+        {/* Divider */}
+        <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", flexShrink: 0 }} />
+
+        {/* Input area */}
+        <div style={{ padding: "16px 24px 20px", flexShrink: 0 }}>
+          <textarea
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(); }}
+            placeholder="Add a note…"
+            maxLength={2000}
+            rows={3}
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              resize: "vertical",
+              background: "oklch(0.14 0 0)",
+              border: "1px solid oklch(1 0 0 / 0.10)",
+              borderRadius: 8,
+              padding: "10px 12px",
+              fontSize: 13,
+              lineHeight: 1.6,
+              color: "oklch(0.90 0 0)",
+              outline: "none",
+              fontFamily: "inherit",
+            }}
+          />
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 8 }}>
+            <span style={{ fontSize: 11, color: remaining < 200 ? "oklch(0.72 0.18 75)" : "oklch(0.45 0 0)" }}>
+              {remaining < 2000 ? `${remaining} remaining` : ""}
+            </span>
+            <button
+              type="button"
+              onClick={handleSubmit}
+              disabled={!text.trim() || submitting}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "8px 18px",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: 0.2,
+                borderRadius: 9999,
+                border: "none",
+                background: !text.trim() || submitting ? "oklch(1 0 0 / 0.06)" : "oklch(0.97 0 0)",
+                color: !text.trim() || submitting ? "oklch(0.45 0 0)" : "oklch(0.13 0 0)",
+                cursor: !text.trim() || submitting ? "default" : "pointer",
+                transition: "background 120ms, color 120ms",
+              }}
+            >
+              Add note
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function NotesLink({
+  cannyId,
+  initialCount,
+  title,
+}: {
+  cannyId: string;
+  initialCount: number;
+  title: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [notes, setNotes] = useState<NoteEntry[] | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [localCount, setLocalCount] = useState(initialCount);
+
+  async function handleOpen() {
+    setOpen(true);
+    if (notes === null && !loading) {
+      setLoading(true);
+      const res = await fetch(`/api/ideas/${cannyId}/notes`);
+      if (res.ok) {
+        const data = await res.json() as { notes: NoteEntry[] };
+        setNotes(data.notes);
+        setLocalCount(data.notes.length);
+      } else {
+        setNotes([]);
+      }
+      setLoading(false);
+    }
+  }
+
+  function handleNoteAdded(note: NoteEntry) {
+    setNotes((prev) => (prev ? [...prev, note] : [note]));
+    setLocalCount((c) => c + 1);
+  }
+
+  function handleNoteReplaced(tempId: string, real: NoteEntry) {
+    setNotes((prev) => prev ? prev.map((n) => (n.id === tempId ? real : n)) : [real]);
+  }
+
+  function handleNoteDeleted(noteId: string) {
+    setNotes((prev) => (prev ? prev.filter((n) => n.id !== noteId) : []));
+    setLocalCount((c) => Math.max(0, c - 1));
+  }
+
+  const label = localCount > 0 ? `Notes (${localCount})` : "Notes";
+
+  return (
+    <>
+      <button
+        type="button"
+        onClick={handleOpen}
+        style={{
+          background: "none",
+          border: "none",
+          padding: 0,
+          fontSize: 12,
+          color: "oklch(0.55 0 0)",
+          textDecoration: "underline",
+          textUnderlineOffset: 3,
+          textDecorationThickness: 1,
+          letterSpacing: 0.2,
+          cursor: "pointer",
+          whiteSpace: "nowrap",
+          transition: "color 100ms",
+        }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.55 0 0)"; }}
+      >
+        {label}
+      </button>
+      {open && (
+        <NotesModal
+          title={title}
+          cannyId={cannyId}
+          notes={notes ?? []}
+          loading={loading}
+          onClose={() => setOpen(false)}
+          onNoteAdded={handleNoteAdded}
+          onNoteReplaced={handleNoteReplaced}
+          onNoteDeleted={handleNoteDeleted}
+        />
+      )}
+    </>
+  );
+}
+
 function SignalRow({
   item,
   displayRank,
@@ -1302,6 +1678,7 @@ function SignalRow({
   onAccepted,
   suppressNewBadge = false,
   dragHandleListeners,
+  notesCount = 0,
 }: {
   item: DashboardSelection;
   displayRank: number;
@@ -1311,6 +1688,7 @@ function SignalRow({
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   suppressNewBadge?: boolean;
   dragHandleListeners?: Record<string, unknown>;
+  notesCount?: number;
 }) {
   const isDone = doneSet.has(item.canny_id);
   const [deferHovered, setDeferHovered] = useState(false);
@@ -1516,29 +1894,32 @@ function SignalRow({
           </div>
         )}
 
-        {/* Bottom action row: canny link left, buttons right */}
+        {/* Bottom action row: links left, buttons right */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
-          {item.canny_url ? (
-            <a
-              href={item.canny_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="canny-link"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 12,
-                color: "oklch(0.55 0 0)",
-                textDecoration: "underline",
-                textUnderlineOffset: 3,
-                textDecorationThickness: 1,
-                letterSpacing: 0.2,
-              }}
-            >
-              View in Canny →
-            </a>
-          ) : <span />}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {item.canny_url && (
+              <a
+                href={item.canny_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="canny-link"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 12,
+                  color: "oklch(0.55 0 0)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                  textDecorationThickness: 1,
+                  letterSpacing: 0.2,
+                }}
+              >
+                View in Canny →
+              </a>
+            )}
+            <NotesLink cannyId={item.canny_id} initialCount={notesCount} title={item.title} />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
           <button
             type="button"
@@ -1583,6 +1964,7 @@ function SortableSignalRow(props: {
   onToggleDone: (item: DashboardSelection) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   suppressNewBadge: boolean;
+  notesCount?: number;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: props.item.canny_id });
@@ -1610,11 +1992,13 @@ function EasyWinCard({
   doneSet,
   onToggleDone,
   onAccepted,
+  notesCount = 0,
 }: {
   win: DashboardEasyWin;
   doneSet: Set<string>;
   onToggleDone: (win: DashboardEasyWin) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
+  notesCount?: number;
 }) {
   const isDone = doneSet.has(win.canny_id);
   const [deferHovered, setDeferHovered] = useState(false);
@@ -1693,29 +2077,32 @@ function EasyWinCard({
           {win.reason}
         </p>
 
-        {/* Bottom action row: canny link left, buttons right */}
+        {/* Bottom action row: links left, buttons right */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
-          {win.canny_url ? (
-            <a
-              href={win.canny_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="canny-link"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 12,
-                color: "oklch(0.55 0 0)",
-                textDecoration: "underline",
-                textUnderlineOffset: 3,
-                textDecorationThickness: 1,
-                letterSpacing: 0.2,
-              }}
-            >
-              View in Canny →
-            </a>
-          ) : <span />}
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {win.canny_url && (
+              <a
+                href={win.canny_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="canny-link"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 4,
+                  fontSize: 12,
+                  color: "oklch(0.55 0 0)",
+                  textDecoration: "underline",
+                  textUnderlineOffset: 3,
+                  textDecorationThickness: 1,
+                  letterSpacing: 0.2,
+                }}
+              >
+                View in Canny →
+              </a>
+            )}
+            <NotesLink cannyId={win.canny_id} initialCount={notesCount} title={win.title} />
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
               type="button"
@@ -1752,7 +2139,7 @@ function EasyWinCard({
 
 // ── Accepted tab ──────────────────────────────────────────────────────────────
 
-function AcceptedTab({ items }: { items: AcceptedItem[] }) {
+function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCounts: Record<string, number> }) {
   if (items.length === 0) {
     return (
       <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
@@ -1806,24 +2193,27 @@ function AcceptedTab({ items }: { items: AcceptedItem[] }) {
               {item.reason}
             </p>
           )}
-          <a
-            href={item.jira_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 12,
-              color: "oklch(0.55 0 0)",
-              textDecoration: "underline",
-              textUnderlineOffset: 3,
-              textDecorationThickness: 1,
-              letterSpacing: 0.2,
-            }}
-          >
-            {item.jira_issue_key} · View in Jira →
-          </a>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
+            <a
+              href={item.jira_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                fontSize: 12,
+                color: "oklch(0.55 0 0)",
+                textDecoration: "underline",
+                textUnderlineOffset: 3,
+                textDecorationThickness: 1,
+                letterSpacing: 0.2,
+              }}
+            >
+              {item.jira_issue_key} · View in Jira →
+            </a>
+          </div>
         </div>
       ))}
     </div>
@@ -1916,9 +2306,11 @@ function JiraDoneTab({ items }: { items: DoneJiraItem[] }) {
 function DoneTab({
   items,
   onUnmark,
+  notesCounts = {},
 }: {
   items: DoneItem[];
   onUnmark: (cannyId: string) => void;
+  notesCounts?: Record<string, number>;
 }) {
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
@@ -1943,7 +2335,7 @@ function DoneTab({
             background: "oklch(0.16 0 0)",
             border: "1px solid oklch(1 0 0 / 0.06)",
             borderRadius: 10,
-            alignItems: "center",
+            alignItems: "start",
           }}
         >
           <div>
@@ -1957,7 +2349,7 @@ function DoneTab({
             </div>
             <p
               style={{
-                margin: 0,
+                margin: "0 0 6px 0",
                 fontSize: 16,
                 fontWeight: 500,
                 color: "oklch(0.72 0 0)",
@@ -1968,6 +2360,7 @@ function DoneTab({
             >
               {item.title}
             </p>
+            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
           </div>
           <button
             type="button"
@@ -2383,6 +2776,7 @@ export default function Dashboard({
                     onToggleDone={handleToggleDone}
                     onAccepted={handleAccepted}
                     suppressNewBadge={isColdStart}
+                    notesCount={data.notes_counts[item.canny_id] ?? 0}
                   />
                 ))}
                 {displaySignals.length === 0 && (
@@ -2405,6 +2799,7 @@ export default function Dashboard({
                 onToggleDone={handleToggleDone}
                 onAccepted={handleAccepted}
                 suppressNewBadge={isColdStart}
+                notesCount={data.notes_counts[item.canny_id] ?? 0}
               />
             ))}
           </div>
@@ -2511,6 +2906,7 @@ export default function Dashboard({
               doneSet={doneSet}
               onToggleDone={handleEasyWinToggleDone}
               onAccepted={handleAccepted}
+              notesCount={data.notes_counts[win.canny_id] ?? 0}
             />
           ))}
           {data.easy_wins.length > 0 && data.easy_wins.every((w) => doneSet.has(w.canny_id)) && (
@@ -2535,11 +2931,11 @@ export default function Dashboard({
       )}
 
       {activeTab === "accepted" && (
-        <AcceptedTab items={acceptedItems} />
+        <AcceptedTab items={acceptedItems} notesCounts={data.notes_counts} />
       )}
 
       {activeTab === "deferred" && (
-        <DoneTab items={doneItems} onUnmark={handleUnmark} />
+        <DoneTab items={doneItems} onUnmark={handleUnmark} notesCounts={data.notes_counts} />
       )}
 
       {activeTab === "done" && (
