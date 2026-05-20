@@ -129,6 +129,7 @@ export interface DashboardData {
   persistent_titles: { canny_id: string; title: string }[];
   new_titles: { canny_id: string; title: string }[];
   pinned_items: PinnedItem[];
+  pending_proposals_count: number;
   notes_counts: Record<string, number>;
   sync: {
     id: string;
@@ -523,6 +524,48 @@ export async function getDashboardData(
   const surfacedSelections = selections.filter((s) => !jiraTrackedIds.has(s.canny_id));
   const surfacedEasyWins = easy_wins.filter((w) => !jiraTrackedIds.has(w.canny_id));
 
+  // Approved proposals — merge into easy_wins display list (status='added' only)
+  // We don't insert into easy_wins (UNIQUE on canny_id+week_of would break re-runs)
+  const { data: approvedProposalRows } = await supabase
+    .from("quick_win_proposals")
+    .select("id, canny_id, comment, ideas(title, canny_url, tier_1_customer, manual_team_classification, boards(slug, name))")
+    .eq("status", "added");
+
+  const existingEasyWinIds = new Set(surfacedEasyWins.map((w) => w.canny_id));
+  for (const row of approvedProposalRows ?? []) {
+    if (jiraTrackedIds.has(row.canny_id)) continue;
+    if (existingEasyWinIds.has(row.canny_id)) continue;
+    const idea = row.ideas as unknown as {
+      title: string;
+      canny_url: string | null;
+      tier_1_customer: string | null;
+      manual_team_classification: string | null;
+      boards: { slug: string; name: string } | null;
+    } | null;
+    const board = idea?.boards ?? null;
+    surfacedEasyWins.push({
+      canny_id: row.canny_id,
+      title: idea?.title ?? row.canny_id,
+      board_slug: board?.slug ?? "",
+      board_name: board?.name ?? "",
+      reason: row.comment ?? "",
+      jira_story: null,
+      canny_url: idea?.canny_url ?? null,
+      tier_1_customer: idea?.tier_1_customer ?? null,
+      is_new_this_week: false,
+      team_classification: idea?.manual_team_classification ?? null,
+      synthesis_team_classification: null,
+      is_team_overridden: idea?.manual_team_classification !== null,
+    });
+    existingEasyWinIds.add(row.canny_id);
+  }
+
+  // Pending proposals count for the badge in the UI
+  const { count: pendingProposalsCount } = await supabase
+    .from("quick_win_proposals")
+    .select("id", { count: "exact", head: true })
+    .eq("status", "pending");
+
   // Pinned items — ordered by pin date ascending (earliest decision first)
   const { data: pinnedRows } = await supabase
     .from("ideas")
@@ -601,6 +644,7 @@ export async function getDashboardData(
       persistent_titles: persistentSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
       new_titles: newSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
       pinned_items,
+      pending_proposals_count: pendingProposalsCount ?? 0,
       notes_counts,
       sync: syncRun
         ? {

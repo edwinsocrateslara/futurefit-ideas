@@ -2175,6 +2175,288 @@ function EasyWinCard({
   );
 }
 
+// ── Suggest Quick Win modals ───────────────────────────────────────────────────
+
+interface ProposalEntry {
+  id: string;
+  canny_id: string;
+  title: string;
+  board_slug: string;
+  board_name: string;
+  canny_url: string | null;
+  comment: string | null;
+  created_at: string;
+}
+
+function AddSuggestionModal({
+  onClose,
+  onSubmitted,
+}: {
+  onClose: () => void;
+  onSubmitted: () => void;
+}) {
+  const [url, setUrl] = useState("");
+  const [comment, setComment] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  async function handleSubmit() {
+    if (!url.trim() || submitting) return;
+    setSubmitting(true);
+    setError(null);
+    const res = await fetch("/api/proposals", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: url.trim(), comment: comment.trim() || undefined }),
+    });
+    setSubmitting(false);
+    if (res.ok) {
+      onSubmitted();
+      onClose();
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setError((json as { error?: string }).error ?? "Something went wrong. Please try again.");
+    }
+  }
+
+  const remaining = 2000 - comment.length;
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "oklch(0 0 0 / 0.60)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: "oklch(0.18 0 0)", border: "1px solid oklch(1 0 0 / 0.08)", borderRadius: 12, width: "100%", maxWidth: 480, padding: "24px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: "oklch(0.97 0 0)" }}>
+            Suggest a Quick Win
+          </h2>
+          <button
+            type="button" onClick={onClose} aria-label="Close"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", color: "oklch(0.45 0 0)", cursor: "pointer", fontSize: 20, lineHeight: 1 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.78 0 0)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, letterSpacing: 0.3, color: "oklch(0.65 0 0)", textTransform: "uppercase" }}>
+            Canny URL
+          </label>
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") void handleSubmit(); }}
+            placeholder="https://futurefit-ai.canny.io/…"
+            autoFocus
+            style={{ width: "100%", padding: "10px 12px", fontSize: 14, background: "oklch(0.14 0 0)", border: "1px solid oklch(1 0 0 / 0.12)", borderRadius: 8, color: "oklch(0.97 0 0)", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, letterSpacing: 0.3, color: "oklch(0.65 0 0)", textTransform: "uppercase" }}>
+            Note{" "}
+            <span style={{ fontWeight: 400, color: "oklch(0.45 0 0)", textTransform: "none" }}>(optional)</span>
+          </label>
+          <textarea
+            value={comment}
+            onChange={(e) => setComment(e.target.value)}
+            placeholder="Why should this be a Quick Win?"
+            rows={3}
+            maxLength={2000}
+            style={{ width: "100%", padding: "10px 12px", fontSize: 14, background: "oklch(0.14 0 0)", border: "1px solid oklch(1 0 0 / 0.12)", borderRadius: 8, color: "oklch(0.97 0 0)", outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit" }}
+          />
+          {comment.length > 1800 && (
+            <span style={{ fontSize: 11, color: remaining < 0 ? "oklch(0.75 0.20 25)" : "oklch(0.45 0 0)", textAlign: "right" }}>
+              {remaining} characters remaining
+            </span>
+          )}
+        </div>
+
+        {error && (
+          <p style={{ margin: 0, fontSize: 13, color: "oklch(0.75 0.20 25)" }}>{error}</p>
+        )}
+
+        <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+          <button
+            type="button" onClick={onClose}
+            style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 9999, border: "none", background: "transparent", color: "oklch(0.65 0 0)", cursor: "pointer" }}
+          >
+            Cancel
+          </button>
+          <button
+            type="button" onClick={() => void handleSubmit()} disabled={!url.trim() || submitting}
+            style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 9999, border: "none", background: !url.trim() || submitting ? "oklch(0.30 0 0)" : "oklch(0.45 0.20 295)", color: !url.trim() || submitting ? "oklch(0.50 0 0)" : "oklch(1 0 0)", cursor: !url.trim() || submitting ? "not-allowed" : "pointer", transition: "background 120ms" }}
+          >
+            {submitting ? "Submitting…" : "Submit"}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ReviewSuggestionsModal({
+  onClose,
+  onCountChange,
+}: {
+  onClose: () => void;
+  onCountChange: (delta: number) => void;
+}) {
+  const [proposals, setProposals] = useState<ProposalEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actioning, setActioning] = useState<Set<string>>(new Set());
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  useEffect(() => {
+    fetch("/api/proposals")
+      .then((r) => r.json())
+      .then((d) => setProposals((d as { proposals: ProposalEntry[] }).proposals ?? []))
+      .catch(() => setProposals([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  async function handleAction(id: string, action: "add" | "reject") {
+    setActioning((prev) => new Set(prev).add(id));
+    setErrors((prev) => { const n = { ...prev }; delete n[id]; return n; });
+
+    const res = await fetch(`/api/proposals/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action }),
+    });
+
+    if (res.ok) {
+      setProposals((prev) => prev.filter((p) => p.id !== id));
+      onCountChange(-1);
+    } else {
+      const json = await res.json().catch(() => ({}));
+      setErrors((prev) => ({ ...prev, [id]: (json as { error?: string }).error ?? "Failed. Please try again." }));
+    }
+    setActioning((prev) => { const n = new Set(prev); n.delete(id); return n; });
+  }
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "oklch(0 0 0 / 0.60)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: "oklch(0.18 0 0)", border: "1px solid oklch(1 0 0 / 0.08)", borderRadius: 12, width: "100%", maxWidth: 560, maxHeight: "80vh", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "20px 24px", flexShrink: 0, borderBottom: "1px solid oklch(1 0 0 / 0.06)" }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: "oklch(0.97 0 0)" }}>
+            Review Suggestions
+          </h2>
+          <button
+            type="button" onClick={onClose} aria-label="Close"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", color: "oklch(0.45 0 0)", cursor: "pointer", fontSize: 20, lineHeight: 1 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.78 0 0)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px 24px", display: "flex", flexDirection: "column", gap: 12 }}>
+          {loading && (
+            <p style={{ margin: 0, fontSize: 13, color: "oklch(0.45 0 0)" }}>Loading…</p>
+          )}
+          {!loading && proposals.length === 0 && (
+            <p style={{ margin: 0, fontSize: 13, color: "oklch(0.45 0 0)" }}>No pending suggestions.</p>
+          )}
+          {proposals.map((p) => (
+            <div key={p.id} style={{ padding: "16px", background: "oklch(0.14 0 0)", border: "1px solid oklch(1 0 0 / 0.06)", borderRadius: 10 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                <BoardTag slug={p.board_slug} />
+              </div>
+              <p style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 600, color: "oklch(0.97 0 0)", lineHeight: 1.4 }}>
+                {p.title}
+              </p>
+              {p.comment && (
+                <p style={{ margin: "0 0 12px 0", fontSize: 13, lineHeight: 1.5, color: "oklch(0.72 0 0)" }}>
+                  {p.comment}
+                </p>
+              )}
+              {errors[p.id] && (
+                <p style={{ margin: "0 0 8px 0", fontSize: 12, color: "oklch(0.75 0.20 25)" }}>{errors[p.id]}</p>
+              )}
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: p.comment ? 0 : 12 }}>
+                {p.canny_url && (
+                  <a
+                    href={p.canny_url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "oklch(0.55 0 0)", textDecoration: "underline", textUnderlineOffset: 3, marginRight: "auto" }}
+                  >
+                    View in Canny →
+                  </a>
+                )}
+                <button
+                  type="button" onClick={() => void handleAction(p.id, "reject")} disabled={actioning.has(p.id)}
+                  style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, borderRadius: 9999, border: "none", background: "transparent", color: "oklch(0.55 0 0)", cursor: actioning.has(p.id) ? "not-allowed" : "pointer" }}
+                >
+                  Reject
+                </button>
+                <button
+                  type="button" onClick={() => void handleAction(p.id, "add")} disabled={actioning.has(p.id)}
+                  style={{ padding: "6px 14px", fontSize: 12, fontWeight: 600, borderRadius: 9999, border: "none", background: actioning.has(p.id) ? "oklch(0.30 0 0)" : "oklch(0.45 0.20 295)", color: actioning.has(p.id) ? "oklch(0.50 0 0)" : "oklch(1 0 0)", cursor: actioning.has(p.id) ? "not-allowed" : "pointer", transition: "background 120ms" }}
+                >
+                  {actioning.has(p.id) ? "…" : "Add to Quick Wins"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SuggestActionCards({
+  pendingCount,
+  onSuggest,
+  onReview,
+}: {
+  pendingCount: number;
+  onSuggest: () => void;
+  onReview: () => void;
+}) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
+      <button
+        type="button" onClick={onSuggest}
+        style={{ display: "inline-flex", alignItems: "center", padding: "8px 18px", fontSize: 13, fontWeight: 600, letterSpacing: 0.2, borderRadius: 9999, border: "none", background: "oklch(0.45 0.20 295)", color: "oklch(1 0 0)", cursor: "pointer", transition: "background 120ms" }}
+        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.50 0.20 295)"; }}
+        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.45 0.20 295)"; }}
+      >
+        + Suggest a Quick Win
+      </button>
+      {pendingCount > 0 && (
+        <button
+          type="button" onClick={onReview}
+          style={{ display: "inline-flex", alignItems: "center", padding: "8px 18px", fontSize: 13, fontWeight: 600, letterSpacing: 0.2, borderRadius: 9999, border: "1px solid oklch(1 0 0 / 0.12)", background: "transparent", color: "oklch(0.85 0 0)", cursor: "pointer", transition: "background 120ms" }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.04)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+        >
+          Review Suggestions · {pendingCount}
+        </button>
+      )}
+    </div>
+  );
+}
+
 // ── Accepted tab ──────────────────────────────────────────────────────────────
 
 function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCounts: Record<string, number> }) {
@@ -2626,6 +2908,9 @@ export default function Dashboard({
     () => data.accepted_items
   );
   const [pinnedItems, setPinnedItems] = useState<PinnedItem[]>(() => data.pinned_items);
+  const [pendingProposalsCount, setPendingProposalsCount] = useState(() => data.pending_proposals_count);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [, startTransition] = useTransition();
 
   // Drag-and-drop state
@@ -3200,6 +3485,11 @@ export default function Dashboard({
 
       {activeTab === "easy-wins" && (
         <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+          <SuggestActionCards
+            pendingCount={pendingProposalsCount}
+            onSuggest={() => setShowAddModal(true)}
+            onReview={() => setShowReviewModal(true)}
+          />
           {data.easy_wins.filter((w) => !doneSet.has(w.canny_id)).map((win) => (
             <EasyWinCard
               key={win.canny_id}
@@ -3251,6 +3541,19 @@ export default function Dashboard({
 
       {activeTab === "done" && (
         <JiraDoneTab items={data.done_jira_items} />
+      )}
+
+      {showAddModal && (
+        <AddSuggestionModal
+          onClose={() => setShowAddModal(false)}
+          onSubmitted={() => setPendingProposalsCount((n) => n + 1)}
+        />
+      )}
+      {showReviewModal && (
+        <ReviewSuggestionsModal
+          onClose={() => setShowReviewModal(false)}
+          onCountChange={(delta) => setPendingProposalsCount((n) => Math.max(0, n + delta))}
+        />
       )}
     </>
   );
