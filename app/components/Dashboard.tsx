@@ -16,7 +16,7 @@ import {
   arrayMove,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem } from "@/lib/data/dashboard";
+import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem, PinnedItem } from "@/lib/data/dashboard";
 import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES, TEAM_CLASSIFICATION_VALUES } from "@/lib/synthesis/schema";
 import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
@@ -1212,13 +1212,14 @@ function MetricCard({
 
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
-type TabId = "signals" | "easy-wins" | "patterns" | "accepted" | "deferred" | "done";
+type TabId = "signals" | "easy-wins" | "patterns" | "coming-up" | "accepted" | "deferred" | "done";
 
 function TabBar({
   active,
   signalCount,
   easyWinCount,
   patternCount,
+  comingUpCount,
   acceptedCount,
   deferredCount,
   doneCount,
@@ -1228,18 +1229,20 @@ function TabBar({
   signalCount: number;
   easyWinCount: number;
   patternCount: number;
+  comingUpCount: number;
   acceptedCount: number;
   deferredCount: number;
   doneCount: number;
   onSelect: (id: TabId) => void;
 }) {
   const tabs: { id: TabId; label: string; count?: number }[] = [
-    { id: "signals",   label: "Top 10 Ideas" },
-    { id: "easy-wins", label: "Quick Wins",  count: easyWinCount },
-    { id: "patterns",  label: "Patterns",    count: patternCount },
-    { id: "accepted",  label: "Accepted",    count: acceptedCount },
-    { id: "deferred",  label: "Deferred",    count: deferredCount },
-    { id: "done",      label: "Done",        count: doneCount },
+    { id: "signals",    label: "Top 10 Ideas" },
+    { id: "easy-wins",  label: "Quick Wins",  count: easyWinCount },
+    { id: "coming-up",  label: "Pinned",      count: comingUpCount > 0 ? comingUpCount : undefined },
+    { id: "accepted",   label: "Accepted",    count: acceptedCount },
+    { id: "deferred",   label: "Deferred",    count: deferredCount },
+    { id: "done",       label: "Done",        count: doneCount },
+    { id: "patterns",   label: "Patterns",    count: patternCount },
   ];
 
   return (
@@ -1468,7 +1471,7 @@ function NotesModal({
         {/* Section label */}
         <div style={{ padding: "12px 24px 0", flexShrink: 0 }}>
           <span style={{ fontSize: 11, fontWeight: 600, letterSpacing: 1, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
-            Notes
+            Comments
           </span>
         </div>
 
@@ -1489,7 +1492,7 @@ function NotesModal({
             <p style={{ margin: 0, fontSize: 13, color: "oklch(0.45 0 0)" }}>Loading…</p>
           )}
           {!loading && notes.length === 0 && (
-            <p style={{ margin: 0, fontSize: 13, color: "oklch(0.45 0 0)" }}>No notes yet.</p>
+            <p style={{ margin: 0, fontSize: 13, color: "oklch(0.45 0 0)" }}>No comments yet.</p>
           )}
           {notes.map((note) => (
             <div key={note.id}>
@@ -1533,7 +1536,7 @@ function NotesModal({
             value={text}
             onChange={(e) => setText(e.target.value)}
             onKeyDown={(e) => { if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) handleSubmit(); }}
-            placeholder="Add a note…"
+            placeholder="Add a comment…"
             maxLength={2000}
             rows={3}
             style={{
@@ -1568,13 +1571,13 @@ function NotesModal({
                 letterSpacing: 0.2,
                 borderRadius: 9999,
                 border: "none",
-                background: !text.trim() || submitting ? "oklch(1 0 0 / 0.06)" : "oklch(0.97 0 0)",
-                color: !text.trim() || submitting ? "oklch(0.45 0 0)" : "oklch(0.13 0 0)",
+                background: !text.trim() || submitting ? "oklch(0.35 0.15 295)" : "oklch(0.45 0.20 295)",
+                color: "oklch(1 0 0)",
                 cursor: !text.trim() || submitting ? "default" : "pointer",
-                transition: "background 120ms, color 120ms",
+                transition: "background 120ms",
               }}
             >
-              Add note
+              Add comment
             </button>
           </div>
         </div>
@@ -1627,7 +1630,7 @@ function NotesLink({
     setLocalCount((c) => Math.max(0, c - 1));
   }
 
-  const label = localCount > 0 ? `Notes (${localCount})` : "Notes";
+  const label = localCount > 0 ? `Comments (${localCount})` : "Comments";
 
   return (
     <>
@@ -1676,6 +1679,7 @@ function SignalRow({
   doneSet,
   onToggleDone,
   onAccepted,
+  onPin,
   suppressNewBadge = false,
   dragHandleListeners,
   notesCount = 0,
@@ -1686,6 +1690,7 @@ function SignalRow({
   doneSet: Set<string>;
   onToggleDone: (item: DashboardSelection) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
+  onPin?: (item: DashboardSelection) => void;
   suppressNewBadge?: boolean;
   dragHandleListeners?: Record<string, unknown>;
   notesCount?: number;
@@ -1834,6 +1839,38 @@ function SignalRow({
               synthesisClassification={item.synthesis_team_classification}
               isOverridden={item.is_team_overridden}
             />
+            {onPin && !isDone && (
+              <button
+                type="button"
+                onClick={() => onPin(item)}
+                title="Pin"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9999,
+                  border: "none",
+                  background: "transparent",
+                  color: "oklch(0.40 0 0)",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "background 100ms, color 100ms",
+                  marginLeft: 4,
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
+                }}
+              >
+                <Pin size={20} strokeWidth={1.75} aria-hidden />
+              </button>
+            )}
           </div>
         </div>
 
@@ -1921,32 +1958,32 @@ function SignalRow({
             <NotesLink cannyId={item.canny_id} initialCount={notesCount} title={item.title} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <button
-            type="button"
-            onClick={() => onToggleDone(item)}
-            onMouseEnter={() => setDeferHovered(true)}
-            onMouseLeave={() => setDeferHovered(false)}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              padding: "8px 18px",
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: 0.2,
-              borderRadius: 9999,
-              border: "none",
-              background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
-              color: "oklch(0.85 0 0)",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              transition: "background 120ms",
-            }}
-          >
-            {isDone ? "Undo" : "Defer"}
-          </button>
-          {item.jira_story && (
-            <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
-          )}
+            <button
+              type="button"
+              onClick={() => onToggleDone(item)}
+              onMouseEnter={() => setDeferHovered(true)}
+              onMouseLeave={() => setDeferHovered(false)}
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                padding: "8px 18px",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: 0.2,
+                borderRadius: 9999,
+                border: "none",
+                background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
+                color: "oklch(0.85 0 0)",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background 120ms",
+              }}
+            >
+              {isDone ? "Undo" : "Defer"}
+            </button>
+            {item.jira_story && (
+              <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
+            )}
           </div>
         </div>
       </div>
@@ -1963,6 +2000,7 @@ function SortableSignalRow(props: {
   doneSet: Set<string>;
   onToggleDone: (item: DashboardSelection) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
+  onPin?: (item: DashboardSelection) => void;
   suppressNewBadge: boolean;
   notesCount?: number;
 }) {
@@ -2391,6 +2429,186 @@ function DoneTab({
   );
 }
 
+// ── Coming Up tab ──────────────────────────────────────────────────────────────
+
+function formatPinDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+function ComingUpTab({
+  items,
+  notesCounts,
+  onUnpin,
+  onDefer,
+  onAccepted,
+}: {
+  items: PinnedItem[];
+  notesCounts: Record<string, number>;
+  onUnpin: (item: PinnedItem) => void;
+  onDefer: (item: PinnedItem) => void;
+  onAccepted: (item: PinnedItem, result: JiraAcceptResult) => void;
+}) {
+  const [hoveredDefer, setHoveredDefer] = useState<string | null>(null);
+
+  if (items.length === 0) {
+    return (
+      <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
+        No items pinned yet.
+      </p>
+    );
+  }
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {items.map((item) => (
+        <div
+          key={item.canny_id}
+          style={{
+            padding: "20px 24px",
+            background: "oklch(0.18 0 0)",
+            border: "1px solid oklch(1 0 0 / 0.08)",
+            borderRadius: 12,
+          }}
+        >
+          {/* Top metadata row */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+              <BoardTag slug={item.board_slug} />
+              {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
+              <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
+                Pinned {formatPinDate(item.pinned_at)}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => onUnpin(item)}
+              title="Unpin"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 32,
+                borderRadius: 9999,
+                border: "none",
+                background: "transparent",
+                color: "oklch(0.75 0.20 25)",
+                cursor: "pointer",
+                padding: 0,
+                transition: "background 100ms, color 100ms",
+                marginLeft: 4,
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
+                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+              }}
+            >
+              <Pin size={20} strokeWidth={1.75} aria-hidden />
+            </button>
+          </div>
+
+          {/* Title */}
+          <p
+            style={{
+              margin: "0 0 10px 0",
+              fontSize: 18,
+              fontWeight: 500,
+              letterSpacing: -0.3,
+              lineHeight: 1.4,
+              color: "oklch(0.97 0 0)",
+              textWrap: "pretty",
+            }}
+          >
+            {item.title}
+          </p>
+
+          {/* Reason */}
+          {item.selection_reason && (
+            <p
+              style={{
+                margin: "0 0 8px 0",
+                fontSize: 14,
+                lineHeight: 1.6,
+                color: "oklch(0.85 0 0)",
+                textWrap: "pretty",
+              }}
+            >
+              {item.selection_reason}
+            </p>
+          )}
+
+          {/* Why callout */}
+          {item.why_callout && (
+            <p style={{ margin: "0 0 8px 0", fontSize: 11, lineHeight: 1.5 }}>
+              <span style={{ color: "oklch(0.55 0 0)" }}>Why now: </span>
+              <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
+            </p>
+          )}
+
+          {/* Bottom action row */}
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {item.canny_url && (
+                <a
+                  href={item.canny_url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="canny-link"
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 4,
+                    fontSize: 12,
+                    color: "oklch(0.55 0 0)",
+                    textDecoration: "underline",
+                    textUnderlineOffset: 3,
+                    textDecorationThickness: 1,
+                    letterSpacing: 0.2,
+                  }}
+                >
+                  View in Canny →
+                </a>
+              )}
+              <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+              <button
+                type="button"
+                onClick={() => onDefer(item)}
+                onMouseEnter={() => setHoveredDefer(item.canny_id)}
+                onMouseLeave={() => setHoveredDefer(null)}
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: "8px 18px",
+                  fontSize: 13,
+                  fontWeight: 600,
+                  letterSpacing: 0.2,
+                  borderRadius: 9999,
+                  border: "none",
+                  background: hoveredDefer === item.canny_id ? "oklch(1 0 0 / 0.04)" : "transparent",
+                  color: "oklch(0.85 0 0)",
+                  cursor: "pointer",
+                  whiteSpace: "nowrap",
+                  transition: "background 120ms",
+                }}
+              >
+                Defer
+              </button>
+              <AcceptButton cannyId={item.canny_id} onSuccess={(_, result) => onAccepted(item, result)} />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ── Main Dashboard ─────────────────────────────────────────────────────────────
 
 export default function Dashboard({
@@ -2407,6 +2625,7 @@ export default function Dashboard({
   const [acceptedItems, setAcceptedItems] = useState<AcceptedItem[]>(
     () => data.accepted_items
   );
+  const [pinnedItems, setPinnedItems] = useState<PinnedItem[]>(() => data.pinned_items);
   const [, startTransition] = useTransition();
 
   // Drag-and-drop state
@@ -2437,6 +2656,7 @@ export default function Dashboard({
 
   const doneSet = new Set(doneItems.map((d) => d.canny_id));
   const acceptedSet = new Set(acceptedItems.map((a) => a.canny_id));
+  const pinnedSet = new Set(pinnedItems.map((p) => p.canny_id));
 
   function handleAccepted(cannyId: string, result: JiraAcceptResult) {
     const signal = data.selections.find((s) => s.canny_id === cannyId);
@@ -2459,6 +2679,84 @@ export default function Dashboard({
       },
       ...prev,
     ]);
+  }
+
+  function handlePinnedAccepted(item: PinnedItem, result: JiraAcceptResult) {
+    setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+    setAcceptedItems((prev) => [
+      {
+        canny_id: item.canny_id,
+        title: item.title,
+        board_slug: item.board_slug,
+        board_name: item.board_name,
+        reason: item.selection_reason ?? "",
+        jira_issue_key: result.key,
+        jira_url: result.url,
+        jira_status: result.status,
+        accepted_at: new Date().toISOString(),
+        tier_1_customer: item.tier_1_customer,
+      },
+      ...prev,
+    ]);
+  }
+
+  function handlePin(item: DashboardSelection) {
+    const newPinned: PinnedItem = {
+      canny_id: item.canny_id,
+      title: item.title,
+      board_slug: item.board_slug,
+      board_name: item.board_name,
+      canny_url: item.canny_url,
+      pinned_at: new Date().toISOString(),
+      selection_reason: item.reason,
+      why_callout: item.why_callout,
+      tier_1_customer: item.tier_1_customer,
+    };
+    setPinnedItems((prev) => [...prev, newPinned]);
+
+    startTransition(async () => {
+      const res = await fetch(`/api/ideas/${item.canny_id}/pin`, { method: "PATCH" });
+      if (!res.ok) {
+        setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+      }
+    });
+  }
+
+  function handleUnpin(item: PinnedItem) {
+    setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+
+    startTransition(async () => {
+      const res = await fetch(`/api/ideas/${item.canny_id}/pin`, { method: "PATCH" });
+      if (!res.ok) {
+        setPinnedItems((prev) => [...prev, item].sort(
+          (a, b) => new Date(a.pinned_at).getTime() - new Date(b.pinned_at).getTime()
+        ));
+      }
+    });
+  }
+
+  function handlePinnedDefer(item: PinnedItem) {
+    setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+    const newDone: DoneItem = {
+      canny_id: item.canny_id,
+      title: item.title,
+      board_slug: item.board_slug,
+      board_name: item.board_name,
+      priority_rank: null,
+      selection_week: null,
+      marked_done_at: new Date().toISOString(),
+    };
+    setDoneItems((prev) => [newDone, ...prev]);
+
+    startTransition(async () => {
+      const res = await fetch(`/api/ideas/${item.canny_id}/done`, { method: "PATCH" });
+      if (!res.ok) {
+        setDoneItems((prev) => prev.filter((d) => d.canny_id !== item.canny_id));
+        setPinnedItems((prev) => [...prev, item].sort(
+          (a, b) => new Date(a.pinned_at).getTime() - new Date(b.pinned_at).getTime()
+        ));
+      }
+    });
   }
 
   async function handleToggleDone(item: DashboardSelection) {
@@ -2563,7 +2861,7 @@ export default function Dashboard({
   const displaySignals = localOrderIds
     .map((id) => selectionMap.get(id))
     .filter((s): s is DashboardSelection =>
-      s !== undefined && !doneSet.has(s.canny_id) && !acceptedSet.has(s.canny_id)
+      s !== undefined && !doneSet.has(s.canny_id) && !acceptedSet.has(s.canny_id) && !pinnedSet.has(s.canny_id)
     );
   const activeSignalIds = displaySignals.map((s) => s.canny_id);
 
@@ -2754,6 +3052,7 @@ export default function Dashboard({
         signalCount={data.selections.length}
         easyWinCount={data.easy_wins.length}
         patternCount={data.patterns.length}
+        comingUpCount={pinnedItems.length}
         acceptedCount={acceptedItems.length}
         deferredCount={doneItems.length}
         doneCount={data.done_jira_items.length}
@@ -2775,6 +3074,7 @@ export default function Dashboard({
                     doneSet={doneSet}
                     onToggleDone={handleToggleDone}
                     onAccepted={handleAccepted}
+                    onPin={handlePin}
                     suppressNewBadge={isColdStart}
                     notesCount={data.notes_counts[item.canny_id] ?? 0}
                   />
@@ -2798,6 +3098,7 @@ export default function Dashboard({
                 doneSet={doneSet}
                 onToggleDone={handleToggleDone}
                 onAccepted={handleAccepted}
+                onPin={handlePin}
                 suppressNewBadge={isColdStart}
                 notesCount={data.notes_counts[item.canny_id] ?? 0}
               />
@@ -2928,6 +3229,16 @@ export default function Dashboard({
             </p>
           )}
         </div>
+      )}
+
+      {activeTab === "coming-up" && (
+        <ComingUpTab
+          items={pinnedItems}
+          notesCounts={data.notes_counts}
+          onUnpin={handleUnpin}
+          onDefer={handlePinnedDefer}
+          onAccepted={handlePinnedAccepted}
+        />
       )}
 
       {activeTab === "accepted" && (

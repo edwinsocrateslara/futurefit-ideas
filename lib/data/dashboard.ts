@@ -88,6 +88,18 @@ export interface DoneJiraItem {
   tier_1_customer: string | null;
 }
 
+export interface PinnedItem {
+  canny_id: string;
+  title: string;
+  board_slug: string;
+  board_name: string;
+  canny_url: string | null;
+  pinned_at: string;
+  selection_reason: string | null;
+  why_callout: string | null;
+  tier_1_customer: string | null;
+}
+
 export interface DashboardPattern {
   id: string;
   title: string;
@@ -116,6 +128,7 @@ export interface DashboardData {
   new_easy_wins_count: number;
   persistent_titles: { canny_id: string; title: string }[];
   new_titles: { canny_id: string; title: string }[];
+  pinned_items: PinnedItem[];
   notes_counts: Record<string, number>;
   sync: {
     id: string;
@@ -510,6 +523,30 @@ export async function getDashboardData(
   const surfacedSelections = selections.filter((s) => !jiraTrackedIds.has(s.canny_id));
   const surfacedEasyWins = easy_wins.filter((w) => !jiraTrackedIds.has(w.canny_id));
 
+  // Pinned items — ordered by pin date ascending (earliest decision first)
+  const { data: pinnedRows } = await supabase
+    .from("ideas")
+    .select("canny_id, title, canny_url, pinned_at, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
+    .not("pinned_at", "is", null)
+    .order("pinned_at", { ascending: true });
+
+  const pinned_items: PinnedItem[] = (pinnedRows ?? [])
+    .filter((row) => !jiraTrackedIds.has(row.canny_id))
+    .map((row) => {
+      const board = row.boards as unknown as { slug: string; name: string } | null;
+      return {
+        canny_id: row.canny_id,
+        title: row.title,
+        board_slug: board?.slug ?? "",
+        board_name: board?.name ?? "",
+        canny_url: row.canny_url ?? null,
+        pinned_at: row.pinned_at as string,
+        selection_reason: row.selection_reason ?? null,
+        why_callout: row.why_callout ?? null,
+        tier_1_customer: row.tier_1_customer ?? null,
+      };
+    });
+
   // Notes counts — one query covering all visible canny_ids plus currently deferred items.
   // Deferred items are stored on the ideas table (marked_done=true) and fetched separately
   // in page.tsx, so we include them here to avoid a second round-trip.
@@ -525,6 +562,7 @@ export async function getDashboardData(
       ...acceptedItems.map((a) => a.canny_id),
       ...doneJiraItems.map((d) => d.canny_id),
       ...(deferredIdRows ?? []).map((r) => r.canny_id),
+      ...pinned_items.map((p) => p.canny_id),
     ]),
   ];
 
@@ -562,6 +600,7 @@ export async function getDashboardData(
       new_easy_wins_count: newEasyWins.length,
       persistent_titles: persistentSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
       new_titles: newSelections.map((s) => ({ canny_id: s.canny_id, title: s.title })),
+      pinned_items,
       notes_counts,
       sync: syncRun
         ? {

@@ -79,6 +79,9 @@ export async function runSynthesis(
     .from("ideas")
     .select("canny_id, title, description, vote_count, board_id, created_at, boards(slug, name)")
     .is("removed_at", null)
+    // Pinned items are excluded from synthesis — team has already committed to them.
+    // Deferred (marked_done) items intentionally stay in the pool so synthesis can re-argue them.
+    .is("pinned_at", null)
     .order("vote_count", { ascending: false });
 
   if (ideasError) throw new Error(`Failed to fetch ideas: ${ideasError.message}`);
@@ -268,7 +271,9 @@ async function writeSynthesisResults(
       selection_week: null,
       jira_story: null,
     })
-    .neq("id", "00000000-0000-0000-0000-000000000000");
+    .neq("id", "00000000-0000-0000-0000-000000000000")
+    // Keep pinned items' synthesis fields intact so Accept from Coming Up captures a valid snapshot
+    .is("pinned_at", null);
 
   // Clear selections history for this week (handles re-runs)
   await supabase.from("selections").delete().eq("week_of", weekOf);

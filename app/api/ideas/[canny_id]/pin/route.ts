@@ -12,7 +12,7 @@ export async function PATCH(
 
   const { data: idea, error: fetchError } = await supabase
     .from("ideas")
-    .select("marked_done")
+    .select("pinned_at")
     .eq("canny_id", canny_id)
     .single();
 
@@ -20,20 +20,15 @@ export async function PATCH(
     return NextResponse.json({ error: "Idea not found" }, { status: 404 });
   }
 
-  const next = !idea.marked_done;
+  const isPinning = idea.pinned_at === null;
   const { error: updateError } = await supabase
     .from("ideas")
-    .update({
-      marked_done: next,
-      marked_done_at: next ? new Date().toISOString() : null,
-      // Deferring a pinned item clears the pin — defer supersedes pin
-      ...(next ? { pinned_at: null } : {}),
-    })
+    .update({ pinned_at: isPinning ? new Date().toISOString() : null })
     .eq("canny_id", canny_id);
 
   if (updateError) {
     return NextResponse.json({ error: updateError.message }, { status: 500 });
   }
 
-  return NextResponse.json({ canny_id, marked_done: next });
+  return NextResponse.json({ canny_id, pinned: isPinning });
 }
