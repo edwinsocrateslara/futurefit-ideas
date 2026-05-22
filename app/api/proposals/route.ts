@@ -8,7 +8,7 @@ export async function GET() {
 
   const { data, error } = await supabase
     .from("quick_win_proposals")
-    .select("id, canny_id, comment, created_at, ideas(title, canny_url, boards(slug, name))")
+    .select("id, canny_id, comment, created_at, ideas(title, description, canny_url, boards(slug, name))")
     .eq("status", "pending")
     .order("created_at", { ascending: true });
 
@@ -17,6 +17,7 @@ export async function GET() {
   const proposals = (data ?? []).map((row) => {
     const idea = row.ideas as unknown as {
       title: string;
+      description: string | null;
       canny_url: string | null;
       boards: { slug: string; name: string } | null;
     } | null;
@@ -25,6 +26,7 @@ export async function GET() {
       id: row.id,
       canny_id: row.canny_id,
       title: idea?.title ?? row.canny_id,
+      description: idea?.description ?? null,
       board_slug: board?.slug ?? "",
       board_name: board?.name ?? "",
       canny_url: idea?.canny_url ?? null,
@@ -59,12 +61,21 @@ export async function POST(request: Request) {
   // Resolve URL or raw canny_id to a canny_id
   let canny_id: string;
   if (normalizedUrl.includes("canny.io")) {
-    const { data: idea } = await supabase
+    // Extract the post slug after /p/ and match with ilike — robust against URL format
+    // differences between the browser and what Canny's API stored (e.g. board slug variations)
+    const postSlugMatch = normalizedUrl.match(/\/p\/([^/?#]+)/);
+    if (!postSlugMatch) {
+      return NextResponse.json({ error: "Could not parse Canny URL — expected format: …/p/post-slug" }, { status: 400 });
+    }
+    const postSlug = postSlugMatch[1];
+
+    const { data: ideas } = await supabase
       .from("ideas")
       .select("canny_id")
-      .eq("canny_url", normalizedUrl)
-      .single();
+      .ilike("canny_url", `%/p/${postSlug}`)
+      .limit(1);
 
+    const idea = ideas?.[0] ?? null;
     if (!idea) {
       return NextResponse.json({ error: "No idea found for that Canny URL" }, { status: 404 });
     }

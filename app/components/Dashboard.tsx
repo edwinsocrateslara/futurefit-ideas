@@ -2181,6 +2181,7 @@ interface ProposalEntry {
   id: string;
   canny_id: string;
   title: string;
+  description: string | null;
   board_slug: string;
   board_name: string;
   canny_url: string | null;
@@ -2264,7 +2265,7 @@ function AddSuggestionModal({
 
         <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
           <label style={{ fontSize: 12, fontWeight: 600, letterSpacing: 0.3, color: "oklch(0.65 0 0)", textTransform: "uppercase" }}>
-            Note{" "}
+            Comment{" "}
             <span style={{ fontWeight: 400, color: "oklch(0.45 0 0)", textTransform: "none" }}>(optional)</span>
           </label>
           <textarea
@@ -2383,18 +2384,26 @@ function ReviewSuggestionsModal({
               <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
                 <BoardTag slug={p.board_slug} />
               </div>
-              <p style={{ margin: "0 0 4px 0", fontSize: 15, fontWeight: 600, color: "oklch(0.97 0 0)", lineHeight: 1.4 }}>
+              <p style={{ margin: "0 0 6px 0", fontSize: 15, fontWeight: 600, color: "oklch(0.97 0 0)", lineHeight: 1.4 }}>
                 {p.title}
               </p>
-              {p.comment && (
-                <p style={{ margin: "0 0 12px 0", fontSize: 13, lineHeight: 1.5, color: "oklch(0.72 0 0)" }}>
-                  {p.comment}
+              {p.description && (
+                <p style={{ margin: "0 0 10px 0", fontSize: 13, lineHeight: 1.5, color: "oklch(0.65 0 0)" }}>
+                  {p.description}
                 </p>
+              )}
+              {p.comment && (
+                <div style={{ padding: "8px 12px", background: "oklch(0.18 0 0)", borderRadius: 6, marginBottom: 12 }}>
+                  <p style={{ margin: 0, fontSize: 12, fontWeight: 600, letterSpacing: 0.3, color: "oklch(0.45 0 0)", textTransform: "uppercase", marginBottom: 4 }}>Note</p>
+                  <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>
+                    {p.comment}
+                  </p>
+                </div>
               )}
               {errors[p.id] && (
                 <p style={{ margin: "0 0 8px 0", fontSize: 12, color: "oklch(0.75 0.20 25)" }}>{errors[p.id]}</p>
               )}
-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: p.comment ? 0 : 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: p.comment || p.description ? 0 : 12 }}>
                 {p.canny_url && (
                   <a
                     href={p.canny_url} target="_blank" rel="noopener noreferrer"
@@ -2513,8 +2522,7 @@ function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCount
               {item.reason}
             </p>
           )}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
-            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             <a
               href={item.jira_url}
               target="_blank"
@@ -2533,6 +2541,7 @@ function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCount
             >
               {item.jira_issue_key} · View in Jira →
             </a>
+            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
           </div>
         </div>
       ))}
