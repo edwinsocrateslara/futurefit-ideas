@@ -2605,8 +2605,8 @@ function EditTitleModal({
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.70 0 0)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0 0)"; }}
             >
+              Revert to Original Title
               <RefreshCw size={11} strokeWidth={1.75} aria-hidden />
-              Revert to original title
             </button>
           ) : <span />}
           <div style={{ display: "flex", gap: 8 }}>
