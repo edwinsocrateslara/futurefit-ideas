@@ -22,7 +22,7 @@ import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil } from "lucide-react";
+import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -2601,11 +2601,12 @@ function EditTitleModal({
             <button
               type="button"
               onClick={() => onSave(null)}
-              style={{ fontSize: 12, color: "oklch(0.50 0 0)", background: "transparent", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+              style={{ display: "inline-flex", alignItems: "center", gap: 5, fontSize: 12, color: "oklch(0.50 0 0)", background: "transparent", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
               onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.70 0 0)"; }}
               onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0 0)"; }}
             >
-              Revert to synthesis title
+              <RefreshCw size={11} strokeWidth={1.75} aria-hidden />
+              Revert to original title
             </button>
           ) : <span />}
           <div style={{ display: "flex", gap: 8 }}>
