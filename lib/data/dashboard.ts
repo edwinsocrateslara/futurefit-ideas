@@ -95,6 +95,7 @@ export interface PinnedItem {
   board_name: string;
   canny_url: string | null;
   pinned_at: string;
+  pinned_from: "top_10" | "quick_win";
   selection_reason: string | null;
   why_callout: string | null;
   tier_1_customer: string | null;
@@ -569,7 +570,7 @@ export async function getDashboardData(
   // Pinned items — ordered by pin date ascending (earliest decision first)
   const { data: pinnedRows } = await supabase
     .from("ideas")
-    .select("canny_id, title, canny_url, pinned_at, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
+    .select("canny_id, title, canny_url, pinned_at, pinned_from, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
     .not("pinned_at", "is", null)
     .order("pinned_at", { ascending: true });
 
@@ -584,6 +585,7 @@ export async function getDashboardData(
         board_name: board?.name ?? "",
         canny_url: row.canny_url ?? null,
         pinned_at: row.pinned_at as string,
+        pinned_from: (row.pinned_from as "top_10" | "quick_win") ?? "top_10",
         selection_reason: row.selection_reason ?? null,
         why_callout: row.why_callout ?? null,
         tier_1_customer: row.tier_1_customer ?? null,

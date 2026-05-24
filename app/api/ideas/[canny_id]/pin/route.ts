@@ -4,11 +4,14 @@ import { createServiceClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
 export async function PATCH(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ canny_id: string }> }
 ) {
   const { canny_id } = await params;
   const supabase = createServiceClient();
+
+  let body: { source?: "top_10" | "quick_win" } = {};
+  try { body = await request.json(); } catch { /* no body = unpin */ }
 
   const { data: idea, error: fetchError } = await supabase
     .from("ideas")
@@ -23,7 +26,10 @@ export async function PATCH(
   const isPinning = idea.pinned_at === null;
   const { error: updateError } = await supabase
     .from("ideas")
-    .update({ pinned_at: isPinning ? new Date().toISOString() : null })
+    .update({
+      pinned_at: isPinning ? new Date().toISOString() : null,
+      pinned_from: isPinning ? (body.source ?? "top_10") : null,
+    })
     .eq("canny_id", canny_id);
 
   if (updateError) {

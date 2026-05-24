@@ -22,7 +22,7 @@ import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical } from "lucide-react";
+import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -2030,12 +2030,14 @@ function EasyWinCard({
   doneSet,
   onToggleDone,
   onAccepted,
+  onPin,
   notesCount = 0,
 }: {
   win: DashboardEasyWin;
   doneSet: Set<string>;
   onToggleDone: (win: DashboardEasyWin) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
+  onPin?: (win: DashboardEasyWin) => void;
   notesCount?: number;
 }) {
   const isDone = doneSet.has(win.canny_id);
@@ -2083,12 +2085,45 @@ function EasyWinCard({
             )}
             <Tier1Badge value={win.tier_1_customer} />
           </div>
-          <TeamClassificationWithOverride
-            cannyId={win.canny_id}
-            classification={win.team_classification}
-            synthesisClassification={win.synthesis_team_classification}
-            isOverridden={win.is_team_overridden}
-          />
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <TeamClassificationWithOverride
+              cannyId={win.canny_id}
+              classification={win.team_classification}
+              synthesisClassification={win.synthesis_team_classification}
+              isOverridden={win.is_team_overridden}
+            />
+            {onPin && !isDone && (
+              <button
+                type="button"
+                onClick={() => onPin(win)}
+                title="Pin"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9999,
+                  border: "none",
+                  background: "transparent",
+                  color: "oklch(0.40 0 0)",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "background 100ms, color 100ms",
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
+                }}
+              >
+                <Pin size={20} strokeWidth={1.75} aria-hidden />
+              </button>
+            )}
+          </div>
         </div>
 
         <p
@@ -2442,26 +2477,48 @@ function SuggestActionCards({
   onSuggest: () => void;
   onReview: () => void;
 }) {
+  const cardBase: React.CSSProperties = {
+    flex: 1,
+    padding: "10px 20px",
+    background: "oklch(0.16 0 0)",
+    border: "1px solid oklch(1 0 0 / 0.06)",
+    borderRadius: 10,
+    cursor: "pointer",
+    textAlign: "left",
+    transition: "background 120ms, border-color 120ms",
+  };
+
+  function onEnter(e: React.MouseEvent<HTMLButtonElement>) {
+    (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.19 0 0)";
+    (e.currentTarget as HTMLButtonElement).style.borderColor = "oklch(1 0 0 / 0.12)";
+  }
+  function onLeave(e: React.MouseEvent<HTMLButtonElement>) {
+    (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.16 0 0)";
+    (e.currentTarget as HTMLButtonElement).style.borderColor = "oklch(1 0 0 / 0.06)";
+  }
+
   return (
-    <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 20 }}>
-      <button
-        type="button" onClick={onSuggest}
-        style={{ display: "inline-flex", alignItems: "center", padding: "8px 18px", fontSize: 13, fontWeight: 600, letterSpacing: 0.2, borderRadius: 9999, border: "none", background: "oklch(0.45 0.20 295)", color: "oklch(1 0 0)", cursor: "pointer", transition: "background 120ms" }}
-        onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.50 0.20 295)"; }}
-        onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.45 0.20 295)"; }}
-      >
-        + Suggest a Quick Win
+    <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
+      <button type="button" onClick={onSuggest} style={cardBase} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <Plus size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} aria-hidden />
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.55 0 0)" }}>
+          Suggest a Quick Win
+        </div>
       </button>
-      {pendingCount > 0 && (
-        <button
-          type="button" onClick={onReview}
-          style={{ display: "inline-flex", alignItems: "center", padding: "8px 18px", fontSize: 13, fontWeight: 600, letterSpacing: 0.2, borderRadius: 9999, border: "1px solid oklch(1 0 0 / 0.12)", background: "transparent", color: "oklch(0.85 0 0)", cursor: "pointer", transition: "background 120ms" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.04)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-        >
-          Review Suggestions · {pendingCount}
-        </button>
-      )}
+
+      <button type="button" onClick={onReview} style={cardBase} onMouseEnter={onEnter} onMouseLeave={onLeave}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 4 }}>
+          <Folder size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} aria-hidden />
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: 28, fontWeight: 500, fontVariantNumeric: "tabular-nums", color: "oklch(0.97 0 0)", lineHeight: 1 }}>
+            {pendingCount}
+          </div>
+        </div>
+        <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.55 0 0)" }}>
+          Review Suggestions
+        </div>
+      </button>
     </div>
   );
 }
@@ -2749,153 +2806,153 @@ function ComingUpTab({
     );
   }
 
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {items.map((item) => (
-        <div
-          key={item.canny_id}
-          style={{
-            padding: "20px 24px",
-            background: "oklch(0.18 0 0)",
-            border: "1px solid oklch(1 0 0 / 0.08)",
-            borderRadius: 12,
-          }}
-        >
-          {/* Top metadata row */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <BoardTag slug={item.board_slug} />
-              {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
-              <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
-                Pinned {formatPinDate(item.pinned_at)}
-              </span>
-            </div>
+  const top10Items = items.filter((i) => i.pinned_from !== "quick_win");
+  const quickWinItems = items.filter((i) => i.pinned_from === "quick_win");
+
+  function renderCard(item: PinnedItem) {
+    return (
+      <div
+        key={item.canny_id}
+        style={{
+          padding: "20px 24px",
+          background: "oklch(0.18 0 0)",
+          border: "1px solid oklch(1 0 0 / 0.08)",
+          borderRadius: 12,
+        }}
+      >
+        {/* Top metadata row */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <BoardTag slug={item.board_slug} />
+            {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
+            <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
+              Pinned {formatPinDate(item.pinned_at)}
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUnpin(item)}
+            title="Unpin"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 32,
+              height: 32,
+              borderRadius: 9999,
+              border: "none",
+              background: "transparent",
+              color: "oklch(0.75 0.20 25)",
+              cursor: "pointer",
+              padding: 0,
+              transition: "background 100ms, color 100ms",
+              marginLeft: 4,
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+            }}
+          >
+            <Pin size={20} strokeWidth={1.75} aria-hidden />
+          </button>
+        </div>
+
+        {/* Title */}
+        <p style={{ margin: "0 0 10px 0", fontSize: 18, fontWeight: 500, letterSpacing: -0.3, lineHeight: 1.4, color: "oklch(0.97 0 0)", textWrap: "pretty" }}>
+          {item.title}
+        </p>
+
+        {/* Reason */}
+        {item.selection_reason && (
+          <p style={{ margin: "0 0 8px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)", textWrap: "pretty" }}>
+            {item.selection_reason}
+          </p>
+        )}
+
+        {/* Why callout */}
+        {item.why_callout && (
+          <p style={{ margin: "0 0 8px 0", fontSize: 11, lineHeight: 1.5 }}>
+            <span style={{ color: "oklch(0.55 0 0)" }}>Why now: </span>
+            <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
+          </p>
+        )}
+
+        {/* Bottom action row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {item.canny_url && (
+              <a
+                href={item.canny_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="canny-link"
+                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "oklch(0.55 0 0)", textDecoration: "underline", textUnderlineOffset: 3, textDecorationThickness: 1, letterSpacing: 0.2 }}
+              >
+                View in Canny →
+              </a>
+            )}
+            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
               type="button"
-              onClick={() => onUnpin(item)}
-              title="Unpin"
+              onClick={() => onDefer(item)}
+              onMouseEnter={() => setHoveredDefer(item.canny_id)}
+              onMouseLeave={() => setHoveredDefer(null)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                justifyContent: "center",
-                width: 32,
-                height: 32,
+                padding: "8px 18px",
+                fontSize: 13,
+                fontWeight: 600,
+                letterSpacing: 0.2,
                 borderRadius: 9999,
                 border: "none",
-                background: "transparent",
-                color: "oklch(0.75 0.20 25)",
-                cursor: "pointer",
-                padding: 0,
-                transition: "background 100ms, color 100ms",
-                marginLeft: 4,
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
-                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-              }}
-            >
-              <Pin size={20} strokeWidth={1.75} aria-hidden />
-            </button>
-          </div>
-
-          {/* Title */}
-          <p
-            style={{
-              margin: "0 0 10px 0",
-              fontSize: 18,
-              fontWeight: 500,
-              letterSpacing: -0.3,
-              lineHeight: 1.4,
-              color: "oklch(0.97 0 0)",
-              textWrap: "pretty",
-            }}
-          >
-            {item.title}
-          </p>
-
-          {/* Reason */}
-          {item.selection_reason && (
-            <p
-              style={{
-                margin: "0 0 8px 0",
-                fontSize: 14,
-                lineHeight: 1.6,
+                background: hoveredDefer === item.canny_id ? "oklch(1 0 0 / 0.04)" : "transparent",
                 color: "oklch(0.85 0 0)",
-                textWrap: "pretty",
+                cursor: "pointer",
+                whiteSpace: "nowrap",
+                transition: "background 120ms",
               }}
             >
-              {item.selection_reason}
-            </p>
-          )}
-
-          {/* Why callout */}
-          {item.why_callout && (
-            <p style={{ margin: "0 0 8px 0", fontSize: 11, lineHeight: 1.5 }}>
-              <span style={{ color: "oklch(0.55 0 0)" }}>Why now: </span>
-              <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
-            </p>
-          )}
-
-          {/* Bottom action row */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-              {item.canny_url && (
-                <a
-                  href={item.canny_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="canny-link"
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 4,
-                    fontSize: 12,
-                    color: "oklch(0.55 0 0)",
-                    textDecoration: "underline",
-                    textUnderlineOffset: 3,
-                    textDecorationThickness: 1,
-                    letterSpacing: 0.2,
-                  }}
-                >
-                  View in Canny →
-                </a>
-              )}
-              <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-              <button
-                type="button"
-                onClick={() => onDefer(item)}
-                onMouseEnter={() => setHoveredDefer(item.canny_id)}
-                onMouseLeave={() => setHoveredDefer(null)}
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "8px 18px",
-                  fontSize: 13,
-                  fontWeight: 600,
-                  letterSpacing: 0.2,
-                  borderRadius: 9999,
-                  border: "none",
-                  background: hoveredDefer === item.canny_id ? "oklch(1 0 0 / 0.04)" : "transparent",
-                  color: "oklch(0.85 0 0)",
-                  cursor: "pointer",
-                  whiteSpace: "nowrap",
-                  transition: "background 120ms",
-                }}
-              >
-                Defer
-              </button>
-              <AcceptButton cannyId={item.canny_id} onSuccess={(_, result) => onAccepted(item, result)} />
-            </div>
+              Defer
+            </button>
+            <AcceptButton cannyId={item.canny_id} onSuccess={(_, result) => onAccepted(item, result)} />
           </div>
         </div>
-      ))}
+      </div>
+    );
+  }
+
+  const sectionHeader = (label: string, count: number) => (
+    <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.55 0 0)", marginBottom: 12 }}>
+      {label} · {count} {count === 1 ? "item" : "items"}
+    </div>
+  );
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+      {top10Items.length > 0 && (
+        <div>
+          {sectionHeader("Top 10", top10Items.length)}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {top10Items.map(renderCard)}
+          </div>
+        </div>
+      )}
+      {quickWinItems.length > 0 && (
+        <div>
+          {sectionHeader("Quick Wins", quickWinItems.length)}
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {quickWinItems.map(renderCard)}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3005,13 +3062,45 @@ export default function Dashboard({
       selection_reason: item.reason,
       why_callout: item.why_callout,
       tier_1_customer: item.tier_1_customer,
+      pinned_from: "top_10",
     };
     setPinnedItems((prev) => [...prev, newPinned]);
 
     startTransition(async () => {
-      const res = await fetch(`/api/ideas/${item.canny_id}/pin`, { method: "PATCH" });
+      const res = await fetch(`/api/ideas/${item.canny_id}/pin`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "top_10" }),
+      });
       if (!res.ok) {
         setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+      }
+    });
+  }
+
+  function handlePinEasyWin(win: DashboardEasyWin) {
+    const newPinned: PinnedItem = {
+      canny_id: win.canny_id,
+      title: win.title,
+      board_slug: win.board_slug,
+      board_name: win.board_name,
+      canny_url: win.canny_url,
+      pinned_at: new Date().toISOString(),
+      selection_reason: null,
+      why_callout: null,
+      tier_1_customer: null,
+      pinned_from: "quick_win",
+    };
+    setPinnedItems((prev) => [...prev, newPinned]);
+
+    startTransition(async () => {
+      const res = await fetch(`/api/ideas/${win.canny_id}/pin`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "quick_win" }),
+      });
+      if (!res.ok) {
+        setPinnedItems((prev) => prev.filter((p) => p.canny_id !== win.canny_id));
       }
     });
   }
@@ -3499,17 +3588,18 @@ export default function Dashboard({
             onSuggest={() => setShowAddModal(true)}
             onReview={() => setShowReviewModal(true)}
           />
-          {data.easy_wins.filter((w) => !doneSet.has(w.canny_id)).map((win) => (
+          {data.easy_wins.filter((w) => !doneSet.has(w.canny_id) && !pinnedSet.has(w.canny_id)).map((win) => (
             <EasyWinCard
               key={win.canny_id}
               win={win}
               doneSet={doneSet}
               onToggleDone={handleEasyWinToggleDone}
               onAccepted={handleAccepted}
+              onPin={handlePinEasyWin}
               notesCount={data.notes_counts[win.canny_id] ?? 0}
             />
           ))}
-          {data.easy_wins.length > 0 && data.easy_wins.every((w) => doneSet.has(w.canny_id)) && (
+          {data.easy_wins.length > 0 && data.easy_wins.every((w) => doneSet.has(w.canny_id) || pinnedSet.has(w.canny_id)) && (
             <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
               All quick wins marked done.
             </p>
