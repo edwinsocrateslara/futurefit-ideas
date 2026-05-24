@@ -22,7 +22,7 @@ import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder } from "lucide-react";
+import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -1680,6 +1680,7 @@ function SignalRow({
   onToggleDone,
   onAccepted,
   onPin,
+  onEditTitle,
   suppressNewBadge = false,
   dragHandleListeners,
   notesCount = 0,
@@ -1691,12 +1692,14 @@ function SignalRow({
   onToggleDone: (item: DashboardSelection) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   onPin?: (item: DashboardSelection) => void;
+  onEditTitle?: (cannyId: string) => void;
   suppressNewBadge?: boolean;
   dragHandleListeners?: Record<string, unknown>;
   notesCount?: number;
 }) {
   const isDone = doneSet.has(item.canny_id);
   const [deferHovered, setDeferHovered] = useState(false);
+  const [titleHovered, setTitleHovered] = useState(false);
 
   return (
     <div
@@ -1874,18 +1877,48 @@ function SignalRow({
           </div>
         </div>
 
-        <p
-          style={{
-            margin: "0 0 8px 0",
-            fontSize: 16,
-            fontWeight: 600,
-            lineHeight: 1.4,
-            color: "oklch(0.97 0 0)",
-            letterSpacing: -0.2,
-          }}
+        <div
+          style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 8 }}
+          onMouseEnter={() => setTitleHovered(true)}
+          onMouseLeave={() => setTitleHovered(false)}
         >
-          {item.title}
-        </p>
+          <p
+            style={{
+              margin: 0,
+              flex: 1,
+              fontSize: 16,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              color: "oklch(0.97 0 0)",
+              letterSpacing: -0.2,
+            }}
+          >
+            {item.title}
+          </p>
+          {onEditTitle && !isDone && (
+            <button
+              type="button"
+              onClick={() => onEditTitle(item.canny_id)}
+              title="Edit title"
+              style={{
+                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                padding: 4,
+                border: "none",
+                background: "transparent",
+                color: "oklch(0.55 0 0)",
+                cursor: "pointer",
+                borderRadius: 4,
+                opacity: titleHovered ? 1 : 0,
+                transition: "opacity 120ms",
+                marginTop: 1,
+              }}
+            >
+              <Pencil size={13} strokeWidth={1.5} aria-hidden />
+            </button>
+          )}
+        </div>
         <p
           style={{
             margin: "0 0 8px 0",
@@ -2001,6 +2034,7 @@ function SortableSignalRow(props: {
   onToggleDone: (item: DashboardSelection) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   onPin?: (item: DashboardSelection) => void;
+  onEditTitle?: (cannyId: string) => void;
   suppressNewBadge: boolean;
   notesCount?: number;
 }) {
@@ -2031,6 +2065,7 @@ function EasyWinCard({
   onToggleDone,
   onAccepted,
   onPin,
+  onEditTitle,
   notesCount = 0,
 }: {
   win: DashboardEasyWin;
@@ -2038,10 +2073,12 @@ function EasyWinCard({
   onToggleDone: (win: DashboardEasyWin) => void;
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   onPin?: (win: DashboardEasyWin) => void;
+  onEditTitle?: (cannyId: string) => void;
   notesCount?: number;
 }) {
   const isDone = doneSet.has(win.canny_id);
   const [deferHovered, setDeferHovered] = useState(false);
+  const [titleHovered, setTitleHovered] = useState(false);
 
   return (
     <div
@@ -2126,18 +2163,48 @@ function EasyWinCard({
           </div>
         </div>
 
-        <p
-          style={{
-            margin: "0 0 8px 0",
-            fontSize: 16,
-            fontWeight: 600,
-            lineHeight: 1.4,
-            color: "oklch(0.97 0 0)",
-            letterSpacing: -0.2,
-          }}
+        <div
+          style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 8 }}
+          onMouseEnter={() => setTitleHovered(true)}
+          onMouseLeave={() => setTitleHovered(false)}
         >
-          {win.title}
-        </p>
+          <p
+            style={{
+              margin: 0,
+              flex: 1,
+              fontSize: 16,
+              fontWeight: 600,
+              lineHeight: 1.4,
+              color: "oklch(0.97 0 0)",
+              letterSpacing: -0.2,
+            }}
+          >
+            {win.title}
+          </p>
+          {onEditTitle && !isDone && (
+            <button
+              type="button"
+              onClick={() => onEditTitle(win.canny_id)}
+              title="Edit title"
+              style={{
+                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                padding: 4,
+                border: "none",
+                background: "transparent",
+                color: "oklch(0.55 0 0)",
+                cursor: "pointer",
+                borderRadius: 4,
+                opacity: titleHovered ? 1 : 0,
+                transition: "opacity 120ms",
+                marginTop: 1,
+              }}
+            >
+              <Pencil size={13} strokeWidth={1.5} aria-hidden />
+            </button>
+          )}
+        </div>
         <p
           style={{
             margin: "0 0 8px 0",
@@ -2468,6 +2535,101 @@ function ReviewSuggestionsModal({
   );
 }
 
+function EditTitleModal({
+  currentTitle,
+  rawTitle,
+  hasEditedTitle,
+  onSave,
+  onClose,
+}: {
+  currentTitle: string;
+  rawTitle: string;
+  hasEditedTitle: boolean;
+  onSave: (newTitle: string | null) => void;
+  onClose: () => void;
+}) {
+  const [value, setValue] = useState(currentTitle);
+  const remaining = 200 - value.trim().length;
+  const isChanged = value.trim() !== currentTitle;
+  const isValid = value.trim().length > 0 && remaining >= 0;
+
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) { if (e.key === "Escape") onClose(); }
+    document.addEventListener("keydown", handleKey);
+    return () => document.removeEventListener("keydown", handleKey);
+  }, [onClose]);
+
+  return (
+    <div
+      style={{ position: "fixed", inset: 0, background: "oklch(0 0 0 / 0.60)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 200, padding: 24 }}
+      onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}
+    >
+      <div style={{ background: "oklch(0.18 0 0)", border: "1px solid oklch(1 0 0 / 0.08)", borderRadius: 12, width: "100%", maxWidth: 520, padding: "24px", display: "flex", flexDirection: "column", gap: 20 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+          <h2 style={{ margin: 0, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: "oklch(0.97 0 0)" }}>
+            Edit Title
+          </h2>
+          <button
+            type="button" onClick={onClose} aria-label="Close"
+            style={{ display: "flex", alignItems: "center", justifyContent: "center", width: 28, height: 28, borderRadius: 6, border: "none", background: "transparent", color: "oklch(0.45 0 0)", cursor: "pointer", fontSize: 20, lineHeight: 1 }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.78 0 0)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
+          >
+            ×
+          </button>
+        </div>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+          <label style={{ fontSize: 12, fontWeight: 600, letterSpacing: 0.3, color: "oklch(0.65 0 0)", textTransform: "uppercase" }}>
+            Title
+          </label>
+          <textarea
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            rows={3}
+            maxLength={200}
+            autoFocus
+            style={{ width: "100%", padding: "10px 12px", fontSize: 14, background: "oklch(0.14 0 0)", border: "1px solid oklch(1 0 0 / 0.12)", borderRadius: 8, color: "oklch(0.97 0 0)", outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 }}
+          />
+          <span style={{ fontSize: 11, color: remaining < 20 ? "oklch(0.75 0.20 25)" : "oklch(0.45 0 0)", textAlign: "right" }}>
+            {remaining} characters remaining
+          </span>
+        </div>
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          {hasEditedTitle ? (
+            <button
+              type="button"
+              onClick={() => onSave(null)}
+              style={{ fontSize: 12, color: "oklch(0.50 0 0)", background: "transparent", border: "none", cursor: "pointer", padding: 0, textDecoration: "underline", textUnderlineOffset: 3 }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.70 0 0)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0 0)"; }}
+            >
+              Revert to synthesis title
+            </button>
+          ) : <span />}
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              type="button" onClick={onClose}
+              style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 9999, border: "none", background: "transparent", color: "oklch(0.65 0 0)", cursor: "pointer" }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={() => { if (isValid && isChanged) onSave(value.trim()); }}
+              disabled={!isValid || !isChanged}
+              style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 9999, border: "none", background: !isValid || !isChanged ? "oklch(0.30 0 0)" : "oklch(0.45 0.20 295)", color: !isValid || !isChanged ? "oklch(0.50 0 0)" : "oklch(1 0 0)", cursor: !isValid || !isChanged ? "not-allowed" : "pointer", transition: "background 120ms" }}
+            >
+              Save
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function SuggestActionCards({
   pendingCount,
   onSuggest,
@@ -2789,14 +2951,17 @@ function ComingUpTab({
   onUnpin,
   onDefer,
   onAccepted,
+  onEditTitle,
 }: {
   items: PinnedItem[];
   notesCounts: Record<string, number>;
   onUnpin: (item: PinnedItem) => void;
   onDefer: (item: PinnedItem) => void;
   onAccepted: (item: PinnedItem, result: JiraAcceptResult) => void;
+  onEditTitle?: (cannyId: string) => void;
 }) {
   const [hoveredDefer, setHoveredDefer] = useState<string | null>(null);
+  const [hoveredTitle, setHoveredTitle] = useState<string | null>(null);
 
   if (items.length === 0) {
     return (
@@ -2863,9 +3028,38 @@ function ComingUpTab({
         </div>
 
         {/* Title */}
-        <p style={{ margin: "0 0 10px 0", fontSize: 18, fontWeight: 500, letterSpacing: -0.3, lineHeight: 1.4, color: "oklch(0.97 0 0)", textWrap: "pretty" }}>
-          {item.title}
-        </p>
+        <div
+          style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 10 }}
+          onMouseEnter={() => setHoveredTitle(item.canny_id)}
+          onMouseLeave={() => setHoveredTitle(null)}
+        >
+          <p style={{ margin: 0, flex: 1, fontSize: 18, fontWeight: 500, letterSpacing: -0.3, lineHeight: 1.4, color: "oklch(0.97 0 0)", textWrap: "pretty" }}>
+            {item.title}
+          </p>
+          {onEditTitle && (
+            <button
+              type="button"
+              onClick={() => onEditTitle(item.canny_id)}
+              title="Edit title"
+              style={{
+                flexShrink: 0,
+                display: "inline-flex",
+                alignItems: "center",
+                padding: 4,
+                border: "none",
+                background: "transparent",
+                color: "oklch(0.55 0 0)",
+                cursor: "pointer",
+                borderRadius: 4,
+                opacity: hoveredTitle === item.canny_id ? 1 : 0,
+                transition: "opacity 120ms",
+                marginTop: 2,
+              }}
+            >
+              <Pencil size={13} strokeWidth={1.5} aria-hidden />
+            </button>
+          )}
+        </div>
 
         {/* Reason */}
         {item.selection_reason && (
@@ -2977,6 +3171,13 @@ export default function Dashboard({
   const [pendingProposalsCount, setPendingProposalsCount] = useState(() => data.pending_proposals_count);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const [editingTitle, setEditingTitle] = useState<{
+    canny_id: string;
+    currentTitle: string;
+    rawTitle: string;
+    hasEditedTitle: boolean;
+  } | null>(null);
+  const [localEditedTitles, setLocalEditedTitles] = useState<Record<string, string | null>>({});
   const [, startTransition] = useTransition();
 
   // Drag-and-drop state
@@ -3009,6 +3210,57 @@ export default function Dashboard({
   const acceptedSet = new Set(acceptedItems.map((a) => a.canny_id));
   const pinnedSet = new Set(pinnedItems.map((p) => p.canny_id));
 
+  function applyLocalTitle<T extends { canny_id: string; title: string; raw_title: string }>(item: T): T {
+    const local = localEditedTitles[item.canny_id];
+    if (local !== undefined) return { ...item, title: local ?? item.raw_title };
+    return item;
+  }
+
+  function resolveDisplayTitle(cannyId: string, serverTitle: string, rawTitle: string): string {
+    const local = localEditedTitles[cannyId];
+    return local !== undefined ? (local ?? rawTitle) : serverTitle;
+  }
+
+  function handleOpenEditTitle(cannyId: string) {
+    const selection = data.selections.find((s) => s.canny_id === cannyId);
+    const win = data.easy_wins.find((w) => w.canny_id === cannyId);
+    const pinned = pinnedItems.find((p) => p.canny_id === cannyId);
+    const item = selection ?? win ?? pinned;
+    if (!item) return;
+
+    const currentTitle = resolveDisplayTitle(cannyId, item.title, item.raw_title);
+    const localEntry = localEditedTitles[cannyId];
+    const hasEditedTitle = localEntry !== undefined
+      ? localEntry !== null
+      : item.edited_title !== null;
+
+    setEditingTitle({ canny_id: cannyId, currentTitle, rawTitle: item.raw_title, hasEditedTitle });
+  }
+
+  function handleSaveTitle(newTitle: string | null) {
+    if (!editingTitle) return;
+    const { canny_id } = editingTitle;
+    const prev = localEditedTitles[canny_id];
+    setLocalEditedTitles((p) => ({ ...p, [canny_id]: newTitle }));
+    setEditingTitle(null);
+
+    startTransition(async () => {
+      const res = await fetch(`/api/ideas/${canny_id}/title`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ edited_title: newTitle }),
+      });
+      if (!res.ok) {
+        setLocalEditedTitles((p) => {
+          const n = { ...p };
+          if (prev === undefined) delete n[canny_id];
+          else n[canny_id] = prev;
+          return n;
+        });
+      }
+    });
+  }
+
   function handleAccepted(cannyId: string, result: JiraAcceptResult) {
     const signal = data.selections.find((s) => s.canny_id === cannyId);
     const win = data.easy_wins.find((w) => w.canny_id === cannyId);
@@ -3018,7 +3270,7 @@ export default function Dashboard({
     setAcceptedItems((prev) => [
       {
         canny_id: cannyId,
-        title: item.title,
+        title: resolveDisplayTitle(cannyId, item.title, item.raw_title),
         board_slug: item.board_slug,
         board_name: item.board_name,
         reason: item.reason,
@@ -3037,7 +3289,7 @@ export default function Dashboard({
     setAcceptedItems((prev) => [
       {
         canny_id: item.canny_id,
-        title: item.title,
+        title: resolveDisplayTitle(item.canny_id, item.title, item.raw_title),
         board_slug: item.board_slug,
         board_name: item.board_name,
         reason: item.selection_reason ?? "",
@@ -3054,7 +3306,9 @@ export default function Dashboard({
   function handlePin(item: DashboardSelection) {
     const newPinned: PinnedItem = {
       canny_id: item.canny_id,
-      title: item.title,
+      title: resolveDisplayTitle(item.canny_id, item.title, item.raw_title),
+      raw_title: item.raw_title,
+      edited_title: item.edited_title,
       board_slug: item.board_slug,
       board_name: item.board_name,
       canny_url: item.canny_url,
@@ -3081,7 +3335,9 @@ export default function Dashboard({
   function handlePinEasyWin(win: DashboardEasyWin) {
     const newPinned: PinnedItem = {
       canny_id: win.canny_id,
-      title: win.title,
+      title: resolveDisplayTitle(win.canny_id, win.title, win.raw_title),
+      raw_title: win.raw_title,
+      edited_title: win.edited_title,
       board_slug: win.board_slug,
       board_name: win.board_name,
       canny_url: win.canny_url,
@@ -3451,13 +3707,14 @@ export default function Dashboard({
                 {displaySignals.map((item, index) => (
                   <SortableSignalRow
                     key={item.canny_id}
-                    item={item}
+                    item={applyLocalTitle(item)}
                     displayRank={index + 1}
                     isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
                     doneSet={doneSet}
                     onToggleDone={handleToggleDone}
                     onAccepted={handleAccepted}
                     onPin={handlePin}
+                    onEditTitle={handleOpenEditTitle}
                     suppressNewBadge={isColdStart}
                     notesCount={data.notes_counts[item.canny_id] ?? 0}
                   />
@@ -3591,11 +3848,12 @@ export default function Dashboard({
           {data.easy_wins.filter((w) => !doneSet.has(w.canny_id) && !pinnedSet.has(w.canny_id)).map((win) => (
             <EasyWinCard
               key={win.canny_id}
-              win={win}
+              win={applyLocalTitle(win)}
               doneSet={doneSet}
               onToggleDone={handleEasyWinToggleDone}
               onAccepted={handleAccepted}
               onPin={handlePinEasyWin}
+              onEditTitle={handleOpenEditTitle}
               notesCount={data.notes_counts[win.canny_id] ?? 0}
             />
           ))}
@@ -3622,11 +3880,12 @@ export default function Dashboard({
 
       {activeTab === "coming-up" && (
         <ComingUpTab
-          items={pinnedItems}
+          items={pinnedItems.map(applyLocalTitle)}
           notesCounts={data.notes_counts}
           onUnpin={handleUnpin}
           onDefer={handlePinnedDefer}
           onAccepted={handlePinnedAccepted}
+          onEditTitle={handleOpenEditTitle}
         />
       )}
 
@@ -3652,6 +3911,15 @@ export default function Dashboard({
         <ReviewSuggestionsModal
           onClose={() => setShowReviewModal(false)}
           onCountChange={(delta) => setPendingProposalsCount((n) => Math.max(0, n + delta))}
+        />
+      )}
+      {editingTitle && (
+        <EditTitleModal
+          currentTitle={editingTitle.currentTitle}
+          rawTitle={editingTitle.rawTitle}
+          hasEditedTitle={editingTitle.hasEditedTitle}
+          onSave={handleSaveTitle}
+          onClose={() => setEditingTitle(null)}
         />
       )}
     </>

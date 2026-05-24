@@ -33,7 +33,7 @@ export async function POST(
   const [{ data: idea, error: ideaError }, { data: latestEasyWin }] = await Promise.all([
     supabase
       .from("ideas")
-      .select("canny_id, title, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification")
+      .select("canny_id, title, synthesis_title, edited_title, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification")
       .eq("canny_id", canny_id)
       .single(),
     supabase
@@ -77,7 +77,11 @@ export async function POST(
   // Create the Jira ticket
   let created;
   try {
-    created = await createIssue({ jiraStoryRaw: jiraStory, isEasyWin });
+    created = await createIssue({
+      jiraStoryRaw: jiraStory,
+      summaryOverride: idea.edited_title ?? idea.synthesis_title ?? idea.title,
+      isEasyWin,
+    });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
     console.error(`[accept] Jira createIssue failed for ${canny_id}:`, message);

@@ -9,6 +9,8 @@ export interface DashboardSelection {
   priority_rank: number;
   reason: string;
   title: string;
+  raw_title: string;
+  edited_title: string | null;
   vote_count: number;
   canny_url: string | null;
   posted_at: string;
@@ -49,6 +51,8 @@ export interface DoneItem {
 export interface DashboardEasyWin {
   canny_id: string;
   title: string;
+  raw_title: string;
+  edited_title: string | null;
   board_slug: string;
   board_name: string;
   reason: string;
@@ -91,6 +95,8 @@ export interface DoneJiraItem {
 export interface PinnedItem {
   canny_id: string;
   title: string;
+  raw_title: string;
+  edited_title: string | null;
   board_slug: string;
   board_name: string;
   canny_url: string | null;
@@ -202,7 +208,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, synthesis_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, team_classification, manual_team_classification, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, edited_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, team_classification, manual_team_classification, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -313,7 +319,9 @@ export async function getDashboardData(
       synthesis_rank: synthesisRank,
       priority_rank: synthesisRank,
       reason: idea.selection_reason ?? "",
-      title: idea.synthesis_title ?? idea.title,
+      title: idea.edited_title ?? idea.synthesis_title ?? idea.title,
+      raw_title: idea.synthesis_title ?? idea.title,
+      edited_title: idea.edited_title ?? null,
       vote_count: idea.vote_count,
       canny_url: idea.canny_url,
       posted_at: idea.created_at,
@@ -380,7 +388,7 @@ export async function getDashboardData(
     .eq("week_of", resolvedWeek);
 
   const easyWinCannyIds = (easyWinRows ?? []).map((w) => w.canny_id);
-  const easyWinIdeaMap: Record<string, { title: string; canny_url: string | null; board_slug: string; board_name: string; tier_1_customer: string | null; manual_team_classification: string | null }> = {};
+  const easyWinIdeaMap: Record<string, { title: string; edited_title: string | null; canny_url: string | null; board_slug: string; board_name: string; tier_1_customer: string | null; manual_team_classification: string | null }> = {};
 
   // Easy win history — count appearances per canny_id to derive is_new_this_week
   const easyWinWeeksByCanny: Record<string, number> = {};
@@ -388,7 +396,7 @@ export async function getDashboardData(
     const [{ data: easyWinIdeas }, { data: easyWinHistory }] = await Promise.all([
       supabase
         .from("ideas")
-        .select("canny_id, title, tier_1_customer, canny_url, manual_team_classification, boards(slug, name)")
+        .select("canny_id, title, synthesis_title, edited_title, tier_1_customer, canny_url, manual_team_classification, boards(slug, name)")
         .in("canny_id", easyWinCannyIds),
       supabase
         .from("easy_wins")
@@ -400,7 +408,8 @@ export async function getDashboardData(
     for (const row of easyWinIdeas ?? []) {
       const board = row.boards as unknown as { slug: string; name: string } | null;
       easyWinIdeaMap[row.canny_id] = {
-        title: row.title,
+        title: row.synthesis_title ?? row.title,
+        edited_title: row.edited_title ?? null,
         canny_url: row.canny_url,
         board_slug: board?.slug ?? "",
         board_name: board?.name ?? "",
@@ -418,9 +427,12 @@ export async function getDashboardData(
     const idea = easyWinIdeaMap[w.canny_id];
     const weeksIn = easyWinWeeksByCanny[w.canny_id] ?? 1;
     const manualClassification = idea?.manual_team_classification ?? null;
+    const rawEasyTitle = w.synthesis_title ?? idea?.title ?? "";
     return {
       canny_id: w.canny_id,
-      title: w.synthesis_title ?? idea?.title ?? "",
+      title: idea?.edited_title ?? rawEasyTitle,
+      raw_title: rawEasyTitle,
+      edited_title: idea?.edited_title ?? null,
       board_slug: idea?.board_slug ?? "",
       board_name: idea?.board_name ?? "",
       reason: w.reason,
@@ -453,7 +465,7 @@ export async function getDashboardData(
     const [{ data: jiraIdeas }, { data: jiraEasyWins }] = await Promise.all([
       supabase
         .from("ideas")
-        .select("canny_id, title, tier_1_customer, selection_reason, selection_week, boards(slug, name)")
+        .select("canny_id, title, synthesis_title, edited_title, tier_1_customer, selection_reason, selection_week, boards(slug, name)")
         .in("canny_id", allJiraCannyIds),
       supabase
         .from("easy_wins")
@@ -466,7 +478,7 @@ export async function getDashboardData(
       (jiraIdeas ?? []).map((i) => {
         const board = i.boards as unknown as { slug: string; name: string } | null;
         return [i.canny_id, {
-          title: i.title,
+          title: i.edited_title ?? i.synthesis_title ?? i.title,
           board_slug: board?.slug ?? "",
           board_name: board?.name ?? "",
           selection_reason: i.selection_reason,
@@ -529,7 +541,7 @@ export async function getDashboardData(
   // We don't insert into easy_wins (UNIQUE on canny_id+week_of would break re-runs)
   const { data: approvedProposalRows } = await supabase
     .from("quick_win_proposals")
-    .select("id, canny_id, comment, ideas(title, canny_url, tier_1_customer, manual_team_classification, boards(slug, name))")
+    .select("id, canny_id, comment, ideas(title, synthesis_title, edited_title, canny_url, tier_1_customer, manual_team_classification, boards(slug, name))")
     .eq("status", "added");
 
   const existingEasyWinIds = new Set(surfacedEasyWins.map((w) => w.canny_id));
@@ -538,15 +550,20 @@ export async function getDashboardData(
     if (existingEasyWinIds.has(row.canny_id)) continue;
     const idea = row.ideas as unknown as {
       title: string;
+      synthesis_title: string | null;
+      edited_title: string | null;
       canny_url: string | null;
       tier_1_customer: string | null;
       manual_team_classification: string | null;
       boards: { slug: string; name: string } | null;
     } | null;
     const board = idea?.boards ?? null;
+    const proposalRawTitle = idea?.synthesis_title ?? idea?.title ?? row.canny_id;
     surfacedEasyWins.push({
       canny_id: row.canny_id,
-      title: idea?.title ?? row.canny_id,
+      title: idea?.edited_title ?? proposalRawTitle,
+      raw_title: proposalRawTitle,
+      edited_title: idea?.edited_title ?? null,
       board_slug: board?.slug ?? "",
       board_name: board?.name ?? "",
       reason: row.comment ?? "",
@@ -570,7 +587,7 @@ export async function getDashboardData(
   // Pinned items — ordered by pin date ascending (earliest decision first)
   const { data: pinnedRows } = await supabase
     .from("ideas")
-    .select("canny_id, title, canny_url, pinned_at, pinned_from, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, canny_url, pinned_at, pinned_from, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
     .not("pinned_at", "is", null)
     .order("pinned_at", { ascending: true });
 
@@ -578,9 +595,12 @@ export async function getDashboardData(
     .filter((row) => !jiraTrackedIds.has(row.canny_id))
     .map((row) => {
       const board = row.boards as unknown as { slug: string; name: string } | null;
+      const pinnedRawTitle = row.synthesis_title ?? row.title;
       return {
         canny_id: row.canny_id,
-        title: row.title,
+        title: row.edited_title ?? pinnedRawTitle,
+        raw_title: pinnedRawTitle,
+        edited_title: row.edited_title ?? null,
         board_slug: board?.slug ?? "",
         board_name: board?.name ?? "",
         canny_url: row.canny_url ?? null,
@@ -665,7 +685,7 @@ export async function getDoneItems(): Promise<DoneItem[]> {
   const supabase = createServerClient();
   const { data } = await supabase
     .from("ideas")
-    .select("canny_id, title, marked_done_at, selection_priority_rank, selection_week, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, marked_done_at, selection_priority_rank, selection_week, boards(slug, name)")
     .eq("marked_done", true)
     .order("marked_done_at", { ascending: false });
 
@@ -673,7 +693,7 @@ export async function getDoneItems(): Promise<DoneItem[]> {
     const board = row.boards as unknown as { slug: string; name: string } | null;
     return {
       canny_id: row.canny_id,
-      title: row.title,
+      title: row.edited_title ?? row.synthesis_title ?? row.title,
       board_slug: board?.slug ?? "",
       board_name: board?.name ?? "",
       priority_rank: row.selection_priority_rank,
