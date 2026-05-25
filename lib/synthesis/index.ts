@@ -80,7 +80,9 @@ export async function runSynthesis(
     .select("canny_id, title, description, vote_count, board_id, created_at, boards(slug, name)")
     .is("removed_at", null)
     // Pinned items are excluded from synthesis — team has already committed to them.
-    // Deferred (marked_done) items intentionally stay in the pool so synthesis can re-argue them.
+    // Deferred (marked_done) items intentionally stay in the pool so synthesis can re-argue them —
+    // and the reset below clears marked_done each cycle so re-argued items resurface on the dashboard.
+    // Defer is per-cycle.
     .is("pinned_at", null)
     .order("vote_count", { ascending: false });
 
@@ -270,6 +272,9 @@ async function writeSynthesisResults(
       team_classification: null,
       selection_week: null,
       jira_story: null,
+      marked_done: false,
+      marked_done_at: null,
+      deferred_reason: null,
     })
     .neq("id", "00000000-0000-0000-0000-000000000000")
     // Keep pinned items' synthesis fields intact so Accept from Coming Up captures a valid snapshot

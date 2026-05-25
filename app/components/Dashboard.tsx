@@ -3110,6 +3110,11 @@ function DoneTab({
             >
               {item.title}
             </p>
+            {item.reason && (
+              <p style={{ margin: "0 0 8px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)", textWrap: "pretty" }}>
+                {item.reason}
+              </p>
+            )}
             <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
           </div>
           <button
@@ -3633,6 +3638,7 @@ export default function Dashboard({
       priority_rank: null,
       selection_week: null,
       marked_done_at: new Date().toISOString(),
+      reason: item.selection_reason ?? null,
     };
     setDoneItems((prev) => [newDone, ...prev]);
 
@@ -3662,6 +3668,7 @@ export default function Dashboard({
         priority_rank: item.priority_rank,
         selection_week: data.week_of,
         marked_done_at: new Date().toISOString(),
+        reason: item.reason,
       };
       setDoneItems((prev) => [newDone, ...prev]);
     }
@@ -3679,6 +3686,7 @@ export default function Dashboard({
             priority_rank: item.priority_rank,
             selection_week: data.week_of,
             marked_done_at: new Date().toISOString(),
+            reason: item.reason,
           };
           setDoneItems((prev) => [reverted, ...prev]);
         } else {
@@ -3703,6 +3711,7 @@ export default function Dashboard({
           priority_rank: null,
           selection_week: data.week_of,
           marked_done_at: new Date().toISOString(),
+          reason: win.reason ?? null,
         },
         ...prev,
       ]);
@@ -3721,6 +3730,7 @@ export default function Dashboard({
               priority_rank: null,
               selection_week: data.week_of,
               marked_done_at: new Date().toISOString(),
+              reason: win.reason ?? null,
             },
             ...prev,
           ]);

@@ -47,6 +47,7 @@ export interface DoneItem {
   priority_rank: number | null;
   selection_week: string | null;
   marked_done_at: string;
+  reason: string | null;
 }
 
 export interface DashboardEasyWin {
@@ -692,7 +693,7 @@ export async function getDoneItems(): Promise<DoneItem[]> {
   const supabase = createServerClient();
   const { data } = await supabase
     .from("ideas")
-    .select("canny_id, title, synthesis_title, edited_title, marked_done_at, selection_priority_rank, selection_week, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, marked_done_at, selection_priority_rank, selection_week, deferred_reason, boards(slug, name)")
     .eq("marked_done", true)
     .order("marked_done_at", { ascending: false });
 
@@ -706,6 +707,7 @@ export async function getDoneItems(): Promise<DoneItem[]> {
       priority_rank: row.selection_priority_rank,
       selection_week: row.selection_week,
       marked_done_at: row.marked_done_at!,
+      reason: row.deferred_reason ?? null,
     };
   });
 }
