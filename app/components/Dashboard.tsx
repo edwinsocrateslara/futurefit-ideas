@@ -22,7 +22,7 @@ import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw } from "lucide-react";
+import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -2746,23 +2746,57 @@ function CommittedScopeBlock({
           </div>
         </div>
       ) : scope ? (
-        <p
-          onClick={handleOpen}
-          style={{
-            margin: 0,
-            fontSize: 13,
-            lineHeight: 1.5,
-            color: "oklch(0.85 0 0)",
-            cursor: "text",
-            display: "-webkit-box",
-            WebkitLineClamp: 1,
-            WebkitBoxOrient: "vertical",
-            overflow: "hidden",
-          }}
-        >
-          <span style={{ color: "oklch(0.55 0 0)" }}>Committed scope: </span>
-          {scope}
-        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
+          <p
+            onClick={handleOpen}
+            style={{
+              margin: 0,
+              flex: 1,
+              minWidth: 0,
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: "oklch(0.85 0 0)",
+              cursor: "text",
+              display: "-webkit-box",
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            <span style={{ color: "oklch(0.55 0 0)" }}>Committed scope: </span>
+            {scope}
+          </p>
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); if (onSave) onSave(cannyId, null); }}
+            aria-label="Clear committed scope"
+            style={{
+              flexShrink: 0,
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 24,
+              height: 24,
+              padding: 0,
+              border: "none",
+              background: "transparent",
+              color: "oklch(0.40 0 0)",
+              cursor: "pointer",
+              borderRadius: 4,
+              transition: "color 100ms, background 100ms",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+            }}
+          >
+            <X size={13} strokeWidth={2} aria-hidden />
+          </button>
+        </div>
       ) : (
         <button
           type="button"
