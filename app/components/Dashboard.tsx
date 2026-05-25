@@ -1930,6 +1930,15 @@ function SignalRow({
           {item.reason}
         </p>
 
+        {/* Committed scope */}
+        {!isDone && (
+          <CommittedScopeBlock
+            cannyId={item.canny_id}
+            scope={item.committed_scope}
+            onSave={onScopeChange}
+          />
+        )}
+
         {/* Callouts — rendered only when content exists */}
         {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
           <div style={{
@@ -1961,15 +1970,6 @@ function SignalRow({
               </p>
             )}
           </div>
-        )}
-
-        {/* Committed scope */}
-        {!isDone && (
-          <CommittedScopeBlock
-            cannyId={item.canny_id}
-            scope={item.committed_scope}
-            onSave={onScopeChange}
-          />
         )}
 
         {/* Bottom action row: links left, buttons right */}
