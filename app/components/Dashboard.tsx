@@ -22,7 +22,7 @@ import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X } from "lucide-react";
+import { Calendar, Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -3933,7 +3933,7 @@ export default function Dashboard({
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         {(
           [
-            { section: "Top 10",     count: data.persistent_count,    label: "Persistent Ideas (4+ Weeks)", accentColor: "oklch(0.72 0.18 75)",  icon: <Pin size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+            { section: "Top 10",     count: data.persistent_count,    label: "Persistent Ideas (4+ Weeks)", accentColor: "oklch(0.72 0.18 75)",  icon: <Calendar size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
             { section: "Top 10",     count: data.new_count,           label: "New Ideas this Week",           accentColor: "oklch(0.70 0.20 145)", icon: <PackageOpen size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
             { section: "Quick Wins", count: data.new_easy_wins_count, label: "New Quick Wins this Week",      accentColor: "oklch(0.70 0.20 145)", icon: <Zap size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
           ] as const
