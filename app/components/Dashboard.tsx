@@ -2681,97 +2681,74 @@ function CommittedScopeBlock({
   if (readOnly) {
     if (!scope) return null;
     return (
-      <div style={{ marginTop: 12, marginBottom: 4 }}>
-        <p style={{ margin: "0 0 3px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.55 0 0)", textTransform: "uppercase" }}>
-          Committed Scope
-        </p>
-        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>
-          {scope}
-        </p>
-      </div>
+      <p style={{ margin: "12px 0 0 0", fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>
+        <span style={{ color: "oklch(0.55 0 0)" }}>Scope: </span>
+        {scope}
+      </p>
     );
   }
 
   return (
     <div style={{ marginTop: 12 }}>
       {editing ? (
-        <>
-          <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.50 0.08 260)", textTransform: "uppercase" }}>
-            Committed Scope
-          </p>
-          <textarea
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onBlur={commit}
-            onKeyDown={handleKeyDown}
-            maxLength={300}
-            rows={3}
-            placeholder="Describe what the team has committed to…"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              background: "oklch(0.15 0.02 260)",
-              border: "1px solid oklch(0.45 0.08 260 / 0.35)",
-              borderRadius: 8,
-              padding: "8px 12px",
-              fontSize: 13,
-              lineHeight: 1.5,
-              color: "oklch(0.90 0 0)",
-              outline: "none",
-              resize: "none",
-              fontFamily: "inherit",
-            }}
-          />
-        </>
+        <textarea
+          autoFocus
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={commit}
+          onKeyDown={handleKeyDown}
+          maxLength={300}
+          rows={3}
+          placeholder="Describe what the team has committed to…"
+          style={{
+            width: "100%",
+            boxSizing: "border-box",
+            background: "oklch(0.145 0 0)",
+            border: "1px solid oklch(1 0 0 / 0.10)",
+            borderRadius: 8,
+            padding: "8px 12px",
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: "oklch(0.90 0 0)",
+            outline: "none",
+            resize: "none",
+            fontFamily: "inherit",
+          }}
+        />
       ) : scope ? (
-        <>
-          <p style={{ margin: "0 0 3px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.50 0.08 260)", textTransform: "uppercase" }}>
-            Committed Scope
-          </p>
-          <p
-            onClick={handleFocus}
-            style={{
-              margin: 0,
-              fontSize: 13,
-              lineHeight: 1.5,
-              color: "oklch(0.85 0 0)",
-              cursor: "text",
-              display: "-webkit-box",
-              WebkitLineClamp: 1,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            {scope}
-          </p>
-        </>
+        <p
+          onClick={handleFocus}
+          style={{
+            margin: 0,
+            fontSize: 13,
+            lineHeight: 1.5,
+            color: "oklch(0.85 0 0)",
+            cursor: "text",
+            display: "-webkit-box",
+            WebkitLineClamp: 1,
+            WebkitBoxOrient: "vertical",
+            overflow: "hidden",
+          }}
+        >
+          <span style={{ color: "oklch(0.55 0 0)" }}>Scope: </span>
+          {scope}
+        </p>
       ) : (
         <button
           type="button"
           onClick={handleFocus}
           style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: 5,
-            padding: "4px 10px",
+            background: "none",
+            border: "none",
+            padding: 0,
             fontSize: 12,
-            fontWeight: 500,
-            borderRadius: 6,
-            border: "1px dashed oklch(0.35 0.04 260 / 0.50)",
-            background: "transparent",
-            color: "oklch(0.50 0.05 260)",
+            color: "oklch(0.45 0 0)",
             cursor: "pointer",
-            transition: "border-color 100ms, color 100ms",
+            letterSpacing: 0.2,
+            transition: "color 100ms",
           }}
-          onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "oklch(0.45 0.08 260 / 0.70)";
-            (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.60 0.08 260)";
-          }}
-          onMouseLeave={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.borderColor = "oklch(0.35 0.04 260 / 0.50)";
-            (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0.05 260)";
-          }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.65 0 0)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
         >
           + Add committed scope
         </button>
