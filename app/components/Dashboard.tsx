@@ -1212,13 +1212,12 @@ function MetricCard({
 
 // ── Tab bar ────────────────────────────────────────────────────────────────────
 
-type TabId = "signals" | "easy-wins" | "patterns" | "coming-up" | "accepted" | "deferred" | "done";
+type TabId = "signals" | "easy-wins" | "coming-up" | "accepted" | "deferred" | "done";
 
 function TabBar({
   active,
   signalCount,
   easyWinCount,
-  patternCount,
   comingUpCount,
   acceptedCount,
   deferredCount,
@@ -1228,7 +1227,6 @@ function TabBar({
   active: TabId;
   signalCount: number;
   easyWinCount: number;
-  patternCount: number;
   comingUpCount: number;
   acceptedCount: number;
   deferredCount: number;
@@ -1242,7 +1240,6 @@ function TabBar({
     { id: "accepted",   label: "Accepted",    count: acceptedCount },
     { id: "deferred",   label: "Deferred",    count: deferredCount },
     { id: "done",       label: "Done",        count: doneCount },
-    { id: "patterns",   label: "Patterns",    count: patternCount },
   ];
 
   return (
@@ -3901,7 +3898,6 @@ export default function Dashboard({
         active={activeTab}
         signalCount={data.selections.length}
         easyWinCount={data.easy_wins.length}
-        patternCount={data.patterns.length}
         comingUpCount={pinnedItems.length}
         acceptedCount={acceptedItems.length}
         deferredCount={doneItems.length}
@@ -4078,18 +4074,6 @@ export default function Dashboard({
         </div>
       )}
 
-      {activeTab === "patterns" && (
-        <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-          {data.patterns.map((p) => (
-            <PatternCard key={p.id} pattern={p} />
-          ))}
-          {data.patterns.length === 0 && (
-            <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
-              No patterns detected this week.
-            </p>
-          )}
-        </div>
-      )}
 
       {activeTab === "coming-up" && (
         <ComingUpTab
