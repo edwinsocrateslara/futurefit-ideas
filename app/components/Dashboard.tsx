@@ -2655,8 +2655,18 @@ function CommittedScopeBlock({
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(scope ?? "");
+  const [focused, setFocused] = useState(false);
+  const taRef = useRef<HTMLTextAreaElement>(null);
+  const MAX_H = 56;
 
-  function handleFocus() {
+  useEffect(() => {
+    if (!editing || !taRef.current) return;
+    const el = taRef.current;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, MAX_H) + "px";
+  }, [draft, editing]);
+
+  function handleOpen() {
     setDraft(scope ?? "");
     setEditing(true);
   }
@@ -2672,7 +2682,7 @@ function CommittedScopeBlock({
     if (e.key === "Escape") {
       setDraft(scope ?? "");
       setEditing(false);
-    } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+    } else if (e.key === "Enter") {
       e.preventDefault();
       commit();
     }
@@ -2682,7 +2692,7 @@ function CommittedScopeBlock({
     if (!scope) return null;
     return (
       <p style={{ margin: "12px 0 0 0", fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>
-        <span style={{ color: "oklch(0.55 0 0)" }}>Scope: </span>
+        <span style={{ color: "oklch(0.55 0 0)" }}>Committed scope: </span>
         {scope}
       </p>
     );
@@ -2691,33 +2701,53 @@ function CommittedScopeBlock({
   return (
     <div style={{ marginTop: 12 }}>
       {editing ? (
-        <textarea
-          autoFocus
-          value={draft}
-          onChange={(e) => setDraft(e.target.value)}
-          onBlur={commit}
-          onKeyDown={handleKeyDown}
-          maxLength={300}
-          rows={3}
-          placeholder="Describe what the team has committed to…"
-          style={{
-            width: "100%",
-            boxSizing: "border-box",
-            background: "oklch(0.145 0 0)",
-            border: "1px solid oklch(1 0 0 / 0.10)",
-            borderRadius: 8,
-            padding: "8px 12px",
-            fontSize: 13,
-            lineHeight: 1.5,
-            color: "oklch(0.90 0 0)",
-            outline: "none",
-            resize: "none",
-            fontFamily: "inherit",
-          }}
-        />
+        <div>
+          <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
+            Committed Scope
+          </p>
+          <textarea
+            ref={taRef}
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onFocus={() => setFocused(true)}
+            onBlur={commit}
+            onKeyDown={handleKeyDown}
+            maxLength={300}
+            rows={1}
+            placeholder="Describe what the team has committed to…"
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              background: "oklch(0.14 0 0)",
+              border: `1px solid ${focused ? "oklch(1 0 0 / 0.24)" : "oklch(1 0 0 / 0.12)"}`,
+              borderRadius: 8,
+              padding: "8px 12px",
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: "oklch(0.90 0 0)",
+              outline: "none",
+              resize: "none",
+              fontFamily: "inherit",
+              overflowY: "auto",
+              maxHeight: MAX_H,
+              transition: "border-color 120ms",
+            }}
+          />
+          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
+            <span style={{
+              fontSize: 11,
+              color: "oklch(0.45 0 0)",
+              opacity: draft.trim().length > 0 ? 1 : 0.35,
+              transition: "opacity 200ms",
+            }}>
+              Press Enter to save
+            </span>
+          </div>
+        </div>
       ) : scope ? (
         <p
-          onClick={handleFocus}
+          onClick={handleOpen}
           style={{
             margin: 0,
             fontSize: 13,
@@ -2730,13 +2760,13 @@ function CommittedScopeBlock({
             overflow: "hidden",
           }}
         >
-          <span style={{ color: "oklch(0.55 0 0)" }}>Scope: </span>
+          <span style={{ color: "oklch(0.55 0 0)" }}>Committed scope: </span>
           {scope}
         </p>
       ) : (
         <button
           type="button"
-          onClick={handleFocus}
+          onClick={handleOpen}
           style={{
             background: "none",
             border: "none",
