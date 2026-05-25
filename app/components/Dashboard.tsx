@@ -3122,7 +3122,7 @@ function DoneTab({
               padding: "4px 10px",
               fontSize: 12,
               fontWeight: 500,
-              borderRadius: 6,
+              borderRadius: 9999,
               border: hoveredId === item.canny_id
                 ? "1px solid oklch(0.70 0.20 145)"
                 : "1px solid oklch(1 0 0 / 0.10)",
