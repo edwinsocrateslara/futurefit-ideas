@@ -33,7 +33,7 @@ export async function POST(
   const [{ data: idea, error: ideaError }, { data: latestEasyWin }] = await Promise.all([
     supabase
       .from("ideas")
-      .select("canny_id, title, synthesis_title, edited_title, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification")
+      .select("canny_id, title, synthesis_title, edited_title, committed_scope, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification")
       .eq("canny_id", canny_id)
       .single(),
     supabase
@@ -80,6 +80,7 @@ export async function POST(
     created = await createIssue({
       jiraStoryRaw: jiraStory,
       summaryOverride: idea.edited_title ?? idea.synthesis_title ?? idea.title,
+      committedScope: idea.committed_scope ?? null,
       isEasyWin,
     });
   } catch (err) {
@@ -109,6 +110,7 @@ export async function POST(
     snapshot_confidence_rating: idea.confidence_rating ?? null,
     snapshot_team_classification: idea.team_classification ?? null,
     snapshot_status: idea.selection_status ?? null,
+    snapshot_committed_scope: idea.committed_scope ?? null,
   });
 
   if (insertError) {

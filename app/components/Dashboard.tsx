@@ -1681,6 +1681,7 @@ function SignalRow({
   onAccepted,
   onPin,
   onEditTitle,
+  onScopeChange,
   suppressNewBadge = false,
   dragHandleListeners,
   notesCount = 0,
@@ -1693,6 +1694,7 @@ function SignalRow({
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   onPin?: (item: DashboardSelection) => void;
   onEditTitle?: (cannyId: string) => void;
+  onScopeChange?: (cannyId: string, scope: string | null) => void;
   suppressNewBadge?: boolean;
   dragHandleListeners?: Record<string, unknown>;
   notesCount?: number;
@@ -1964,6 +1966,15 @@ function SignalRow({
           </div>
         )}
 
+        {/* Committed scope */}
+        {!isDone && (
+          <CommittedScopeBlock
+            cannyId={item.canny_id}
+            scope={item.committed_scope}
+            onSave={onScopeChange}
+          />
+        )}
+
         {/* Bottom action row: links left, buttons right */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -2035,6 +2046,7 @@ function SortableSignalRow(props: {
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   onPin?: (item: DashboardSelection) => void;
   onEditTitle?: (cannyId: string) => void;
+  onScopeChange?: (cannyId: string, scope: string | null) => void;
   suppressNewBadge: boolean;
   notesCount?: number;
 }) {
@@ -2631,6 +2643,146 @@ function EditTitleModal({
   );
 }
 
+// ── Committed Scope block ──────────────────────────────────────────────────────
+
+function CommittedScopeBlock({
+  cannyId,
+  scope,
+  onSave,
+  readOnly = false,
+}: {
+  cannyId: string;
+  scope: string | null;
+  onSave?: (cannyId: string, scope: string | null) => void;
+  readOnly?: boolean;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(scope ?? "");
+
+  function handleFocus() {
+    setDraft(scope ?? "");
+    setEditing(true);
+  }
+
+  function commit() {
+    setEditing(false);
+    const trimmed = draft.trim();
+    const next = trimmed.length === 0 ? null : trimmed;
+    if (next !== scope && onSave) onSave(cannyId, next);
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Escape") {
+      setDraft(scope ?? "");
+      setEditing(false);
+    } else if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
+      e.preventDefault();
+      commit();
+    }
+  }
+
+  if (readOnly) {
+    if (!scope) return null;
+    return (
+      <div style={{ marginTop: 12, marginBottom: 4 }}>
+        <p style={{ margin: "0 0 3px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.55 0 0)", textTransform: "uppercase" }}>
+          Committed Scope
+        </p>
+        <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>
+          {scope}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      {editing ? (
+        <>
+          <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.50 0.08 260)", textTransform: "uppercase" }}>
+            Committed Scope
+          </p>
+          <textarea
+            autoFocus
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={commit}
+            onKeyDown={handleKeyDown}
+            maxLength={300}
+            rows={3}
+            placeholder="Describe what the team has committed to…"
+            style={{
+              width: "100%",
+              boxSizing: "border-box",
+              background: "oklch(0.15 0.02 260)",
+              border: "1px solid oklch(0.45 0.08 260 / 0.35)",
+              borderRadius: 8,
+              padding: "8px 12px",
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: "oklch(0.90 0 0)",
+              outline: "none",
+              resize: "none",
+              fontFamily: "inherit",
+            }}
+          />
+        </>
+      ) : scope ? (
+        <>
+          <p style={{ margin: "0 0 3px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.50 0.08 260)", textTransform: "uppercase" }}>
+            Committed Scope
+          </p>
+          <p
+            onClick={handleFocus}
+            style={{
+              margin: 0,
+              fontSize: 13,
+              lineHeight: 1.5,
+              color: "oklch(0.85 0 0)",
+              cursor: "text",
+              display: "-webkit-box",
+              WebkitLineClamp: 1,
+              WebkitBoxOrient: "vertical",
+              overflow: "hidden",
+            }}
+          >
+            {scope}
+          </p>
+        </>
+      ) : (
+        <button
+          type="button"
+          onClick={handleFocus}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 5,
+            padding: "4px 10px",
+            fontSize: 12,
+            fontWeight: 500,
+            borderRadius: 6,
+            border: "1px dashed oklch(0.35 0.04 260 / 0.50)",
+            background: "transparent",
+            color: "oklch(0.50 0.05 260)",
+            cursor: "pointer",
+            transition: "border-color 100ms, color 100ms",
+          }}
+          onMouseEnter={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "oklch(0.45 0.08 260 / 0.70)";
+            (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.60 0.08 260)";
+          }}
+          onMouseLeave={(e) => {
+            (e.currentTarget as HTMLButtonElement).style.borderColor = "oklch(0.35 0.04 260 / 0.50)";
+            (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0.05 260)";
+          }}
+        >
+          + Add committed scope
+        </button>
+      )}
+    </div>
+  );
+}
+
 function SuggestActionCards({
   pendingCount,
   onSuggest,
@@ -2742,7 +2894,12 @@ function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCount
               {item.reason}
             </p>
           )}
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          <CommittedScopeBlock
+            cannyId={item.canny_id}
+            scope={item.snapshot_committed_scope}
+            readOnly
+          />
+          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
             <a
               href={item.jira_url}
               target="_blank"
@@ -2826,6 +2983,11 @@ function JiraDoneTab({ items }: { items: DoneJiraItem[] }) {
               {item.reason}
             </p>
           )}
+          <CommittedScopeBlock
+            cannyId={item.canny_id}
+            scope={item.snapshot_committed_scope}
+            readOnly
+          />
           <a
             href={item.jira_url}
             target="_blank"
@@ -2840,6 +3002,7 @@ function JiraDoneTab({ items }: { items: DoneJiraItem[] }) {
               textUnderlineOffset: 3,
               textDecorationThickness: 1,
               letterSpacing: 0.2,
+              marginTop: 12,
             }}
           >
             {item.jira_issue_key} · View in Jira →
@@ -2953,6 +3116,7 @@ function ComingUpTab({
   onDefer,
   onAccepted,
   onEditTitle,
+  onScopeChange,
 }: {
   items: PinnedItem[];
   notesCounts: Record<string, number>;
@@ -2960,6 +3124,7 @@ function ComingUpTab({
   onDefer: (item: PinnedItem) => void;
   onAccepted: (item: PinnedItem, result: JiraAcceptResult) => void;
   onEditTitle?: (cannyId: string) => void;
+  onScopeChange?: (cannyId: string, scope: string | null) => void;
 }) {
   const [hoveredDefer, setHoveredDefer] = useState<string | null>(null);
   const [hoveredTitle, setHoveredTitle] = useState<string | null>(null);
@@ -3077,6 +3242,13 @@ function ComingUpTab({
           </p>
         )}
 
+        {/* Committed scope */}
+        <CommittedScopeBlock
+          cannyId={item.canny_id}
+          scope={item.committed_scope}
+          onSave={onScopeChange}
+        />
+
         {/* Bottom action row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
@@ -3179,6 +3351,7 @@ export default function Dashboard({
     hasEditedTitle: boolean;
   } | null>(null);
   const [localEditedTitles, setLocalEditedTitles] = useState<Record<string, string | null>>({});
+  const [localScopes, setLocalScopes] = useState<Record<string, string | null>>({});
   const [, startTransition] = useTransition();
 
   // Drag-and-drop state
@@ -3217,9 +3390,40 @@ export default function Dashboard({
     return item;
   }
 
+  function applyLocalScope<T extends { canny_id: string; committed_scope: string | null }>(item: T): T {
+    const local = localScopes[item.canny_id];
+    if (local !== undefined) return { ...item, committed_scope: local };
+    return item;
+  }
+
   function resolveDisplayTitle(cannyId: string, serverTitle: string, rawTitle: string): string {
     const local = localEditedTitles[cannyId];
     return local !== undefined ? (local ?? rawTitle) : serverTitle;
+  }
+
+  function resolveScope(cannyId: string, serverScope: string | null): string | null {
+    const local = localScopes[cannyId];
+    return local !== undefined ? local : serverScope;
+  }
+
+  function handleSaveScope(cannyId: string, scope: string | null) {
+    const prev = localScopes[cannyId];
+    setLocalScopes((p) => ({ ...p, [cannyId]: scope }));
+    startTransition(async () => {
+      const res = await fetch(`/api/ideas/${cannyId}/scope`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ committed_scope: scope }),
+      });
+      if (!res.ok) {
+        setLocalScopes((p) => {
+          const n = { ...p };
+          if (prev === undefined) delete n[cannyId];
+          else n[cannyId] = prev;
+          return n;
+        });
+      }
+    });
   }
 
   function handleOpenEditTitle(cannyId: string) {
@@ -3268,6 +3472,8 @@ export default function Dashboard({
     const item = signal ?? win;
     if (!item) return;
 
+    const snapshotScope = signal ? resolveScope(cannyId, signal.committed_scope) : null;
+
     setAcceptedItems((prev) => [
       {
         canny_id: cannyId,
@@ -3280,6 +3486,7 @@ export default function Dashboard({
         jira_status: result.status,
         accepted_at: new Date().toISOString(),
         tier_1_customer: item.tier_1_customer,
+        snapshot_committed_scope: snapshotScope,
       },
       ...prev,
     ]);
@@ -3299,6 +3506,7 @@ export default function Dashboard({
         jira_status: result.status,
         accepted_at: new Date().toISOString(),
         tier_1_customer: item.tier_1_customer,
+        snapshot_committed_scope: resolveScope(item.canny_id, item.committed_scope),
       },
       ...prev,
     ]);
@@ -3317,6 +3525,7 @@ export default function Dashboard({
       selection_reason: item.reason,
       why_callout: item.why_callout,
       tier_1_customer: item.tier_1_customer,
+      committed_scope: resolveScope(item.canny_id, item.committed_scope),
       pinned_from: "top_10",
     };
     setPinnedItems((prev) => [...prev, newPinned]);
@@ -3346,6 +3555,7 @@ export default function Dashboard({
       selection_reason: null,
       why_callout: null,
       tier_1_customer: null,
+      committed_scope: null,
       pinned_from: "quick_win",
     };
     setPinnedItems((prev) => [...prev, newPinned]);
@@ -3708,7 +3918,7 @@ export default function Dashboard({
                 {displaySignals.map((item, index) => (
                   <SortableSignalRow
                     key={item.canny_id}
-                    item={applyLocalTitle(item)}
+                    item={applyLocalScope(applyLocalTitle(item))}
                     displayRank={index + 1}
                     isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
                     doneSet={doneSet}
@@ -3716,6 +3926,7 @@ export default function Dashboard({
                     onAccepted={handleAccepted}
                     onPin={handlePin}
                     onEditTitle={handleOpenEditTitle}
+                    onScopeChange={handleSaveScope}
                     suppressNewBadge={isColdStart}
                     notesCount={data.notes_counts[item.canny_id] ?? 0}
                   />
@@ -3733,13 +3944,14 @@ export default function Dashboard({
             {displaySignals.map((item, index) => (
               <SignalRow
                 key={item.canny_id}
-                item={item}
+                item={applyLocalScope(applyLocalTitle(item))}
                 displayRank={index + 1}
                 isOverridden={clientOverrides[item.canny_id] ?? item.is_overridden}
                 doneSet={doneSet}
                 onToggleDone={handleToggleDone}
                 onAccepted={handleAccepted}
                 onPin={handlePin}
+                onScopeChange={handleSaveScope}
                 suppressNewBadge={isColdStart}
                 notesCount={data.notes_counts[item.canny_id] ?? 0}
               />
@@ -3881,12 +4093,13 @@ export default function Dashboard({
 
       {activeTab === "coming-up" && (
         <ComingUpTab
-          items={pinnedItems.map(applyLocalTitle)}
+          items={pinnedItems.map((p) => applyLocalScope(applyLocalTitle(p)))}
           notesCounts={data.notes_counts}
           onUnpin={handleUnpin}
           onDefer={handlePinnedDefer}
           onAccepted={handlePinnedAccepted}
           onEditTitle={handleOpenEditTitle}
+          onScopeChange={handleSaveScope}
         />
       )}
 

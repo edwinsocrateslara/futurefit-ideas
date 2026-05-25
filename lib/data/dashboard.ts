@@ -36,6 +36,7 @@ export interface DashboardSelection {
   team_classification: string | null;
   synthesis_team_classification: string | null;
   is_team_overridden: boolean;
+  committed_scope: string | null;
 }
 
 export interface DoneItem {
@@ -76,6 +77,7 @@ export interface AcceptedItem {
   jira_status: string;
   accepted_at: string;
   tier_1_customer: string | null;
+  snapshot_committed_scope: string | null;
 }
 
 export interface DoneJiraItem {
@@ -90,6 +92,7 @@ export interface DoneJiraItem {
   accepted_at: string;
   done_at: string;
   tier_1_customer: string | null;
+  snapshot_committed_scope: string | null;
 }
 
 export interface PinnedItem {
@@ -105,6 +108,7 @@ export interface PinnedItem {
   selection_reason: string | null;
   why_callout: string | null;
   tier_1_customer: string | null;
+  committed_scope: string | null;
 }
 
 export interface DashboardPattern {
@@ -208,7 +212,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, synthesis_title, edited_title, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, team_classification, manual_team_classification, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, edited_title, committed_scope, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, team_classification, manual_team_classification, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -342,6 +346,7 @@ export async function getDashboardData(
       team_classification: (idea.manual_team_classification ?? idea.team_classification) ?? null,
       synthesis_team_classification: idea.team_classification ?? null,
       is_team_overridden: idea.manual_team_classification !== null,
+      committed_scope: idea.committed_scope ?? null,
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
       is_persistent: weeks >= 4,
@@ -450,7 +455,7 @@ export async function getDashboardData(
   // Fetching all rows so we can filter surfaced lists correctly regardless of done state.
   const { data: allJiraLinks } = await supabase
     .from("jira_links")
-    .select("canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at, snapshot_reason, snapshot_why_callout, snapshot_customers_callout, snapshot_deadline_callout, snapshot_impact_rating, snapshot_confidence_rating, snapshot_team_classification, snapshot_status")
+    .select("canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at, snapshot_reason, snapshot_why_callout, snapshot_customers_callout, snapshot_deadline_callout, snapshot_impact_rating, snapshot_confidence_rating, snapshot_team_classification, snapshot_status, snapshot_committed_scope")
     .order("accepted_at", { ascending: false });
 
   // All Jira-tracked IDs suppress items from Top 10 / Easy Wins — Jira owns their state now.
@@ -523,6 +528,7 @@ export async function getDashboardData(
         jira_status: link.jira_status,
         accepted_at: link.accepted_at,
         tier_1_customer: idea.tier_1_customer,
+        snapshot_committed_scope: link.snapshot_committed_scope ?? null,
       };
 
       if (link.done_at === null) {
@@ -587,7 +593,7 @@ export async function getDashboardData(
   // Pinned items — ordered by pin date ascending (earliest decision first)
   const { data: pinnedRows } = await supabase
     .from("ideas")
-    .select("canny_id, title, synthesis_title, edited_title, canny_url, pinned_at, pinned_from, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, committed_scope, canny_url, pinned_at, pinned_from, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
     .not("pinned_at", "is", null)
     .order("pinned_at", { ascending: true });
 
@@ -609,6 +615,7 @@ export async function getDashboardData(
         selection_reason: row.selection_reason ?? null,
         why_callout: row.why_callout ?? null,
         tier_1_customer: row.tier_1_customer ?? null,
+        committed_scope: row.committed_scope ?? null,
       };
     });
 

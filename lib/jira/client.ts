@@ -64,10 +64,15 @@ function bulletList(items: string[]): AdfBulletList {
   };
 }
 
-// Builds the four-section ADF description that matches Jira's template.
-// Requirements is left blank for v1 — the team fills it in Jira.
-export function buildAdfDescription(parsed: ParsedJiraStory): AdfDoc {
+// Builds the ADF description. If committedScope is provided, it is prepended
+// as the first section so the team's scoping decision is immediately visible.
+export function buildAdfDescription(parsed: ParsedJiraStory, committedScope?: string | null): AdfDoc {
   const nodes: AdfNode[] = [];
+
+  if (committedScope) {
+    nodes.push(boldParagraph("Committed Scope"));
+    nodes.push(textParagraph(committedScope));
+  }
 
   nodes.push(boldParagraph("Context"));
   nodes.push(textParagraph(parsed.context || "(none)"));
@@ -120,12 +125,13 @@ async function jiraFetch(path: string, options: RequestInit = {}): Promise<Respo
 export async function createIssue(params: {
   jiraStoryRaw: string;
   summaryOverride?: string;
+  committedScope?: string | null;
   isEasyWin?: boolean;
 }): Promise<CreatedIssue> {
   const config = getJiraConfig();
   const parsed = parseJiraStory(params.jiraStoryRaw);
   const summary = (params.summaryOverride ?? parsed.title).slice(0, 255);
-  const description = buildAdfDescription(parsed);
+  const description = buildAdfDescription(parsed, params.committedScope);
 
   const body = {
     fields: {
