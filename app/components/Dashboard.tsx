@@ -2657,7 +2657,7 @@ function CommittedScopeBlock({
   const [draft, setDraft] = useState(scope ?? "");
   const [focused, setFocused] = useState(false);
   const taRef = useRef<HTMLTextAreaElement>(null);
-  const MAX_H = 56;
+  const MAX_H = 160;
 
   useEffect(() => {
     if (!editing || !taRef.current) return;
@@ -2713,7 +2713,7 @@ function CommittedScopeBlock({
             onFocus={() => setFocused(true)}
             onBlur={commit}
             onKeyDown={handleKeyDown}
-            maxLength={300}
+            maxLength={1000}
             rows={1}
             placeholder="Describe what the team has committed to…"
             style={{

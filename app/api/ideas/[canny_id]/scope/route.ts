@@ -21,9 +21,9 @@ export async function PATCH(
 
   if (committed_scope !== null && committed_scope !== undefined) {
     const trimmed = committed_scope.trim();
-    if (trimmed.length === 0 || trimmed.length > 300) {
+    if (trimmed.length === 0 || trimmed.length > 1000) {
       return NextResponse.json(
-        { error: "committed_scope must be 1–300 characters" },
+        { error: "committed_scope must be 1–1000 characters" },
         { status: 400 }
       );
     }
