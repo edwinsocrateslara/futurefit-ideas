@@ -2653,71 +2653,77 @@ function CommittedScopeBlock({
   onSave?: (cannyId: string, scope: string[] | null) => void;
   readOnly?: boolean;
 }) {
-  const [editing, setEditing] = useState(false);
-  const [drafts, setDrafts] = useState<string[]>([]);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const itemRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
+  // editingIdx: null = not editing, -1 = adding new item, 0+ = editing existing item
+  const [editingIdx, setEditingIdx] = useState<number | null>(null);
+  const [draftValue, setDraftValue] = useState("");
+  const editRef = useRef<HTMLTextAreaElement>(null);
 
-  const hasItems = scope && scope.length > 0;
+  const items = scope ?? [];
 
-  function openEdit() {
-    setDrafts(hasItems ? [...scope!] : [""]);
-    setEditing(true);
+  function startEdit(idx: number) {
+    setDraftValue(idx === -1 ? "" : (items[idx] ?? ""));
+    setEditingIdx(idx);
   }
 
-  function commitEdit() {
-    setEditing(false);
-    const cleaned = drafts.map((s) => s.trim()).filter((s) => s.length > 0);
-    const next: string[] | null = cleaned.length === 0 ? null : cleaned;
-    const changed = next === null
-      ? scope !== null
-      : !scope || JSON.stringify(next) !== JSON.stringify(scope);
-    if (changed && onSave) onSave(cannyId, next);
-  }
-
-  function handleContainerBlur(e: React.FocusEvent<HTMLDivElement>) {
-    if (!containerRef.current?.contains(e.relatedTarget as Node)) {
-      commitEdit();
+  function commitItem() {
+    if (editingIdx === null) return;
+    const trimmed = draftValue.trim();
+    let newItems: string[];
+    if (editingIdx === -1) {
+      newItems = trimmed.length > 0 ? [...items, trimmed] : [...items];
+    } else {
+      newItems = trimmed.length === 0
+        ? items.filter((_, i) => i !== editingIdx)
+        : items.map((s, i) => (i === editingIdx ? trimmed : s));
     }
+    setEditingIdx(null);
+    const next: string[] | null = newItems.length === 0 ? null : newItems;
+    if (onSave && JSON.stringify(next) !== JSON.stringify(scope)) onSave(cannyId, next);
   }
 
-  function updateDraft(idx: number, val: string) {
-    setDrafts((prev) => prev.map((s, i) => (i === idx ? val : s)));
+  function deleteItem(idx: number) {
+    setEditingIdx(null);
+    const newItems = items.filter((_, i) => i !== idx);
+    const next: string[] | null = newItems.length === 0 ? null : newItems;
+    if (onSave) onSave(cannyId, next);
   }
 
-  function autoResize(el: HTMLTextAreaElement) {
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, 160) + "px";
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, idx: number) {
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
     if (e.key === "Escape") {
       e.preventDefault();
-      setEditing(false);
+      setEditingIdx(null);
     } else if (e.key === "Enter") {
       e.preventDefault();
-      const newDrafts = [...drafts.slice(0, idx + 1), "", ...drafts.slice(idx + 1)];
-      setDrafts(newDrafts);
-      requestAnimationFrame(() => { itemRefs.current[idx + 1]?.focus(); });
-    } else if (e.key === "Backspace" && drafts[idx] === "" && drafts.length > 1) {
-      e.preventDefault();
-      const newDrafts = drafts.filter((_, i) => i !== idx);
-      setDrafts(newDrafts);
-      requestAnimationFrame(() => { itemRefs.current[Math.max(0, idx - 1)]?.focus(); });
+      commitItem();
     }
   }
 
   useEffect(() => {
-    if (editing) requestAnimationFrame(() => { itemRefs.current[0]?.focus(); });
-  }, [editing]);
+    if (editingIdx !== null) {
+      requestAnimationFrame(() => {
+        const el = editRef.current;
+        if (!el) return;
+        el.focus();
+        el.style.height = "auto";
+        el.style.height = Math.min(el.scrollHeight, 160) + "px";
+      });
+    }
+  }, [editingIdx]);
+
+  useEffect(() => {
+    const el = editRef.current;
+    if (!el) return;
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }, [draftValue]);
 
   const btnGhost: React.CSSProperties = {
     flexShrink: 0,
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    width: 24,
-    height: 24,
+    width: 22,
+    height: 22,
     padding: 0,
     border: "none",
     background: "transparent",
@@ -2728,23 +2734,40 @@ function CommittedScopeBlock({
   };
 
   function onBtnEnter(e: React.MouseEvent<HTMLButtonElement>) {
-    (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
-    (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+    e.currentTarget.style.color = "oklch(0.72 0 0)";
+    e.currentTarget.style.background = "oklch(1 0 0 / 0.06)";
   }
   function onBtnLeave(e: React.MouseEvent<HTMLButtonElement>) {
-    (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
-    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+    e.currentTarget.style.color = "oklch(0.40 0 0)";
+    e.currentTarget.style.background = "transparent";
   }
 
+  const taStyle: React.CSSProperties = {
+    width: "100%",
+    boxSizing: "border-box",
+    background: "oklch(0.14 0 0)",
+    border: "1px solid oklch(1 0 0 / 0.24)",
+    borderRadius: 8,
+    padding: "8px 12px",
+    fontSize: 13,
+    lineHeight: 1.5,
+    color: "oklch(0.90 0 0)",
+    outline: "none",
+    resize: "none",
+    fontFamily: "inherit",
+    overflowY: "auto",
+    maxHeight: 160,
+  };
+
   if (readOnly) {
-    if (!hasItems) return null;
+    if (items.length === 0) return null;
     return (
       <div style={{ marginTop: 12 }}>
         <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
           Committed Scope
         </p>
         <ul style={{ margin: 0, paddingLeft: 16, listStyleType: "disc" }}>
-          {scope!.map((item, i) => (
+          {items.map((item, i) => (
             <li key={i} style={{ fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item}</li>
           ))}
         </ul>
@@ -2752,97 +2775,94 @@ function CommittedScopeBlock({
     );
   }
 
-  return (
-    <div ref={containerRef} style={{ marginTop: 12 }} onBlur={editing ? handleContainerBlur : undefined}>
-      {editing ? (
-        <div>
-          <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
-            Committed Scope
-          </p>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {drafts.map((draft, idx) => (
-              <textarea
-                key={idx}
-                ref={(el) => {
-                  itemRefs.current[idx] = el;
-                  if (el) autoResize(el);
-                }}
-                value={draft}
-                onChange={(e) => { updateDraft(idx, e.target.value); autoResize(e.target); }}
-                onKeyDown={(e) => handleKeyDown(e, idx)}
-                maxLength={1000}
-                rows={1}
-                placeholder={idx === 0 ? "Describe what the team has committed to…" : ""}
-                style={{
-                  width: "100%",
-                  boxSizing: "border-box",
-                  background: "oklch(0.14 0 0)",
-                  border: "1px solid oklch(1 0 0 / 0.12)",
-                  borderRadius: 8,
-                  padding: "8px 12px",
-                  fontSize: 13,
-                  lineHeight: 1.5,
-                  color: "oklch(0.90 0 0)",
-                  outline: "none",
-                  resize: "none",
-                  fontFamily: "inherit",
-                  overflowY: "auto",
-                  maxHeight: 160,
-                  transition: "border-color 120ms",
-                }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = "oklch(1 0 0 / 0.24)"; }}
-                onBlur={(e) => { e.currentTarget.style.borderColor = "oklch(1 0 0 / 0.12)"; }}
-              />
-            ))}
-          </div>
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
-            <button
-              type="button"
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={() => {
-                const next = [...drafts, ""];
-                setDrafts(next);
-                requestAnimationFrame(() => { itemRefs.current[next.length - 1]?.focus(); });
-              }}
-              style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "oklch(0.45 0 0)", cursor: "pointer", letterSpacing: 0.2, transition: "color 100ms" }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.65 0 0)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
-            >
-              + Add item
-            </button>
-            <span style={{ fontSize: 11, color: "oklch(0.45 0 0)" }}>Enter to add · Esc to cancel</span>
-          </div>
-        </div>
-      ) : hasItems ? (
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
-            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
-              Committed Scope
-            </p>
-            <div style={{ display: "flex", gap: 2 }}>
-              <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(); }} aria-label="Edit committed scope" style={btnGhost} onMouseEnter={onBtnEnter} onMouseLeave={onBtnLeave}>
-                <Pencil size={12} strokeWidth={2} aria-hidden />
-              </button>
-              <button type="button" onClick={(e) => { e.stopPropagation(); if (onSave) onSave(cannyId, null); }} aria-label="Clear committed scope" style={btnGhost} onMouseEnter={onBtnEnter} onMouseLeave={onBtnLeave}>
-                <X size={13} strokeWidth={2} aria-hidden />
-              </button>
-            </div>
-          </div>
-          <ul onClick={openEdit} style={{ margin: 0, paddingLeft: 16, listStyleType: "disc", cursor: "text" }}>
-            {scope!.map((item, i) => (
-              <li key={i} style={{ fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item}</li>
-            ))}
-          </ul>
-        </div>
-      ) : (
+  if (items.length === 0 && editingIdx === null) {
+    return (
+      <div style={{ marginTop: 12 }}>
         <button
           type="button"
-          onClick={openEdit}
+          onClick={() => startEdit(-1)}
           style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "oklch(0.45 0 0)", cursor: "pointer", letterSpacing: 0.2, transition: "color 100ms" }}
-          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.65 0 0)"; }}
-          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "oklch(0.65 0 0)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "oklch(0.45 0 0)"; }}
         >
           + Add committed scope
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ marginTop: 12 }}>
+      <p style={{ margin: "0 0 6px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
+        Committed Scope
+      </p>
+      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+        {items.map((item, idx) =>
+          editingIdx === idx ? (
+            <textarea
+              key={idx}
+              ref={editRef}
+              value={draftValue}
+              onChange={(e) => setDraftValue(e.target.value)}
+              onBlur={commitItem}
+              onKeyDown={handleKeyDown}
+              maxLength={1000}
+              rows={1}
+              style={taStyle}
+            />
+          ) : (
+            <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
+              <span style={{ flex: 1, fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)", paddingTop: 2 }}>
+                {item}
+              </span>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => { e.stopPropagation(); startEdit(idx); }}
+                aria-label="Edit item"
+                style={btnGhost}
+                onMouseEnter={onBtnEnter}
+                onMouseLeave={onBtnLeave}
+              >
+                <Pencil size={12} strokeWidth={2} aria-hidden />
+              </button>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={(e) => { e.stopPropagation(); deleteItem(idx); }}
+                aria-label="Delete item"
+                style={btnGhost}
+                onMouseEnter={onBtnEnter}
+                onMouseLeave={onBtnLeave}
+              >
+                <X size={12} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          )
+        )}
+        {editingIdx === -1 && (
+          <textarea
+            ref={editRef}
+            value={draftValue}
+            onChange={(e) => setDraftValue(e.target.value)}
+            onBlur={commitItem}
+            onKeyDown={handleKeyDown}
+            maxLength={1000}
+            rows={1}
+            placeholder="Add a scope item…"
+            style={taStyle}
+          />
+        )}
+      </div>
+      {editingIdx === null && (
+        <button
+          type="button"
+          onClick={() => startEdit(-1)}
+          style={{ marginTop: 6, background: "none", border: "none", padding: 0, fontSize: 12, color: "oklch(0.45 0 0)", cursor: "pointer", letterSpacing: 0.2, transition: "color 100ms" }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = "oklch(0.65 0 0)"; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = "oklch(0.45 0 0)"; }}
+        >
+          + Add item
         </button>
       )}
     </div>
