@@ -1691,7 +1691,7 @@ function SignalRow({
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   onPin?: (item: DashboardSelection) => void;
   onEditTitle?: (cannyId: string) => void;
-  onScopeChange?: (cannyId: string, scope: string | null) => void;
+  onScopeChange?: (cannyId: string, scope: string[] | null) => void;
   suppressNewBadge?: boolean;
   dragHandleListeners?: Record<string, unknown>;
   notesCount?: number;
@@ -2043,7 +2043,7 @@ function SortableSignalRow(props: {
   onAccepted: (cannyId: string, result: JiraAcceptResult) => void;
   onPin?: (item: DashboardSelection) => void;
   onEditTitle?: (cannyId: string) => void;
-  onScopeChange?: (cannyId: string, scope: string | null) => void;
+  onScopeChange?: (cannyId: string, scope: string[] | null) => void;
   suppressNewBadge: boolean;
   notesCount?: number;
 }) {
@@ -2649,168 +2649,196 @@ function CommittedScopeBlock({
   readOnly = false,
 }: {
   cannyId: string;
-  scope: string | null;
-  onSave?: (cannyId: string, scope: string | null) => void;
+  scope: string[] | null;
+  onSave?: (cannyId: string, scope: string[] | null) => void;
   readOnly?: boolean;
 }) {
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState(scope ?? "");
-  const [focused, setFocused] = useState(false);
-  const taRef = useRef<HTMLTextAreaElement>(null);
-  const MAX_H = 160;
+  const [drafts, setDrafts] = useState<string[]>([]);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const itemRefs = useRef<Array<HTMLTextAreaElement | null>>([]);
 
-  useEffect(() => {
-    if (!editing || !taRef.current) return;
-    const el = taRef.current;
-    el.style.height = "auto";
-    el.style.height = Math.min(el.scrollHeight, MAX_H) + "px";
-  }, [draft, editing]);
+  const hasItems = scope && scope.length > 0;
 
-  function handleOpen() {
-    setDraft(scope ?? "");
+  function openEdit() {
+    setDrafts(hasItems ? [...scope!] : [""]);
     setEditing(true);
   }
 
-  function commit() {
+  function commitEdit() {
     setEditing(false);
-    const trimmed = draft.trim();
-    const next = trimmed.length === 0 ? null : trimmed;
-    if (next !== scope && onSave) onSave(cannyId, next);
+    const cleaned = drafts.map((s) => s.trim()).filter((s) => s.length > 0);
+    const next: string[] | null = cleaned.length === 0 ? null : cleaned;
+    const changed = next === null
+      ? scope !== null
+      : !scope || JSON.stringify(next) !== JSON.stringify(scope);
+    if (changed && onSave) onSave(cannyId, next);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === "Escape") {
-      setDraft(scope ?? "");
-      setEditing(false);
-    } else if (e.key === "Enter") {
-      e.preventDefault();
-      commit();
+  function handleContainerBlur(e: React.FocusEvent<HTMLDivElement>) {
+    if (!containerRef.current?.contains(e.relatedTarget as Node)) {
+      commitEdit();
     }
   }
 
+  function updateDraft(idx: number, val: string) {
+    setDrafts((prev) => prev.map((s, i) => (i === idx ? val : s)));
+  }
+
+  function autoResize(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 160) + "px";
+  }
+
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>, idx: number) {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setEditing(false);
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const newDrafts = [...drafts.slice(0, idx + 1), "", ...drafts.slice(idx + 1)];
+      setDrafts(newDrafts);
+      requestAnimationFrame(() => { itemRefs.current[idx + 1]?.focus(); });
+    } else if (e.key === "Backspace" && drafts[idx] === "" && drafts.length > 1) {
+      e.preventDefault();
+      const newDrafts = drafts.filter((_, i) => i !== idx);
+      setDrafts(newDrafts);
+      requestAnimationFrame(() => { itemRefs.current[Math.max(0, idx - 1)]?.focus(); });
+    }
+  }
+
+  useEffect(() => {
+    if (editing) requestAnimationFrame(() => { itemRefs.current[0]?.focus(); });
+  }, [editing]);
+
+  const btnGhost: React.CSSProperties = {
+    flexShrink: 0,
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    width: 24,
+    height: 24,
+    padding: 0,
+    border: "none",
+    background: "transparent",
+    color: "oklch(0.40 0 0)",
+    cursor: "pointer",
+    borderRadius: 4,
+    transition: "color 100ms, background 100ms",
+  };
+
+  function onBtnEnter(e: React.MouseEvent<HTMLButtonElement>) {
+    (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
+    (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+  }
+  function onBtnLeave(e: React.MouseEvent<HTMLButtonElement>) {
+    (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
+    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+  }
+
   if (readOnly) {
-    if (!scope) return null;
+    if (!hasItems) return null;
     return (
-      <p style={{ margin: "12px 0 0 0", fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>
-        <span style={{ color: "oklch(0.55 0 0)" }}>Committed scope: </span>
-        {scope}
-      </p>
+      <div style={{ marginTop: 12 }}>
+        <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
+          Committed Scope
+        </p>
+        <ul style={{ margin: 0, paddingLeft: 16, listStyleType: "disc" }}>
+          {scope!.map((item, i) => (
+            <li key={i} style={{ fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item}</li>
+          ))}
+        </ul>
+      </div>
     );
   }
 
   return (
-    <div style={{ marginTop: 12 }}>
+    <div ref={containerRef} style={{ marginTop: 12 }} onBlur={editing ? handleContainerBlur : undefined}>
       {editing ? (
         <div>
           <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
             Committed Scope
           </p>
-          <textarea
-            ref={taRef}
-            autoFocus
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onFocus={() => setFocused(true)}
-            onBlur={commit}
-            onKeyDown={handleKeyDown}
-            maxLength={1000}
-            rows={1}
-            placeholder="Describe what the team has committed to…"
-            style={{
-              width: "100%",
-              boxSizing: "border-box",
-              background: "oklch(0.14 0 0)",
-              border: `1px solid ${focused ? "oklch(1 0 0 / 0.24)" : "oklch(1 0 0 / 0.12)"}`,
-              borderRadius: 8,
-              padding: "8px 12px",
-              fontSize: 13,
-              lineHeight: 1.5,
-              color: "oklch(0.90 0 0)",
-              outline: "none",
-              resize: "none",
-              fontFamily: "inherit",
-              overflowY: "auto",
-              maxHeight: MAX_H,
-              transition: "border-color 120ms",
-            }}
-          />
-          <div style={{ display: "flex", justifyContent: "flex-end", marginTop: 4 }}>
-            <span style={{
-              fontSize: 11,
-              color: "oklch(0.45 0 0)",
-              opacity: draft.trim().length > 0 ? 1 : 0.35,
-              transition: "opacity 200ms",
-            }}>
-              Press Enter to save
-            </span>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {drafts.map((draft, idx) => (
+              <textarea
+                key={idx}
+                ref={(el) => {
+                  itemRefs.current[idx] = el;
+                  if (el) autoResize(el);
+                }}
+                value={draft}
+                onChange={(e) => { updateDraft(idx, e.target.value); autoResize(e.target); }}
+                onKeyDown={(e) => handleKeyDown(e, idx)}
+                maxLength={1000}
+                rows={1}
+                placeholder={idx === 0 ? "Describe what the team has committed to…" : ""}
+                style={{
+                  width: "100%",
+                  boxSizing: "border-box",
+                  background: "oklch(0.14 0 0)",
+                  border: "1px solid oklch(1 0 0 / 0.12)",
+                  borderRadius: 8,
+                  padding: "8px 12px",
+                  fontSize: 13,
+                  lineHeight: 1.5,
+                  color: "oklch(0.90 0 0)",
+                  outline: "none",
+                  resize: "none",
+                  fontFamily: "inherit",
+                  overflowY: "auto",
+                  maxHeight: 160,
+                  transition: "border-color 120ms",
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = "oklch(1 0 0 / 0.24)"; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = "oklch(1 0 0 / 0.12)"; }}
+              />
+            ))}
+          </div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 4 }}>
+            <button
+              type="button"
+              onMouseDown={(e) => e.preventDefault()}
+              onClick={() => {
+                const next = [...drafts, ""];
+                setDrafts(next);
+                requestAnimationFrame(() => { itemRefs.current[next.length - 1]?.focus(); });
+              }}
+              style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "oklch(0.45 0 0)", cursor: "pointer", letterSpacing: 0.2, transition: "color 100ms" }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.65 0 0)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
+            >
+              + Add item
+            </button>
+            <span style={{ fontSize: 11, color: "oklch(0.45 0 0)" }}>Enter to add · Esc to cancel</span>
           </div>
         </div>
-      ) : scope ? (
-        <div style={{ display: "flex", alignItems: "center", gap: 4 }}>
-          <p
-            onClick={handleOpen}
-            style={{
-              margin: 0,
-              flex: 1,
-              minWidth: 0,
-              fontSize: 13,
-              lineHeight: 1.5,
-              color: "oklch(0.85 0 0)",
-              cursor: "text",
-              display: "-webkit-box",
-              WebkitLineClamp: 1,
-              WebkitBoxOrient: "vertical",
-              overflow: "hidden",
-            }}
-          >
-            <span style={{ color: "oklch(0.55 0 0)" }}>Committed scope: </span>
-            {scope}
-          </p>
-          <button
-            type="button"
-            onClick={(e) => { e.stopPropagation(); if (onSave) onSave(cannyId, null); }}
-            aria-label="Clear committed scope"
-            style={{
-              flexShrink: 0,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 24,
-              height: 24,
-              padding: 0,
-              border: "none",
-              background: "transparent",
-              color: "oklch(0.40 0 0)",
-              cursor: "pointer",
-              borderRadius: 4,
-              transition: "color 100ms, background 100ms",
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
-              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-            }}
-          >
-            <X size={13} strokeWidth={2} aria-hidden />
-          </button>
+      ) : hasItems ? (
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 }}>
+            <p style={{ margin: 0, fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
+              Committed Scope
+            </p>
+            <div style={{ display: "flex", gap: 2 }}>
+              <button type="button" onClick={(e) => { e.stopPropagation(); openEdit(); }} aria-label="Edit committed scope" style={btnGhost} onMouseEnter={onBtnEnter} onMouseLeave={onBtnLeave}>
+                <Pencil size={12} strokeWidth={2} aria-hidden />
+              </button>
+              <button type="button" onClick={(e) => { e.stopPropagation(); if (onSave) onSave(cannyId, null); }} aria-label="Clear committed scope" style={btnGhost} onMouseEnter={onBtnEnter} onMouseLeave={onBtnLeave}>
+                <X size={13} strokeWidth={2} aria-hidden />
+              </button>
+            </div>
+          </div>
+          <ul onClick={openEdit} style={{ margin: 0, paddingLeft: 16, listStyleType: "disc", cursor: "text" }}>
+            {scope!.map((item, i) => (
+              <li key={i} style={{ fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item}</li>
+            ))}
+          </ul>
         </div>
       ) : (
         <button
           type="button"
-          onClick={handleOpen}
-          style={{
-            background: "none",
-            border: "none",
-            padding: 0,
-            fontSize: 12,
-            color: "oklch(0.45 0 0)",
-            cursor: "pointer",
-            letterSpacing: 0.2,
-            transition: "color 100ms",
-          }}
+          onClick={openEdit}
+          style={{ background: "none", border: "none", padding: 0, fontSize: 12, color: "oklch(0.45 0 0)", cursor: "pointer", letterSpacing: 0.2, transition: "color 100ms" }}
           onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.65 0 0)"; }}
           onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.45 0 0)"; }}
         >
@@ -3167,7 +3195,7 @@ function ComingUpTab({
   onDefer: (item: PinnedItem) => void;
   onAccepted: (item: PinnedItem, result: JiraAcceptResult) => void;
   onEditTitle?: (cannyId: string) => void;
-  onScopeChange?: (cannyId: string, scope: string | null) => void;
+  onScopeChange?: (cannyId: string, scope: string[] | null) => void;
 }) {
   const [hoveredDefer, setHoveredDefer] = useState<string | null>(null);
   const [hoveredTitle, setHoveredTitle] = useState<string | null>(null);
@@ -3394,7 +3422,7 @@ export default function Dashboard({
     hasEditedTitle: boolean;
   } | null>(null);
   const [localEditedTitles, setLocalEditedTitles] = useState<Record<string, string | null>>({});
-  const [localScopes, setLocalScopes] = useState<Record<string, string | null>>({});
+  const [localScopes, setLocalScopes] = useState<Record<string, string[] | null>>({});
   const [, startTransition] = useTransition();
 
   // Drag-and-drop state
@@ -3433,7 +3461,7 @@ export default function Dashboard({
     return item;
   }
 
-  function applyLocalScope<T extends { canny_id: string; committed_scope: string | null }>(item: T): T {
+  function applyLocalScope<T extends { canny_id: string; committed_scope: string[] | null }>(item: T): T {
     const local = localScopes[item.canny_id];
     if (local !== undefined) return { ...item, committed_scope: local };
     return item;
@@ -3444,19 +3472,19 @@ export default function Dashboard({
     return local !== undefined ? (local ?? rawTitle) : serverTitle;
   }
 
-  function resolveScope(cannyId: string, serverScope: string | null): string | null {
+  function resolveScope(cannyId: string, serverScope: string[] | null): string[] | null {
     const local = localScopes[cannyId];
     return local !== undefined ? local : serverScope;
   }
 
-  function handleSaveScope(cannyId: string, scope: string | null) {
+  function handleSaveScope(cannyId: string, scope: string[] | null) {
     const prev = localScopes[cannyId];
     setLocalScopes((p) => ({ ...p, [cannyId]: scope }));
     startTransition(async () => {
       const res = await fetch(`/api/ideas/${cannyId}/scope`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ committed_scope: scope }),
+        body: JSON.stringify({ items: scope }),
       });
       if (!res.ok) {
         setLocalScopes((p) => {

@@ -66,12 +66,12 @@ function bulletList(items: string[]): AdfBulletList {
 
 // Builds the ADF description. If committedScope is provided, it is prepended
 // as the first section so the team's scoping decision is immediately visible.
-export function buildAdfDescription(parsed: ParsedJiraStory, committedScope?: string | null): AdfDoc {
+export function buildAdfDescription(parsed: ParsedJiraStory, committedScope?: string[] | null): AdfDoc {
   const nodes: AdfNode[] = [];
 
-  if (committedScope) {
+  if (committedScope && committedScope.length > 0) {
     nodes.push(boldParagraph("Committed Scope"));
-    nodes.push(textParagraph(committedScope));
+    nodes.push(bulletList(committedScope));
   }
 
   nodes.push(boldParagraph("Context"));
@@ -125,7 +125,7 @@ async function jiraFetch(path: string, options: RequestInit = {}): Promise<Respo
 export async function createIssue(params: {
   jiraStoryRaw: string;
   summaryOverride?: string;
-  committedScope?: string | null;
+  committedScope?: string[] | null;
   isEasyWin?: boolean;
 }): Promise<CreatedIssue> {
   const config = getJiraConfig();

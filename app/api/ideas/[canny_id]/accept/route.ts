@@ -80,7 +80,7 @@ export async function POST(
     created = await createIssue({
       jiraStoryRaw: jiraStory,
       summaryOverride: idea.edited_title ?? idea.synthesis_title ?? idea.title,
-      committedScope: idea.committed_scope ?? null,
+      committedScope: (idea.committed_scope as string[] | null) ?? null,
       isEasyWin,
     });
   } catch (err) {

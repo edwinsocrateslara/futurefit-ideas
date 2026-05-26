@@ -10,31 +10,35 @@ export async function PATCH(
   const { canny_id } = await params;
   const supabase = createServiceClient();
 
-  let body: { committed_scope?: string | null };
+  let body: { items?: string[] | null };
   try {
     body = await request.json();
   } catch {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const { committed_scope } = body;
+  const { items } = body;
 
-  if (committed_scope !== null && committed_scope !== undefined) {
-    const trimmed = committed_scope.trim();
-    if (trimmed.length === 0 || trimmed.length > 1000) {
-      return NextResponse.json(
-        { error: "committed_scope must be 1–1000 characters" },
-        { status: 400 }
-      );
+  if (items !== null && items !== undefined) {
+    if (!Array.isArray(items)) {
+      return NextResponse.json({ error: "items must be an array" }, { status: 400 });
     }
+    const cleaned = items.map((s) => (typeof s === "string" ? s.trim() : "")).filter((s) => s.length > 0);
+    for (const item of cleaned) {
+      if (item.length > 1000) {
+        return NextResponse.json({ error: "Each item must be 1–1000 characters" }, { status: 400 });
+      }
+    }
+    const next = cleaned.length === 0 ? null : cleaned;
     const { error } = await supabase
       .from("ideas")
-      .update({ committed_scope: trimmed })
+      .update({ committed_scope: next })
       .eq("canny_id", canny_id);
     if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-    return NextResponse.json({ canny_id, committed_scope: trimmed });
+    return NextResponse.json({ canny_id, committed_scope: next });
   }
 
+  // null → clear
   const { error } = await supabase
     .from("ideas")
     .update({ committed_scope: null })

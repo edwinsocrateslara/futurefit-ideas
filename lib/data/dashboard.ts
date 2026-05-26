@@ -36,7 +36,7 @@ export interface DashboardSelection {
   team_classification: string | null;
   synthesis_team_classification: string | null;
   is_team_overridden: boolean;
-  committed_scope: string | null;
+  committed_scope: string[] | null;
 }
 
 export interface DoneItem {
@@ -78,7 +78,7 @@ export interface AcceptedItem {
   jira_status: string;
   accepted_at: string;
   tier_1_customer: string | null;
-  snapshot_committed_scope: string | null;
+  snapshot_committed_scope: string[] | null;
 }
 
 export interface DoneJiraItem {
@@ -93,7 +93,7 @@ export interface DoneJiraItem {
   accepted_at: string;
   done_at: string;
   tier_1_customer: string | null;
-  snapshot_committed_scope: string | null;
+  snapshot_committed_scope: string[] | null;
 }
 
 export interface PinnedItem {
@@ -109,7 +109,7 @@ export interface PinnedItem {
   selection_reason: string | null;
   why_callout: string | null;
   tier_1_customer: string | null;
-  committed_scope: string | null;
+  committed_scope: string[] | null;
 }
 
 export interface DashboardPattern {
@@ -347,7 +347,7 @@ export async function getDashboardData(
       team_classification: (idea.manual_team_classification ?? idea.team_classification) ?? null,
       synthesis_team_classification: idea.team_classification ?? null,
       is_team_overridden: idea.manual_team_classification !== null,
-      committed_scope: idea.committed_scope ?? null,
+      committed_scope: (idea.committed_scope as string[] | null) ?? null,
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
       is_persistent: weeks >= 4,
@@ -529,7 +529,7 @@ export async function getDashboardData(
         jira_status: link.jira_status,
         accepted_at: link.accepted_at,
         tier_1_customer: idea.tier_1_customer,
-        snapshot_committed_scope: link.snapshot_committed_scope ?? null,
+        snapshot_committed_scope: (link.snapshot_committed_scope as string[] | null) ?? null,
       };
 
       if (link.done_at === null) {
@@ -616,7 +616,7 @@ export async function getDashboardData(
         selection_reason: row.selection_reason ?? null,
         why_callout: row.why_callout ?? null,
         tier_1_customer: row.tier_1_customer ?? null,
-        committed_scope: row.committed_scope ?? null,
+        committed_scope: (row.committed_scope as string[] | null) ?? null,
       };
     });
 
