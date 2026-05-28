@@ -997,35 +997,6 @@ function TeamOverridePopover({
           </button>
         );
       })}
-      {isOverridden && synthesis && (
-        <>
-          <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", margin: "4px 0" }} />
-          <button
-            type="button"
-            onClick={() => select(null)}
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              width: "100%",
-              padding: "8px 10px",
-              fontSize: 12,
-              fontWeight: 400,
-              borderRadius: 6,
-              border: "none",
-              background: "transparent",
-              color: "oklch(0.55 0 0)",
-              cursor: "pointer",
-              textAlign: "left",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-          >
-            <RotateCcw size={12} strokeWidth={2} />
-            Reset to synthesis ({synthesis})
-          </button>
-        </>
-      )}
     </div>
   );
 }
