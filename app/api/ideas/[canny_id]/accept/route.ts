@@ -33,7 +33,7 @@ export async function POST(
   const [{ data: idea, error: ideaError }, { data: latestEasyWin }] = await Promise.all([
     supabase
       .from("ideas")
-      .select("canny_id, title, synthesis_title, edited_title, committed_scope, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification")
+      .select("canny_id, title, synthesis_title, edited_title, committed_scope, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification, manual_team_classification, linked_krs, manual_linked_krs")
       .eq("canny_id", canny_id)
       .single(),
     supabase
@@ -108,9 +108,10 @@ export async function POST(
     snapshot_deadline_callout: idea.hard_deadline_notes_callout ?? null,
     snapshot_impact_rating: idea.impact_rating ?? null,
     snapshot_confidence_rating: idea.confidence_rating ?? null,
-    snapshot_team_classification: idea.team_classification ?? null,
+    snapshot_team_classification: (idea.manual_team_classification ?? idea.team_classification) ?? null,
     snapshot_status: idea.selection_status ?? null,
     snapshot_committed_scope: idea.committed_scope ?? null,
+    snapshot_linked_krs: ((idea.manual_linked_krs ?? idea.linked_krs) as string[] | null) ?? null,
   });
 
   if (insertError) {

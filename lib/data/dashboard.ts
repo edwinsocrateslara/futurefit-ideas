@@ -51,6 +51,18 @@ export interface DoneItem {
   selection_week: string | null;
   marked_done_at: string;
   reason: string | null;
+  is_quick_win: boolean;
+  tier_1_customer: string | null;
+  canny_url: string | null;
+  status: string | null;
+  impact_rating: number | null;
+  confidence_rating: number | null;
+  team_classification: string | null;
+  linked_krs: string[] | null;
+  why_callout: string | null;
+  customers_prospects_callout: string | null;
+  hard_deadline_notes_callout: string | null;
+  committed_scope: string[] | null;
 }
 
 export interface DashboardEasyWin {
@@ -81,8 +93,17 @@ export interface AcceptedItem {
   jira_status: string;
   accepted_at: string;
   tier_1_customer: string | null;
+  canny_url: string | null;
   snapshot_committed_scope: string[] | null;
   linked_krs: string[] | null;
+  status: string | null;
+  impact_rating: number | null;
+  confidence_rating: number | null;
+  team_classification: string | null;
+  why_callout: string | null;
+  customers_prospects_callout: string | null;
+  hard_deadline_notes_callout: string | null;
+  is_quick_win: boolean;
 }
 
 export interface DoneJiraItem {
@@ -97,7 +118,17 @@ export interface DoneJiraItem {
   accepted_at: string;
   done_at: string;
   tier_1_customer: string | null;
+  canny_url: string | null;
   snapshot_committed_scope: string[] | null;
+  linked_krs: string[] | null;
+  status: string | null;
+  impact_rating: number | null;
+  confidence_rating: number | null;
+  team_classification: string | null;
+  why_callout: string | null;
+  customers_prospects_callout: string | null;
+  hard_deadline_notes_callout: string | null;
+  is_quick_win: boolean;
 }
 
 export interface PinnedItem {
@@ -481,7 +512,7 @@ export async function getDashboardData(
   // Fetching all rows so we can filter surfaced lists correctly regardless of done state.
   const { data: allJiraLinks } = await supabase
     .from("jira_links")
-    .select("canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at, snapshot_reason, snapshot_why_callout, snapshot_customers_callout, snapshot_deadline_callout, snapshot_impact_rating, snapshot_confidence_rating, snapshot_team_classification, snapshot_status, snapshot_committed_scope")
+    .select("canny_id, jira_issue_key, jira_url, jira_status, accepted_at, done_at, snapshot_reason, snapshot_why_callout, snapshot_customers_callout, snapshot_deadline_callout, snapshot_impact_rating, snapshot_confidence_rating, snapshot_team_classification, snapshot_status, snapshot_committed_scope, snapshot_linked_krs")
     .order("accepted_at", { ascending: false });
 
   // All Jira-tracked IDs suppress items from Top 10 / Easy Wins — Jira owns their state now.
@@ -496,7 +527,7 @@ export async function getDashboardData(
     const [{ data: jiraIdeas }, { data: jiraEasyWins }] = await Promise.all([
       supabase
         .from("ideas")
-        .select("canny_id, title, synthesis_title, edited_title, tier_1_customer, selection_reason, selection_week, linked_krs, manual_linked_krs, boards(slug, name)")
+        .select("canny_id, title, synthesis_title, edited_title, tier_1_customer, selection_reason, selection_week, canny_url, boards(slug, name)")
         .in("canny_id", allJiraCannyIds),
       supabase
         .from("easy_wins")
@@ -515,7 +546,7 @@ export async function getDashboardData(
           selection_reason: i.selection_reason,
           selection_week: i.selection_week,
           tier_1_customer: i.tier_1_customer ?? null,
-          linked_krs: ((i.manual_linked_krs ?? i.linked_krs) as string[] | null) ?? null,
+          canny_url: (i.canny_url as string | null) ?? null,
         }];
       })
     );
@@ -555,8 +586,17 @@ export async function getDashboardData(
         jira_status: link.jira_status,
         accepted_at: link.accepted_at,
         tier_1_customer: idea.tier_1_customer,
+        canny_url: idea.canny_url,
         snapshot_committed_scope: (link.snapshot_committed_scope as string[] | null) ?? null,
-        linked_krs: idea.linked_krs ?? null,
+        linked_krs: (link.snapshot_linked_krs as string[] | null) ?? null,
+        status: (link.snapshot_status as string | null) ?? null,
+        impact_rating: (link.snapshot_impact_rating as number | null) ?? null,
+        confidence_rating: (link.snapshot_confidence_rating as number | null) ?? null,
+        team_classification: (link.snapshot_team_classification as string | null) ?? null,
+        why_callout: (link.snapshot_why_callout as string | null) ?? null,
+        customers_prospects_callout: (link.snapshot_customers_callout as string | null) ?? null,
+        hard_deadline_notes_callout: (link.snapshot_deadline_callout as string | null) ?? null,
+        is_quick_win: easyWinReasonMap.has(link.canny_id),
       };
 
       if (link.done_at === null) {
@@ -739,11 +779,20 @@ export async function getDoneItems(): Promise<DoneItem[]> {
   const supabase = createServerClient();
   const { data } = await supabase
     .from("ideas")
-    .select("canny_id, title, synthesis_title, edited_title, marked_done_at, selection_priority_rank, selection_week, deferred_reason, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, marked_done_at, selection_priority_rank, selection_week, deferred_reason, tier_1_customer, canny_url, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, linked_krs, manual_linked_krs, why_callout, customers_prospects_callout, hard_deadline_notes_callout, committed_scope, boards(slug, name)")
     .eq("marked_done", true)
     .order("marked_done_at", { ascending: false });
 
-  return (data ?? []).map((row) => {
+  if (!data || data.length === 0) return [];
+
+  const cannyIds = data.map((r) => r.canny_id);
+  const { data: ewRows } = await supabase
+    .from("easy_wins")
+    .select("canny_id")
+    .in("canny_id", cannyIds);
+  const quickWinSet = new Set((ewRows ?? []).map((r) => r.canny_id));
+
+  return data.map((row) => {
     const board = row.boards as unknown as { slug: string; name: string } | null;
     return {
       canny_id: row.canny_id,
@@ -754,6 +803,18 @@ export async function getDoneItems(): Promise<DoneItem[]> {
       selection_week: row.selection_week,
       marked_done_at: row.marked_done_at!,
       reason: row.deferred_reason ?? null,
+      is_quick_win: quickWinSet.has(row.canny_id),
+      tier_1_customer: row.tier_1_customer ?? null,
+      canny_url: (row.canny_url as string | null) ?? null,
+      status: ((row.manual_status ?? row.selection_status) as string | null) ?? null,
+      impact_rating: ((row.manual_impact_rating ?? row.impact_rating) as number | null) ?? null,
+      confidence_rating: ((row.manual_confidence_rating ?? row.confidence_rating) as number | null) ?? null,
+      team_classification: ((row.manual_team_classification ?? row.team_classification) as string | null) ?? null,
+      linked_krs: ((row.manual_linked_krs ?? row.linked_krs) as string[] | null) ?? null,
+      why_callout: (row.why_callout as string | null) ?? null,
+      customers_prospects_callout: (row.customers_prospects_callout as string | null) ?? null,
+      hard_deadline_notes_callout: (row.hard_deadline_notes_callout as string | null) ?? null,
+      committed_scope: (row.committed_scope as string[] | null) ?? null,
     };
   });
 }

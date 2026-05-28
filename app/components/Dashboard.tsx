@@ -132,7 +132,7 @@ function StatusBadge({
 }: {
   status: StatusValue;
   isOverridden: boolean;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const s = STATUS_STYLES[status];
   return (
@@ -819,6 +819,30 @@ function ImpactConfidenceWithOverride({
   );
 }
 
+// ── Impact/Confidence display-only badge ─────────────────────────────────
+
+function ImpactConfidenceBadge({ impact, confidence }: { impact: number; confidence: number }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        padding: "4px 8px",
+        fontSize: 12,
+        fontWeight: 500,
+        lineHeight: 1,
+        borderRadius: 9999,
+        background: "oklch(0.20 0.06 295)",
+        color: "oklch(0.72 0.18 295)",
+        border: "1px solid oklch(0.55 0.20 295 / 0.35)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      Impact Score {impact * confidence}
+    </span>
+  );
+}
+
 // ── Team classification badge + override ──────────────────────────────────
 
 const TEAM_STYLES: Record<string, { bg: string; color: string; border: string }> = {
@@ -852,7 +876,7 @@ function TeamBadge({
 }: {
   classification: ManualTeamClassification;
   isOverridden: boolean;
-  onClick: () => void;
+  onClick?: () => void;
 }) {
   const s = TEAM_STYLES[classification];
   return (
@@ -1907,6 +1931,316 @@ function NotesLink({
   );
 }
 
+// ── Shared card body ──────────────────────────────────────────────────────────
+
+interface CardBodyProps {
+  canny_id: string;
+  title: string;
+  board_slug: string;
+  tier_1_customer?: string | null;
+  leftBadge?: React.ReactNode;
+  is_new_this_week?: boolean;
+  is_persistent?: boolean;
+  status?: string | null;
+  synthesis_status?: string | null;
+  is_status_overridden?: boolean;
+  impact_rating?: number | null;
+  confidence_rating?: number | null;
+  synthesis_impact_rating?: number | null;
+  synthesis_confidence_rating?: number | null;
+  is_impact_overridden?: boolean;
+  is_confidence_overridden?: boolean;
+  team_classification?: string | null;
+  synthesis_team_classification?: string | null;
+  is_team_overridden?: boolean;
+  is_top_10_type?: boolean;
+  linked_krs?: string[] | null;
+  synthesis_linked_krs?: string[] | null;
+  is_krs_overridden?: boolean;
+  reason?: string | null;
+  why_callout?: string | null;
+  customers_prospects_callout?: string | null;
+  hard_deadline_notes_callout?: string | null;
+  committed_scope?: string[] | null;
+  readOnly?: boolean;
+  onEditTitle?: (cannyId: string) => void;
+  onScopeChange?: (cannyId: string, scope: string[] | null) => void;
+  rank?: number;
+  dragHandleListeners?: Record<string, unknown>;
+  isRankOverridden?: boolean;
+  synthesisRank?: number;
+  isDimmed?: boolean;
+  elementId?: string;
+  trailingControl?: React.ReactNode;
+  children?: React.ReactNode;
+}
+
+function CardBody({
+  canny_id,
+  title,
+  board_slug,
+  tier_1_customer,
+  leftBadge,
+  is_new_this_week,
+  is_persistent,
+  status,
+  synthesis_status,
+  is_status_overridden,
+  impact_rating,
+  confidence_rating,
+  synthesis_impact_rating,
+  synthesis_confidence_rating,
+  is_impact_overridden,
+  is_confidence_overridden,
+  team_classification,
+  synthesis_team_classification,
+  is_team_overridden,
+  is_top_10_type,
+  linked_krs,
+  synthesis_linked_krs,
+  is_krs_overridden,
+  reason,
+  why_callout,
+  customers_prospects_callout,
+  hard_deadline_notes_callout,
+  committed_scope,
+  readOnly = false,
+  onEditTitle,
+  onScopeChange,
+  rank,
+  dragHandleListeners,
+  isRankOverridden,
+  synthesisRank,
+  isDimmed = false,
+  elementId,
+  trailingControl,
+  children,
+}: CardBodyProps) {
+  const [titleHovered, setTitleHovered] = useState(false);
+  const hasRankColumn = rank !== undefined;
+
+  return (
+    <div
+      id={elementId}
+      style={{
+        display: "grid",
+        gridTemplateColumns: hasRankColumn ? "56px 1fr" : "1fr",
+        gap: hasRankColumn ? 20 : 0,
+        padding: hasRankColumn ? "20px 24px 20px 16px" : "20px 24px",
+        background: "oklch(0.18 0 0)",
+        border: "1px solid oklch(1 0 0 / 0.08)",
+        borderRadius: 12,
+        alignItems: "start",
+        opacity: isDimmed ? 0.45 : 1,
+        transition: "opacity 150ms",
+      }}
+    >
+      {/* Rank + drag handle column */}
+      {hasRankColumn && (
+        <div
+          {...(dragHandleListeners as React.HTMLAttributes<HTMLDivElement>)}
+          style={{
+            alignSelf: "stretch",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            paddingTop: 20,
+            paddingBottom: 20,
+            marginTop: -20,
+            marginBottom: -20,
+            borderRight: "0.5px solid oklch(1 0 0 / 0.08)",
+            cursor: dragHandleListeners ? "grab" : "default",
+            touchAction: "none",
+            userSelect: "none",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 2 }}>
+            {dragHandleListeners && (
+              <GripVertical size={16} strokeWidth={1.75} aria-hidden style={{ opacity: 0.25 }} />
+            )}
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 28,
+                fontWeight: 500,
+                fontVariantNumeric: "tabular-nums",
+                color: "oklch(0.65 0 0)",
+                lineHeight: 1,
+                letterSpacing: -0.5,
+              }}
+            >
+              {String(rank).padStart(2, "0")}
+            </span>
+          </div>
+          {isRankOverridden && (
+            <span
+              style={{
+                fontSize: 12,
+                color: "oklch(0.45 0 0)",
+                lineHeight: 1.2,
+                textAlign: "center",
+                whiteSpace: "normal",
+                width: "100%",
+              }}
+            >
+              Previously
+              <br />
+              #{synthesisRank}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* Content column */}
+      <div>
+        {/* Top row: identity badges left, classification badges right */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            <BoardTag slug={board_slug} />
+            {leftBadge}
+            {is_new_this_week && !is_persistent ? (
+              <span
+                style={{
+                  display: "inline-flex", alignItems: "center", padding: "4px 8px",
+                  fontSize: 12, fontWeight: 600, lineHeight: 1, letterSpacing: 0.1, borderRadius: 9999,
+                  background: "oklch(0.20 0.06 145)", color: "oklch(0.72 0.18 145)",
+                  border: "1px solid oklch(0.72 0.18 145 / 0.25)",
+                }}
+              >
+                New
+              </span>
+            ) : is_persistent ? (
+              <span
+                style={{
+                  display: "inline-flex", alignItems: "center", padding: "4px 8px",
+                  fontSize: 12, fontWeight: 600, lineHeight: 1, letterSpacing: 0.1, borderRadius: 9999,
+                  background: "oklch(0.20 0.06 75)", color: "oklch(0.72 0.18 75)",
+                  border: "1px solid oklch(0.72 0.18 75 / 0.25)",
+                }}
+              >
+                4+ Weeks
+              </span>
+            ) : null}
+            <Tier1Badge value={tier_1_customer} />
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {status != null && (
+              readOnly
+                ? <StatusBadge status={status as StatusValue} isOverridden={!!is_status_overridden} />
+                : <StatusBadgeWithOverride cannyId={canny_id} status={status} synthesisStatus={synthesis_status ?? null} isOverridden={is_status_overridden ?? false} />
+            )}
+            {impact_rating != null && confidence_rating != null && (
+              readOnly
+                ? <ImpactConfidenceBadge impact={impact_rating} confidence={confidence_rating} />
+                : <ImpactConfidenceWithOverride cannyId={canny_id} impactRating={impact_rating} confidenceRating={confidence_rating} synthesisImpact={synthesis_impact_rating ?? null} synthesisConfidence={synthesis_confidence_rating ?? null} isImpactOverridden={is_impact_overridden ?? false} isConfidenceOverridden={is_confidence_overridden ?? false} itemTitle={title} />
+            )}
+            {team_classification != null && (
+              readOnly
+                ? <TeamBadge classification={team_classification as ManualTeamClassification} isOverridden={false} />
+                : <TeamClassificationWithOverride cannyId={canny_id} classification={team_classification} synthesisClassification={synthesis_team_classification ?? null} isOverridden={is_team_overridden ?? false} />
+            )}
+            {is_top_10_type && (
+              readOnly
+                ? (linked_krs && linked_krs.length > 0) && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                      {linked_krs.map((kr) => <KRChip key={kr} label={kr} isOverridden={false} />)}
+                    </div>
+                  )
+                : <KRBadgesWithOverride cannyId={canny_id} linkedKrs={linked_krs ?? null} synthesisLinkedKrs={synthesis_linked_krs ?? null} isOverridden={is_krs_overridden ?? false} />
+            )}
+            {trailingControl}
+          </div>
+        </div>
+
+        {/* Title */}
+        <div
+          style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 8 }}
+          onMouseEnter={() => setTitleHovered(true)}
+          onMouseLeave={() => setTitleHovered(false)}
+        >
+          <p
+            style={{
+              margin: 0, flex: 1, fontSize: 16, fontWeight: 600, lineHeight: 1.4,
+              color: "oklch(0.97 0 0)", letterSpacing: -0.2, textWrap: "pretty",
+            }}
+          >
+            {title}
+          </p>
+          {!readOnly && onEditTitle && (
+            <button
+              type="button"
+              onClick={() => onEditTitle(canny_id)}
+              title="Edit title"
+              style={{
+                flexShrink: 0, display: "inline-flex", alignItems: "center",
+                padding: 4, border: "none", background: "transparent",
+                color: "oklch(0.55 0 0)", cursor: "pointer", borderRadius: 4,
+                opacity: titleHovered ? 1 : 0, transition: "opacity 120ms", marginTop: 1,
+              }}
+            >
+              <Pencil size={13} strokeWidth={1.5} aria-hidden />
+            </button>
+          )}
+        </div>
+
+        {/* Reason */}
+        {reason && (
+          <p style={{ margin: "0 0 8px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)", textWrap: "pretty" }}>
+            {reason}
+          </p>
+        )}
+
+        {/* Committed scope */}
+        {committed_scope !== undefined && (
+          <CommittedScopeBlock
+            cannyId={canny_id}
+            scope={committed_scope}
+            onSave={readOnly ? undefined : onScopeChange}
+            readOnly={readOnly}
+          />
+        )}
+
+        {/* Callout block */}
+        {(why_callout || customers_prospects_callout || hard_deadline_notes_callout) && (
+          <div style={{
+            display: "flex", flexDirection: "column", gap: 6, marginTop: 16,
+            padding: "12px 16px", background: "oklch(0.18 0 0)",
+            border: "0.5px solid oklch(1 0 0 / 0.08)", borderRadius: 8,
+          }}>
+            {why_callout && (
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Why: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{why_callout}</span>
+              </p>
+            )}
+            {customers_prospects_callout && (
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Customers: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{customers_prospects_callout}</span>
+              </p>
+            )}
+            {hard_deadline_notes_callout && (
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Deadline: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{hard_deadline_notes_callout}</span>
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* Bottom action row */}
+        {children && (
+          <div style={{ marginTop: 16 }}>
+            {children}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ── Signal row ─────────────────────────────────────────────────────────────────
+
 function SignalRow({
   item,
   displayRank,
@@ -1936,342 +2270,99 @@ function SignalRow({
 }) {
   const isDone = doneSet.has(item.canny_id);
   const [deferHovered, setDeferHovered] = useState(false);
-  const [titleHovered, setTitleHovered] = useState(false);
 
   return (
-    <div
-      id={`signal-${item.canny_id}`}
-      style={{
-        display: "grid",
-        gridTemplateColumns: "56px 1fr",
-        gap: 20,
-        padding: "20px 24px 20px 16px",
-        background: "oklch(0.18 0 0)",
-        border: "1px solid oklch(1 0 0 / 0.08)",
-        borderRadius: 12,
-        alignItems: "start",
-        opacity: isDone ? 0.45 : 1,
-        transition: "opacity 150ms",
-      }}
+    <CardBody
+      elementId={`signal-${item.canny_id}`}
+      canny_id={item.canny_id}
+      title={item.title}
+      board_slug={item.board_slug}
+      tier_1_customer={item.tier_1_customer}
+      is_new_this_week={suppressNewBadge ? false : item.is_new_this_week}
+      is_persistent={item.is_persistent}
+      status={item.status}
+      synthesis_status={item.synthesis_status}
+      is_status_overridden={item.is_status_overridden}
+      impact_rating={item.impact_rating}
+      confidence_rating={item.confidence_rating}
+      synthesis_impact_rating={item.synthesis_impact_rating}
+      synthesis_confidence_rating={item.synthesis_confidence_rating}
+      is_impact_overridden={item.is_impact_overridden}
+      is_confidence_overridden={item.is_confidence_overridden}
+      team_classification={item.team_classification}
+      synthesis_team_classification={item.synthesis_team_classification}
+      is_team_overridden={item.is_team_overridden}
+      is_top_10_type={true}
+      linked_krs={item.linked_krs}
+      synthesis_linked_krs={item.synthesis_linked_krs}
+      is_krs_overridden={item.is_krs_overridden}
+      reason={item.reason}
+      why_callout={item.why_callout}
+      customers_prospects_callout={item.customers_prospects_callout}
+      hard_deadline_notes_callout={item.hard_deadline_notes_callout}
+      committed_scope={isDone ? undefined : item.committed_scope}
+      onEditTitle={isDone ? undefined : onEditTitle}
+      onScopeChange={onScopeChange}
+      rank={displayRank}
+      dragHandleListeners={dragHandleListeners}
+      isRankOverridden={isOverridden}
+      synthesisRank={item.synthesis_rank}
+      isDimmed={isDone}
+      trailingControl={
+        onPin && !isDone ? (
+          <button
+            type="button"
+            onClick={() => onPin(item)}
+            title="Pin"
+            style={{
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: 32, height: 32, borderRadius: 9999, border: "none",
+              background: "transparent", color: "oklch(0.40 0 0)", cursor: "pointer",
+              padding: 0, transition: "background 100ms, color 100ms", marginLeft: 4,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
+            }}
+          >
+            <Pin size={20} strokeWidth={1.75} aria-hidden />
+          </button>
+        ) : undefined
+      }
     >
-      {/* Rank + indicators — drag handle */}
-      <div
-        {...(dragHandleListeners as React.HTMLAttributes<HTMLDivElement>)}
-        style={{
-          alignSelf: "stretch",
-          display: "flex",
-          flexDirection: "column",
-          alignItems: "flex-start",
-          paddingTop: 20,
-          paddingBottom: 20,
-          marginTop: -20,
-          marginBottom: -20,
-          borderRight: "0.5px solid oklch(1 0 0 / 0.08)",
-          cursor: dragHandleListeners ? "grab" : "default",
-          touchAction: "none",
-          userSelect: "none",
-        }}
-      >
-        {/* Inner wrapper: centers icon above number on the same axis; marginTop aligns grip center with Board badge center */}
-        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 2 }}>
-          {dragHandleListeners && (
-            <GripVertical size={16} strokeWidth={1.75} aria-hidden
-              style={{ opacity: 0.25 }}
-            />
-          )}
-          <span
-            style={{
-              fontFamily: "var(--font-mono)",
-              fontSize: 28,
-              fontWeight: 500,
-              fontVariantNumeric: "tabular-nums",
-              color: "oklch(0.65 0 0)",
-              lineHeight: 1,
-              letterSpacing: -0.5,
-            }}
-          >
-            {String(displayRank).padStart(2, "0")}
-          </span>
-        </div>
-        {isOverridden && (
-          <span
-            style={{
-              fontSize: 12,
-              color: "oklch(0.45 0 0)",
-              lineHeight: 1.2,
-              textAlign: "center",
-              whiteSpace: "normal",
-              width: "100%",
-            }}
-          >
-            Previously
-            <br />
-            #{item.synthesis_rank}
-          </span>
-        )}
-      </div>
-
-      {/* Content */}
-      <div>
-        {/* Top row: identity badges left, classification badges right */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <BoardTag slug={item.board_slug} />
-            {item.is_new_this_week && !suppressNewBadge ? (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "4px 8px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  lineHeight: 1,
-                  letterSpacing: 0.1,
-                  borderRadius: 9999,
-                  background: "oklch(0.20 0.06 145)",
-                  color: "oklch(0.72 0.18 145)",
-                  border: "1px solid oklch(0.72 0.18 145 / 0.25)",
-                }}
-              >
-                New
-              </span>
-            ) : item.is_persistent ? (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "4px 8px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  lineHeight: 1,
-                  letterSpacing: 0.1,
-                  borderRadius: 9999,
-                  background: "oklch(0.20 0.06 75)",
-                  color: "oklch(0.72 0.18 75)",
-                  border: "1px solid oklch(0.72 0.18 75 / 0.25)",
-                }}
-              >
-                4+ Weeks
-              </span>
-            ) : null}
-            <Tier1Badge value={item.tier_1_customer} />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <StatusBadgeWithOverride
-              cannyId={item.canny_id}
-              status={item.status}
-              synthesisStatus={item.synthesis_status}
-              isOverridden={item.is_status_overridden}
-            />
-            <ImpactConfidenceWithOverride
-              cannyId={item.canny_id}
-              impactRating={item.impact_rating}
-              confidenceRating={item.confidence_rating}
-              synthesisImpact={item.synthesis_impact_rating}
-              synthesisConfidence={item.synthesis_confidence_rating}
-              isImpactOverridden={item.is_impact_overridden}
-              isConfidenceOverridden={item.is_confidence_overridden}
-              itemTitle={item.title}
-            />
-            <TeamClassificationWithOverride
-              cannyId={item.canny_id}
-              classification={item.team_classification}
-              synthesisClassification={item.synthesis_team_classification}
-              isOverridden={item.is_team_overridden}
-            />
-            <KRBadgesWithOverride
-              cannyId={item.canny_id}
-              linkedKrs={item.linked_krs}
-              synthesisLinkedKrs={item.synthesis_linked_krs}
-              isOverridden={item.is_krs_overridden}
-            />
-            {onPin && !isDone && (
-              <button
-                type="button"
-                onClick={() => onPin(item)}
-                title="Pin"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9999,
-                  border: "none",
-                  background: "transparent",
-                  color: "oklch(0.40 0 0)",
-                  cursor: "pointer",
-                  padding: 0,
-                  transition: "background 100ms, color 100ms",
-                  marginLeft: 4,
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
-                }}
-              >
-                <Pin size={20} strokeWidth={1.75} aria-hidden />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div
-          style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 8 }}
-          onMouseEnter={() => setTitleHovered(true)}
-          onMouseLeave={() => setTitleHovered(false)}
-        >
-          <p
-            style={{
-              margin: 0,
-              flex: 1,
-              fontSize: 16,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: "oklch(0.97 0 0)",
-              letterSpacing: -0.2,
-            }}
-          >
-            {item.title}
-          </p>
-          {onEditTitle && !isDone && (
-            <button
-              type="button"
-              onClick={() => onEditTitle(item.canny_id)}
-              title="Edit title"
-              style={{
-                flexShrink: 0,
-                display: "inline-flex",
-                alignItems: "center",
-                padding: 4,
-                border: "none",
-                background: "transparent",
-                color: "oklch(0.55 0 0)",
-                cursor: "pointer",
-                borderRadius: 4,
-                opacity: titleHovered ? 1 : 0,
-                transition: "opacity 120ms",
-                marginTop: 1,
-              }}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {item.canny_url && (
+            <a href={item.canny_url} target="_blank" rel="noopener noreferrer" className="canny-link"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "oklch(0.55 0 0)", textDecoration: "underline", textUnderlineOffset: 3, textDecorationThickness: 1, letterSpacing: 0.2 }}
             >
-              <Pencil size={13} strokeWidth={1.5} aria-hidden />
-            </button>
+              View in Canny →
+            </a>
           )}
         </div>
-        <p
-          style={{
-            margin: "0 0 8px 0",
-            fontSize: 14,
-            lineHeight: 1.6,
-            color: "oklch(0.85 0 0)",
-            textWrap: "pretty",
-          }}
-        >
-          {item.reason}
-        </p>
-
-        {/* Committed scope */}
-        {!isDone && (
-          <CommittedScopeBlock
-            cannyId={item.canny_id}
-            scope={item.committed_scope}
-            onSave={onScopeChange}
-          />
-        )}
-
-        {/* Callouts — rendered only when content exists */}
-        {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
-          <div style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            marginTop: 16,
-            padding: "12px 16px",
-            background: "oklch(0.18 0 0)",
-            border: "0.5px solid oklch(1 0 0 / 0.08)",
-            borderRadius: 8,
-          }}>
-            {item.why_callout && (
-              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                <span style={{ color: "oklch(0.55 0 0)" }}>Why: </span>
-                <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
-              </p>
-            )}
-            {item.customers_prospects_callout && (
-              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                <span style={{ color: "oklch(0.55 0 0)" }}>Customers: </span>
-                <span style={{ color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
-              </p>
-            )}
-            {item.hard_deadline_notes_callout && (
-              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                <span style={{ color: "oklch(0.55 0 0)" }}>Deadline: </span>
-                <span style={{ color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Bottom action row: links left, buttons right */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {item.canny_url && (
-              <a
-                href={item.canny_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="canny-link"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 12,
-                  color: "oklch(0.55 0 0)",
-                  textDecoration: "underline",
-                  textUnderlineOffset: 3,
-                  textDecorationThickness: 1,
-                  letterSpacing: 0.2,
-                }}
-              >
-                View in Canny →
-              </a>
-            )}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => onToggleDone(item)}
-              onMouseEnter={() => setDeferHovered(true)}
-              onMouseLeave={() => setDeferHovered(false)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "8px 18px",
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: 0.2,
-                borderRadius: 9999,
-                border: "none",
-                background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
-                color: "oklch(0.85 0 0)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: "background 120ms",
-              }}
-            >
-              {isDone ? "Undo" : "Defer"}
-            </button>
-            {item.jira_story && (
-              <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />
-            )}
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => onToggleDone(item)}
+            onMouseEnter={() => setDeferHovered(true)}
+            onMouseLeave={() => setDeferHovered(false)}
+            style={{
+              display: "inline-flex", alignItems: "center", padding: "8px 18px",
+              fontSize: 13, fontWeight: 600, letterSpacing: 0.2, borderRadius: 9999,
+              border: "none", background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
+              color: "oklch(0.85 0 0)", cursor: "pointer", whiteSpace: "nowrap", transition: "background 120ms",
+            }}
+          >
+            {isDone ? "Undo" : "Defer"}
+          </button>
+          {item.jira_story && <AcceptButton cannyId={item.canny_id} onSuccess={onAccepted} />}
         </div>
       </div>
-    </div>
+    </CardBody>
   );
 }
 
@@ -2330,201 +2421,76 @@ function EasyWinCard({
 }) {
   const isDone = doneSet.has(win.canny_id);
   const [deferHovered, setDeferHovered] = useState(false);
-  const [titleHovered, setTitleHovered] = useState(false);
 
   return (
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr",
-        gap: 20,
-        padding: "20px 24px",
-        background: "oklch(0.18 0 0)",
-        border: "1px solid oklch(1 0 0 / 0.08)",
-        borderRadius: 12,
-        alignItems: "start",
-        opacity: isDone ? 0.45 : 1,
-        transition: "opacity 150ms",
-      }}
-    >
-      {/* Content */}
-      <div>
-        {/* Top row: identity badges left, team classification right */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-            <BoardTag slug={win.board_slug} />
-            {win.is_new_this_week && (
-              <span
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: "4px 8px",
-                  fontSize: 12,
-                  fontWeight: 600,
-                  lineHeight: 1,
-                  letterSpacing: 0.1,
-                  borderRadius: 9999,
-                  background: "oklch(0.20 0.06 145)",
-                  color: "oklch(0.72 0.18 145)",
-                  border: "1px solid oklch(0.72 0.18 145 / 0.25)",
-                }}
-              >
-                New
-              </span>
-            )}
-            <Tier1Badge value={win.tier_1_customer} />
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <TeamClassificationWithOverride
-              cannyId={win.canny_id}
-              classification={win.team_classification}
-              synthesisClassification={win.synthesis_team_classification}
-              isOverridden={win.is_team_overridden}
-            />
-            {onPin && !isDone && (
-              <button
-                type="button"
-                onClick={() => onPin(win)}
-                title="Pin"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9999,
-                  border: "none",
-                  background: "transparent",
-                  color: "oklch(0.40 0 0)",
-                  cursor: "pointer",
-                  padding: 0,
-                  transition: "background 100ms, color 100ms",
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
-                }}
-              >
-                <Pin size={20} strokeWidth={1.75} aria-hidden />
-              </button>
-            )}
-          </div>
-        </div>
-
-        <div
-          style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 8 }}
-          onMouseEnter={() => setTitleHovered(true)}
-          onMouseLeave={() => setTitleHovered(false)}
-        >
-          <p
+    <CardBody
+      canny_id={win.canny_id}
+      title={win.title}
+      board_slug={win.board_slug}
+      tier_1_customer={win.tier_1_customer}
+      is_new_this_week={win.is_new_this_week}
+      is_top_10_type={false}
+      team_classification={win.team_classification}
+      synthesis_team_classification={win.synthesis_team_classification}
+      is_team_overridden={win.is_team_overridden}
+      reason={win.reason}
+      onEditTitle={isDone ? undefined : onEditTitle}
+      isDimmed={isDone}
+      trailingControl={
+        onPin && !isDone ? (
+          <button
+            type="button"
+            onClick={() => onPin(win)}
+            title="Pin"
             style={{
-              margin: 0,
-              flex: 1,
-              fontSize: 16,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: "oklch(0.97 0 0)",
-              letterSpacing: -0.2,
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+              width: 32, height: 32, borderRadius: 9999, border: "none",
+              background: "transparent", color: "oklch(0.40 0 0)", cursor: "pointer",
+              padding: 0, transition: "background 100ms, color 100ms",
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.72 0 0)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.40 0 0)";
             }}
           >
-            {win.title}
-          </p>
-          {onEditTitle && !isDone && (
-            <button
-              type="button"
-              onClick={() => onEditTitle(win.canny_id)}
-              title="Edit title"
-              style={{
-                flexShrink: 0,
-                display: "inline-flex",
-                alignItems: "center",
-                padding: 4,
-                border: "none",
-                background: "transparent",
-                color: "oklch(0.55 0 0)",
-                cursor: "pointer",
-                borderRadius: 4,
-                opacity: titleHovered ? 1 : 0,
-                transition: "opacity 120ms",
-                marginTop: 1,
-              }}
+            <Pin size={20} strokeWidth={1.75} aria-hidden />
+          </button>
+        ) : undefined
+      }
+    >
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+          {win.canny_url && (
+            <a href={win.canny_url} target="_blank" rel="noopener noreferrer" className="canny-link"
+              style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "oklch(0.55 0 0)", textDecoration: "underline", textUnderlineOffset: 3, textDecorationThickness: 1, letterSpacing: 0.2 }}
             >
-              <Pencil size={13} strokeWidth={1.5} aria-hidden />
-            </button>
+              View in Canny →
+            </a>
           )}
         </div>
-        <p
-          style={{
-            margin: "0 0 8px 0",
-            fontSize: 14,
-            lineHeight: 1.6,
-            color: "oklch(0.85 0 0)",
-            textWrap: "pretty",
-          }}
-        >
-          {win.reason}
-        </p>
-
-        {/* Bottom action row: links left, buttons right */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            {win.canny_url && (
-              <a
-                href={win.canny_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="canny-link"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  gap: 4,
-                  fontSize: 12,
-                  color: "oklch(0.55 0 0)",
-                  textDecoration: "underline",
-                  textUnderlineOffset: 3,
-                  textDecorationThickness: 1,
-                  letterSpacing: 0.2,
-                }}
-              >
-                View in Canny →
-              </a>
-            )}
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <button
-              type="button"
-              onClick={() => onToggleDone(win)}
-              onMouseEnter={() => setDeferHovered(true)}
-              onMouseLeave={() => setDeferHovered(false)}
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                padding: "8px 18px",
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: 0.2,
-                borderRadius: 9999,
-                border: "none",
-                background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
-                color: "oklch(0.85 0 0)",
-                cursor: "pointer",
-                whiteSpace: "nowrap",
-                transition: "background 120ms",
-              }}
-            >
-              {isDone ? "Undo" : "Defer"}
-            </button>
-            {win.jira_story && (
-              <AcceptButton cannyId={win.canny_id} onSuccess={onAccepted} />
-            )}
-          </div>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <button
+            type="button"
+            onClick={() => onToggleDone(win)}
+            onMouseEnter={() => setDeferHovered(true)}
+            onMouseLeave={() => setDeferHovered(false)}
+            style={{
+              display: "inline-flex", alignItems: "center", padding: "8px 18px",
+              fontSize: 13, fontWeight: 600, letterSpacing: 0.2, borderRadius: 9999,
+              border: "none", background: deferHovered ? "oklch(1 0 0 / 0.04)" : "transparent",
+              color: "oklch(0.85 0 0)", cursor: "pointer", whiteSpace: "nowrap", transition: "background 120ms",
+            }}
+          >
+            {isDone ? "Undo" : "Defer"}
+          </button>
+          {win.jira_story && <AcceptButton cannyId={win.canny_id} onSuccess={onAccepted} />}
         </div>
       </div>
-    </div>
+    </CardBody>
   );
 }
 
@@ -3168,6 +3134,12 @@ function SuggestActionCards({
 
 // ── Accepted tab ──────────────────────────────────────────────────────────────
 
+const jiraLinkStyle: React.CSSProperties = {
+  display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12,
+  color: "oklch(0.55 0 0)", textDecoration: "underline", textUnderlineOffset: 3,
+  textDecorationThickness: 1, letterSpacing: 0.2,
+};
+
 function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCounts: Record<string, number> }) {
   if (items.length === 0) {
     return (
@@ -3180,83 +3152,37 @@ function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCount
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {items.map((item) => (
-        <div
+        <CardBody
           key={item.canny_id}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            padding: "20px 24px",
-            background: "oklch(0.18 0 0)",
-            border: "1px solid oklch(1 0 0 / 0.08)",
-            borderRadius: 12,
-          }}
+          canny_id={item.canny_id}
+          title={item.title}
+          board_slug={item.board_slug}
+          tier_1_customer={item.tier_1_customer}
+          leftBadge={<JiraStatusBadge status={item.jira_status} />}
+          status={item.status}
+          impact_rating={item.impact_rating}
+          confidence_rating={item.confidence_rating}
+          team_classification={item.team_classification}
+          is_top_10_type={!item.is_quick_win}
+          linked_krs={item.linked_krs}
+          reason={item.reason}
+          why_callout={item.why_callout}
+          customers_prospects_callout={item.customers_prospects_callout}
+          hard_deadline_notes_callout={item.hard_deadline_notes_callout}
+          committed_scope={item.snapshot_committed_scope}
+          readOnly
         >
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <BoardTag slug={item.board_slug} />
-              <JiraStatusBadge status={item.jira_status} />
-              <Tier1Badge value={item.tier_1_customer} />
-            </div>
-            {item.linked_krs && item.linked_krs.length > 0 && (
-              <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                {item.linked_krs.map((kr) => (
-                  <KRChip key={kr} label={kr} isOverridden={false} />
-                ))}
-              </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {item.canny_url && (
+              <a href={item.canny_url} target="_blank" rel="noopener noreferrer" className="canny-link" style={jiraLinkStyle}>
+                View in Canny →
+              </a>
             )}
-          </div>
-          <p
-            style={{
-              margin: "0 0 8px 0",
-              fontSize: 16,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: "oklch(0.97 0 0)",
-              letterSpacing: -0.2,
-              textWrap: "pretty",
-            }}
-          >
-            {item.title}
-          </p>
-          {item.reason && (
-            <p
-              style={{
-                margin: "0 0 8px 0",
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "oklch(0.85 0 0)",
-                textWrap: "pretty",
-              }}
-            >
-              {item.reason}
-            </p>
-          )}
-          <CommittedScopeBlock
-            cannyId={item.canny_id}
-            scope={item.snapshot_committed_scope}
-            readOnly
-          />
-          <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 12 }}>
-            <a
-              href={item.jira_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: 4,
-                fontSize: 12,
-                color: "oklch(0.55 0 0)",
-                textDecoration: "underline",
-                textUnderlineOffset: 3,
-                textDecorationThickness: 1,
-                letterSpacing: 0.2,
-              }}
-            >
+            <a href={item.jira_url} target="_blank" rel="noopener noreferrer" style={jiraLinkStyle}>
               {item.jira_issue_key} · View in Jira →
             </a>
           </div>
-        </div>
+        </CardBody>
       ))}
     </div>
   );
@@ -3276,80 +3202,66 @@ function JiraDoneTab({ items }: { items: DoneJiraItem[] }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {items.map((item) => (
-        <div
+        <CardBody
           key={item.canny_id}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr",
-            padding: "20px 24px",
-            background: "oklch(0.18 0 0)",
-            border: "1px solid oklch(1 0 0 / 0.08)",
-            borderRadius: 12,
-            opacity: 0.75,
-          }}
+          canny_id={item.canny_id}
+          title={item.title}
+          board_slug={item.board_slug}
+          tier_1_customer={item.tier_1_customer}
+          leftBadge={<JiraStatusBadge status={item.jira_status} />}
+          status={item.status}
+          impact_rating={item.impact_rating}
+          confidence_rating={item.confidence_rating}
+          team_classification={item.team_classification}
+          is_top_10_type={!item.is_quick_win}
+          linked_krs={item.linked_krs}
+          reason={item.reason}
+          why_callout={item.why_callout}
+          customers_prospects_callout={item.customers_prospects_callout}
+          hard_deadline_notes_callout={item.hard_deadline_notes_callout}
+          committed_scope={item.snapshot_committed_scope}
+          readOnly
+          isDimmed
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-            <BoardTag slug={item.board_slug} />
-            <JiraStatusBadge status={item.jira_status} />
-            <Tier1Badge value={item.tier_1_customer} />
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            {item.canny_url && (
+              <a href={item.canny_url} target="_blank" rel="noopener noreferrer" className="canny-link" style={jiraLinkStyle}>
+                View in Canny →
+              </a>
+            )}
+            <a href={item.jira_url} target="_blank" rel="noopener noreferrer" style={jiraLinkStyle}>
+              {item.jira_issue_key} · View in Jira →
+            </a>
           </div>
-          <p
-            style={{
-              margin: "0 0 8px 0",
-              fontSize: 16,
-              fontWeight: 600,
-              lineHeight: 1.4,
-              color: "oklch(0.97 0 0)",
-              letterSpacing: -0.2,
-              textWrap: "pretty",
-            }}
-          >
-            {item.title}
-          </p>
-          {item.reason && (
-            <p
-              style={{
-                margin: "0 0 8px 0",
-                fontSize: 14,
-                lineHeight: 1.6,
-                color: "oklch(0.85 0 0)",
-                textWrap: "pretty",
-              }}
-            >
-              {item.reason}
-            </p>
-          )}
-          <CommittedScopeBlock
-            cannyId={item.canny_id}
-            scope={item.snapshot_committed_scope}
-            readOnly
-          />
-          <a
-            href={item.jira_url}
-            target="_blank"
-            rel="noopener noreferrer"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: 4,
-              fontSize: 12,
-              color: "oklch(0.55 0 0)",
-              textDecoration: "underline",
-              textUnderlineOffset: 3,
-              textDecorationThickness: 1,
-              letterSpacing: 0.2,
-              marginTop: 12,
-            }}
-          >
-            {item.jira_issue_key} · View in Jira →
-          </a>
-        </div>
+        </CardBody>
       ))}
     </div>
   );
 }
 
 // ── Done tab ───────────────────────────────────────────────────────────────────
+
+function UndoButton({ onUnmark }: { onUnmark: () => void }) {
+  const [hovered, setHovered] = useState(false);
+  return (
+    <button
+      type="button"
+      onClick={onUnmark}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      style={{
+        padding: "4px 10px", fontSize: 12, fontWeight: 500, borderRadius: 9999,
+        border: hovered ? "1px solid oklch(0.70 0.20 145)" : "1px solid oklch(1 0 0 / 0.10)",
+        background: hovered ? "oklch(0.70 0.20 145)" : "transparent",
+        color: hovered ? "oklch(0.15 0 0)" : "oklch(0.55 0 0)",
+        cursor: "pointer", whiteSpace: "nowrap",
+        transition: "background 150ms, border-color 150ms, color 150ms",
+      }}
+    >
+      Undo
+    </button>
+  );
+}
 
 function DoneTab({
   items,
@@ -3360,8 +3272,6 @@ function DoneTab({
   onUnmark: (cannyId: string) => void;
   notesCounts?: Record<string, number>;
 }) {
-  const [hoveredId, setHoveredId] = useState<string | null>(null);
-
   if (items.length === 0) {
     return (
       <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
@@ -3373,71 +3283,37 @@ function DoneTab({
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
       {items.map((item) => (
-        <div
+        <CardBody
           key={item.canny_id}
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr auto",
-            gap: 16,
-            padding: "16px 20px",
-            background: "oklch(0.16 0 0)",
-            border: "1px solid oklch(1 0 0 / 0.06)",
-            borderRadius: 10,
-            alignItems: "start",
-          }}
+          canny_id={item.canny_id}
+          title={item.title}
+          board_slug={item.board_slug}
+          tier_1_customer={item.tier_1_customer}
+          status={item.status}
+          impact_rating={item.impact_rating}
+          confidence_rating={item.confidence_rating}
+          team_classification={item.team_classification}
+          is_top_10_type={!item.is_quick_win}
+          linked_krs={item.linked_krs}
+          reason={item.reason}
+          why_callout={item.why_callout}
+          customers_prospects_callout={item.customers_prospects_callout}
+          hard_deadline_notes_callout={item.hard_deadline_notes_callout}
+          committed_scope={item.committed_scope}
+          readOnly
+          isDimmed
         >
-          <div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-              <BoardTag slug={item.board_slug} />
-              {item.selection_week && (
-                <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
-                  {item.selection_week}
-                </span>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+              {item.canny_url && (
+                <a href={item.canny_url} target="_blank" rel="noopener noreferrer" className="canny-link" style={jiraLinkStyle}>
+                  View in Canny →
+                </a>
               )}
             </div>
-            <p
-              style={{
-                margin: "0 0 6px 0",
-                fontSize: 16,
-                fontWeight: 500,
-                color: "oklch(0.72 0 0)",
-                lineHeight: 1.4,
-                textDecoration: "line-through",
-                textDecorationColor: "oklch(0.35 0 0)",
-              }}
-            >
-              {item.title}
-            </p>
-            {item.reason && (
-              <p style={{ margin: "0 0 8px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)", textWrap: "pretty" }}>
-                {item.reason}
-              </p>
-            )}
+            <UndoButton onUnmark={() => onUnmark(item.canny_id)} />
           </div>
-          <button
-            type="button"
-            onClick={() => onUnmark(item.canny_id)}
-            onMouseEnter={() => setHoveredId(item.canny_id)}
-            onMouseLeave={() => setHoveredId(null)}
-            title="Mark undone"
-            style={{
-              padding: "4px 10px",
-              fontSize: 12,
-              fontWeight: 500,
-              borderRadius: 9999,
-              border: hoveredId === item.canny_id
-                ? "1px solid oklch(0.70 0.20 145)"
-                : "1px solid oklch(1 0 0 / 0.10)",
-              background: hoveredId === item.canny_id ? "oklch(0.70 0.20 145)" : "transparent",
-              color: hoveredId === item.canny_id ? "oklch(0.15 0 0)" : "oklch(0.55 0 0)",
-              cursor: "pointer",
-              whiteSpace: "nowrap",
-              transition: "background 150ms, border-color 150ms, color 150ms",
-            }}
-          >
-            Undo
-          </button>
-        </div>
+        </CardBody>
       ))}
     </div>
   );
@@ -3471,7 +3347,6 @@ function SortablePinnedCard({
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.canny_id });
   const [hoveredDefer, setHoveredDefer] = useState(false);
-  const [hoveredTitle, setHoveredTitle] = useState(false);
 
   return (
     <div
@@ -3484,223 +3359,78 @@ function SortablePinnedCard({
         position: "relative",
       }}
     >
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "56px 1fr",
-          gap: 20,
-          padding: "20px 24px 20px 16px",
-          background: "oklch(0.18 0 0)",
-          border: "1px solid oklch(1 0 0 / 0.08)",
-          borderRadius: 12,
-          alignItems: "start",
-          opacity: isDragging ? 0.5 : 1,
-          transition: "opacity 150ms",
-        }}
-      >
-        {/* Rank + drag handle */}
-        <div
-          {...(listeners as React.HTMLAttributes<HTMLDivElement>)}
-          style={{
-            alignSelf: "stretch",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "flex-start",
-            paddingTop: 20,
-            paddingBottom: 20,
-            marginTop: -20,
-            marginBottom: -20,
-            borderRight: "0.5px solid oklch(1 0 0 / 0.08)",
-            cursor: "grab",
-            touchAction: "none",
-            userSelect: "none",
-          }}
-        >
-          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 2 }}>
-            <GripVertical size={16} strokeWidth={1.75} aria-hidden style={{ opacity: 0.25 }} />
-            <span
-              style={{
-                fontFamily: "var(--font-mono)",
-                fontSize: 28,
-                fontWeight: 500,
-                fontVariantNumeric: "tabular-nums",
-                color: "oklch(0.65 0 0)",
-                lineHeight: 1,
-                letterSpacing: -0.5,
-              }}
-            >
-              {String(displayRank).padStart(2, "0")}
-            </span>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div>
-          {/* Top row: identity badges left, classification badges right */}
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-              <BoardTag slug={item.board_slug} />
-              {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-              <StatusBadgeWithOverride
-                cannyId={item.canny_id}
-                status={item.status}
-                synthesisStatus={item.synthesis_status}
-                isOverridden={item.is_status_overridden}
-              />
-              <ImpactConfidenceWithOverride
-                cannyId={item.canny_id}
-                impactRating={item.impact_rating}
-                confidenceRating={item.confidence_rating}
-                synthesisImpact={item.synthesis_impact_rating}
-                synthesisConfidence={item.synthesis_confidence_rating}
-                isImpactOverridden={item.is_impact_overridden}
-                isConfidenceOverridden={item.is_confidence_overridden}
-                itemTitle={item.title}
-              />
-              <TeamClassificationWithOverride
-                cannyId={item.canny_id}
-                classification={item.team_classification}
-                synthesisClassification={item.synthesis_team_classification}
-                isOverridden={item.is_team_overridden}
-              />
-              <KRBadgesWithOverride
-                cannyId={item.canny_id}
-                linkedKrs={item.linked_krs}
-                synthesisLinkedKrs={item.synthesis_linked_krs}
-                isOverridden={item.is_krs_overridden}
-              />
-              <button
-                type="button"
-                onClick={() => onUnpin(item)}
-                title="Unpin"
-                style={{
-                  display: "inline-flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  width: 32,
-                  height: 32,
-                  borderRadius: 9999,
-                  border: "none",
-                  background: "transparent",
-                  color: "oklch(0.75 0.20 25)",
-                  cursor: "pointer",
-                  padding: 0,
-                  transition: "background 100ms, color 100ms",
-                  marginLeft: 4,
-                  flexShrink: 0,
-                }}
-                onMouseEnter={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-                }}
-                onMouseLeave={(e) => {
-                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-                }}
-              >
-                <Pin size={20} strokeWidth={1.75} aria-hidden />
-              </button>
-            </div>
-          </div>
-
-          {/* Title */}
-          <div
-            style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 8 }}
-            onMouseEnter={() => setHoveredTitle(true)}
-            onMouseLeave={() => setHoveredTitle(false)}
+      <CardBody
+        canny_id={item.canny_id}
+        title={item.title}
+        board_slug={item.board_slug}
+        tier_1_customer={item.tier_1_customer}
+        status={item.status}
+        synthesis_status={item.synthesis_status}
+        is_status_overridden={item.is_status_overridden}
+        impact_rating={item.impact_rating}
+        confidence_rating={item.confidence_rating}
+        synthesis_impact_rating={item.synthesis_impact_rating}
+        synthesis_confidence_rating={item.synthesis_confidence_rating}
+        is_impact_overridden={item.is_impact_overridden}
+        is_confidence_overridden={item.is_confidence_overridden}
+        team_classification={item.team_classification}
+        synthesis_team_classification={item.synthesis_team_classification}
+        is_team_overridden={item.is_team_overridden}
+        is_top_10_type={item.pinned_from !== "quick_win"}
+        linked_krs={item.linked_krs}
+        synthesis_linked_krs={item.synthesis_linked_krs}
+        is_krs_overridden={item.is_krs_overridden}
+        reason={item.selection_reason}
+        why_callout={item.why_callout}
+        customers_prospects_callout={item.customers_prospects_callout}
+        hard_deadline_notes_callout={item.hard_deadline_notes_callout}
+        committed_scope={item.committed_scope}
+        onEditTitle={onEditTitle}
+        onScopeChange={onScopeChange}
+        rank={displayRank}
+        dragHandleListeners={listeners as Record<string, unknown>}
+        isDimmed={isDragging}
+        trailingControl={
+          <button
+            type="button"
+            onClick={() => onUnpin(item)}
+            title="Unpin"
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              justifyContent: "center",
+              width: 32,
+              height: 32,
+              borderRadius: 9999,
+              border: "none",
+              background: "transparent",
+              color: "oklch(0.75 0.20 25)",
+              cursor: "pointer",
+              padding: 0,
+              transition: "background 100ms, color 100ms",
+              marginLeft: 4,
+              flexShrink: 0,
+            }}
+            onMouseEnter={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+            }}
+            onMouseLeave={(e) => {
+              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+            }}
           >
-            <p style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, lineHeight: 1.4, color: "oklch(0.97 0 0)", textWrap: "pretty" }}>
-              {item.title}
-            </p>
-            {onEditTitle && (
-              <button
-                type="button"
-                onClick={() => onEditTitle(item.canny_id)}
-                title="Edit title"
-                style={{
-                  flexShrink: 0,
-                  display: "inline-flex",
-                  alignItems: "center",
-                  padding: 4,
-                  border: "none",
-                  background: "transparent",
-                  color: "oklch(0.55 0 0)",
-                  cursor: "pointer",
-                  borderRadius: 4,
-                  opacity: hoveredTitle ? 1 : 0,
-                  transition: "opacity 120ms",
-                  marginTop: 1,
-                }}
-              >
-                <Pencil size={13} strokeWidth={1.5} aria-hidden />
-              </button>
-            )}
-          </div>
-
-          {/* Reason */}
-          {item.selection_reason && (
-            <p style={{ margin: "0 0 8px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)", textWrap: "pretty" }}>
-              {item.selection_reason}
-            </p>
-          )}
-
-          {/* Committed scope */}
-          <CommittedScopeBlock
-            cannyId={item.canny_id}
-            scope={item.committed_scope}
-            onSave={onScopeChange}
-          />
-
-          {/* Callout block */}
-          {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
-            <div style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              marginTop: 16,
-              padding: "12px 16px",
-              background: "oklch(0.18 0 0)",
-              border: "0.5px solid oklch(1 0 0 / 0.08)",
-              borderRadius: 8,
-            }}>
-              {item.why_callout && (
-                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                  <span style={{ color: "oklch(0.55 0 0)" }}>Why: </span>
-                  <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
-                </p>
-              )}
-              {item.customers_prospects_callout && (
-                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                  <span style={{ color: "oklch(0.55 0 0)" }}>Customers: </span>
-                  <span style={{ color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
-                </p>
-              )}
-              {item.hard_deadline_notes_callout && (
-                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                  <span style={{ color: "oklch(0.55 0 0)" }}>Deadline: </span>
-                  <span style={{ color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
-                </p>
-              )}
-            </div>
-          )}
-
-        {/* Bottom action row */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
+            <Pin size={20} strokeWidth={1.75} aria-hidden />
+          </button>
+        }
+      >
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
             {item.canny_url && (
-              <a
-                href={item.canny_url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="canny-link"
-                style={{ display: "inline-flex", alignItems: "center", gap: 4, fontSize: 12, color: "oklch(0.55 0 0)", textDecoration: "underline", textUnderlineOffset: 3, textDecorationThickness: 1, letterSpacing: 0.2 }}
-              >
+              <a href={item.canny_url} target="_blank" rel="noopener noreferrer" className="canny-link" style={jiraLinkStyle}>
                 View in Canny →
               </a>
             )}
-
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
@@ -3729,8 +3459,7 @@ function SortablePinnedCard({
             <AcceptButton cannyId={item.canny_id} onSuccess={(_, result) => onAccepted(item, result)} />
           </div>
         </div>
-        </div>
-      </div>
+      </CardBody>
     </div>
   );
 }
@@ -3969,8 +3698,17 @@ export default function Dashboard({
         jira_status: result.status,
         accepted_at: new Date().toISOString(),
         tier_1_customer: item.tier_1_customer,
+        canny_url: item.canny_url ?? null,
         snapshot_committed_scope: snapshotScope,
         linked_krs: signal?.linked_krs ?? null,
+        status: signal?.status ?? null,
+        impact_rating: signal?.impact_rating ?? null,
+        confidence_rating: signal?.confidence_rating ?? null,
+        team_classification: signal?.team_classification ?? win?.team_classification ?? null,
+        why_callout: signal?.why_callout ?? null,
+        customers_prospects_callout: signal?.customers_prospects_callout ?? null,
+        hard_deadline_notes_callout: signal?.hard_deadline_notes_callout ?? null,
+        is_quick_win: win !== undefined,
       },
       ...prev,
     ]);
@@ -3991,8 +3729,17 @@ export default function Dashboard({
         jira_status: result.status,
         accepted_at: new Date().toISOString(),
         tier_1_customer: item.tier_1_customer,
+        canny_url: item.canny_url,
         snapshot_committed_scope: resolveScope(item.canny_id, item.committed_scope),
         linked_krs: item.linked_krs,
+        status: item.status,
+        impact_rating: item.impact_rating,
+        confidence_rating: item.confidence_rating,
+        team_classification: item.team_classification,
+        why_callout: item.why_callout,
+        customers_prospects_callout: item.customers_prospects_callout,
+        hard_deadline_notes_callout: item.hard_deadline_notes_callout,
+        is_quick_win: item.pinned_from === "quick_win",
       },
       ...prev,
     ]);
@@ -4125,6 +3872,18 @@ export default function Dashboard({
       selection_week: null,
       marked_done_at: new Date().toISOString(),
       reason: item.selection_reason ?? null,
+      is_quick_win: item.pinned_from === "quick_win",
+      tier_1_customer: item.tier_1_customer,
+      canny_url: item.canny_url,
+      status: item.status,
+      impact_rating: item.impact_rating,
+      confidence_rating: item.confidence_rating,
+      team_classification: item.team_classification,
+      linked_krs: item.linked_krs,
+      why_callout: item.why_callout,
+      customers_prospects_callout: item.customers_prospects_callout,
+      hard_deadline_notes_callout: item.hard_deadline_notes_callout,
+      committed_scope: item.committed_scope,
     };
     setDoneItems((prev) => [newDone, ...prev]);
 
@@ -4156,6 +3915,18 @@ export default function Dashboard({
         selection_week: data.week_of,
         marked_done_at: new Date().toISOString(),
         reason: item.reason,
+        is_quick_win: false,
+        tier_1_customer: item.tier_1_customer,
+        canny_url: item.canny_url,
+        status: item.status,
+        impact_rating: item.impact_rating,
+        confidence_rating: item.confidence_rating,
+        team_classification: item.team_classification,
+        linked_krs: item.linked_krs,
+        why_callout: item.why_callout,
+        customers_prospects_callout: item.customers_prospects_callout,
+        hard_deadline_notes_callout: item.hard_deadline_notes_callout,
+        committed_scope: item.committed_scope,
       };
       setDoneItems((prev) => [newDone, ...prev]);
     }
@@ -4174,6 +3945,18 @@ export default function Dashboard({
             selection_week: data.week_of,
             marked_done_at: new Date().toISOString(),
             reason: item.reason,
+            is_quick_win: false,
+            tier_1_customer: item.tier_1_customer,
+            canny_url: item.canny_url,
+            status: item.status,
+            impact_rating: item.impact_rating,
+            confidence_rating: item.confidence_rating,
+            team_classification: item.team_classification,
+            linked_krs: item.linked_krs,
+            why_callout: item.why_callout,
+            customers_prospects_callout: item.customers_prospects_callout,
+            hard_deadline_notes_callout: item.hard_deadline_notes_callout,
+            committed_scope: item.committed_scope,
           };
           setDoneItems((prev) => [reverted, ...prev]);
         } else {
@@ -4199,6 +3982,18 @@ export default function Dashboard({
           selection_week: data.week_of,
           marked_done_at: new Date().toISOString(),
           reason: win.reason ?? null,
+          is_quick_win: true,
+          tier_1_customer: win.tier_1_customer,
+          canny_url: win.canny_url ?? null,
+          status: null,
+          impact_rating: null,
+          confidence_rating: null,
+          team_classification: win.team_classification ?? null,
+          linked_krs: null,
+          why_callout: null,
+          customers_prospects_callout: null,
+          hard_deadline_notes_callout: null,
+          committed_scope: null,
         },
         ...prev,
       ]);
@@ -4218,6 +4013,18 @@ export default function Dashboard({
               selection_week: data.week_of,
               marked_done_at: new Date().toISOString(),
               reason: win.reason ?? null,
+              is_quick_win: true,
+              tier_1_customer: win.tier_1_customer,
+              canny_url: win.canny_url ?? null,
+              status: null,
+              impact_rating: null,
+              confidence_rating: null,
+              team_classification: win.team_classification ?? null,
+              linked_krs: null,
+              why_callout: null,
+              customers_prospects_callout: null,
+              hard_deadline_notes_callout: null,
+              committed_scope: null,
             },
             ...prev,
           ]);
