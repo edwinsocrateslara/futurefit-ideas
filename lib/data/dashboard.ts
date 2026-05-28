@@ -105,11 +105,24 @@ export interface PinnedItem {
   board_name: string;
   canny_url: string | null;
   pinned_at: string;
+  pin_sort_order: number | null;
   pinned_from: "top_10" | "quick_win";
   selection_reason: string | null;
   why_callout: string | null;
   tier_1_customer: string | null;
   committed_scope: string[] | null;
+  status: string | null;
+  synthesis_status: string | null;
+  is_status_overridden: boolean;
+  impact_rating: number | null;
+  synthesis_impact_rating: number | null;
+  is_impact_overridden: boolean;
+  confidence_rating: number | null;
+  synthesis_confidence_rating: number | null;
+  is_confidence_overridden: boolean;
+  team_classification: string | null;
+  synthesis_team_classification: string | null;
+  is_team_overridden: boolean;
 }
 
 export interface DashboardPattern {
@@ -594,8 +607,9 @@ export async function getDashboardData(
   // Pinned items — ordered by pin date ascending (earliest decision first)
   const { data: pinnedRows } = await supabase
     .from("ideas")
-    .select("canny_id, title, synthesis_title, edited_title, committed_scope, canny_url, pinned_at, pinned_from, selection_reason, why_callout, tier_1_customer, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, committed_scope, canny_url, pinned_at, pin_sort_order, pinned_from, selection_reason, why_callout, tier_1_customer, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, boards(slug, name)")
     .not("pinned_at", "is", null)
+    .order("pin_sort_order", { ascending: true, nullsFirst: false })
     .order("pinned_at", { ascending: true });
 
   const pinned_items: PinnedItem[] = (pinnedRows ?? [])
@@ -612,11 +626,24 @@ export async function getDashboardData(
         board_name: board?.name ?? "",
         canny_url: row.canny_url ?? null,
         pinned_at: row.pinned_at as string,
+        pin_sort_order: row.pin_sort_order ?? null,
         pinned_from: (row.pinned_from as "top_10" | "quick_win") ?? "top_10",
         selection_reason: row.selection_reason ?? null,
         why_callout: row.why_callout ?? null,
         tier_1_customer: row.tier_1_customer ?? null,
         committed_scope: (row.committed_scope as string[] | null) ?? null,
+        status: (row.manual_status ?? row.selection_status) ?? null,
+        synthesis_status: row.selection_status ?? null,
+        is_status_overridden: row.manual_status !== null,
+        impact_rating: (row.manual_impact_rating ?? row.impact_rating) ?? null,
+        synthesis_impact_rating: row.impact_rating ?? null,
+        is_impact_overridden: row.manual_impact_rating !== null,
+        confidence_rating: (row.manual_confidence_rating ?? row.confidence_rating) ?? null,
+        synthesis_confidence_rating: row.confidence_rating ?? null,
+        is_confidence_overridden: row.manual_confidence_rating !== null,
+        team_classification: (row.manual_team_classification ?? row.team_classification) ?? null,
+        synthesis_team_classification: row.team_classification ?? null,
+        is_team_overridden: row.manual_team_classification !== null,
       };
     });
 

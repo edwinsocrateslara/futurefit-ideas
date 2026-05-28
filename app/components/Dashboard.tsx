@@ -17,8 +17,8 @@ import {
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem, PinnedItem } from "@/lib/data/dashboard";
-import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES, TEAM_CLASSIFICATION_VALUES } from "@/lib/synthesis/schema";
-import type { StatusValue, TeamClassification } from "@/lib/synthesis/schema";
+import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES, TEAM_CLASSIFICATION_VALUES, MANUAL_TEAM_CLASSIFICATION_VALUES } from "@/lib/synthesis/schema";
+import type { StatusValue, TeamClassification, ManualTeamClassification } from "@/lib/synthesis/schema";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
@@ -820,7 +820,7 @@ function ImpactConfidenceWithOverride({
 
 // ── Team classification badge + override ──────────────────────────────────
 
-const TEAM_STYLES: Record<TeamClassification, { bg: string; color: string; border: string }> = {
+const TEAM_STYLES: Record<string, { bg: string; color: string; border: string }> = {
   "Engineering": {
     bg:     "oklch(0.20 0 0)",
     color:  "oklch(0.72 0 0)",
@@ -831,11 +831,17 @@ const TEAM_STYLES: Record<TeamClassification, { bg: string; color: string; borde
     color:  "oklch(0.72 0 0)",
     border: "oklch(1 0 0 / 0.12)",
   },
+  "Engineering & Data": {
+    bg:     "oklch(0.20 0 0)",
+    color:  "oklch(0.72 0 0)",
+    border: "oklch(1 0 0 / 0.12)",
+  },
 };
 
-const TEAM_ICONS: Record<TeamClassification, React.ReactNode> = {
-  "Engineering": <Terminal size={12} strokeWidth={2} />,
-  "Data":        <Database size={12} strokeWidth={2} />,
+const TEAM_ICONS: Record<string, React.ReactNode> = {
+  "Engineering":         <Terminal size={12} strokeWidth={2} />,
+  "Data":                <Database size={12} strokeWidth={2} />,
+  "Engineering & Data":  <><Terminal size={12} strokeWidth={2} /><Database size={12} strokeWidth={2} /></>,
 };
 
 function TeamBadge({
@@ -843,7 +849,7 @@ function TeamBadge({
   isOverridden,
   onClick,
 }: {
-  classification: TeamClassification;
+  classification: ManualTeamClassification;
   isOverridden: boolean;
   onClick: () => void;
 }) {
@@ -884,11 +890,11 @@ function TeamOverridePopover({
   onChange,
 }: {
   cannyId: string;
-  current: TeamClassification;
-  synthesis: TeamClassification | null;
+  current: ManualTeamClassification;
+  synthesis: ManualTeamClassification | null;
   isOverridden: boolean;
   onClose: () => void;
-  onChange: (value: TeamClassification | null) => void;
+  onChange: (value: ManualTeamClassification | null) => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -900,7 +906,7 @@ function TeamOverridePopover({
     return () => document.removeEventListener("mousedown", handleMouseDown);
   }, [onClose]);
 
-  async function select(value: TeamClassification | null) {
+  async function select(value: ManualTeamClassification | null) {
     onChange(value);
     onClose();
     if (value === null) {
@@ -930,7 +936,7 @@ function TeamOverridePopover({
         boxShadow: "0 8px 24px oklch(0 0 0 / 0.50)",
       }}
     >
-      {TEAM_CLASSIFICATION_VALUES.map((option) => {
+      {MANUAL_TEAM_CLASSIFICATION_VALUES.map((option) => {
         const s = TEAM_STYLES[option];
         const isSelected = current === option;
         return (
@@ -1007,13 +1013,13 @@ function TeamClassificationWithOverride({
   isOverridden: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  const [local, setLocal] = useState<TeamClassification | null>(classification as TeamClassification | null);
+  const [local, setLocal] = useState<ManualTeamClassification | null>(classification as ManualTeamClassification | null);
   const [localOverridden, setLocalOverridden] = useState(isOverridden);
 
   if (!local) return null;
 
-  function handleChange(value: TeamClassification | null) {
-    setLocal(value ?? (synthesisClassification as TeamClassification | null));
+  function handleChange(value: ManualTeamClassification | null) {
+    setLocal(value ?? (synthesisClassification as ManualTeamClassification | null));
     setLocalOverridden(value !== null);
   }
 
@@ -1028,7 +1034,7 @@ function TeamClassificationWithOverride({
         <TeamOverridePopover
           cannyId={cannyId}
           current={local}
-          synthesis={synthesisClassification as TeamClassification | null}
+          synthesis={synthesisClassification as ManualTeamClassification | null}
           isOverridden={localOverridden}
           onClose={() => setOpen(false)}
           onChange={handleChange}
@@ -3200,8 +3206,8 @@ function formatPinDate(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
 }
 
-function ComingUpTab({
-  items,
+function SortablePinnedCard({
+  item,
   notesCounts,
   onUnpin,
   onDefer,
@@ -3209,7 +3215,7 @@ function ComingUpTab({
   onEditTitle,
   onScopeChange,
 }: {
-  items: PinnedItem[];
+  item: PinnedItem;
   notesCounts: Record<string, number>;
   onUnpin: (item: PinnedItem) => void;
   onDefer: (item: PinnedItem) => void;
@@ -3217,78 +3223,113 @@ function ComingUpTab({
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
 }) {
-  const [hoveredDefer, setHoveredDefer] = useState<string | null>(null);
-  const [hoveredTitle, setHoveredTitle] = useState<string | null>(null);
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: item.canny_id });
+  const [hoveredDefer, setHoveredDefer] = useState(false);
+  const [hoveredTitle, setHoveredTitle] = useState(false);
 
-  if (items.length === 0) {
-    return (
-      <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
-        No items pinned yet.
-      </p>
-    );
-  }
-
-  const top10Items = items.filter((i) => i.pinned_from !== "quick_win");
-  const quickWinItems = items.filter((i) => i.pinned_from === "quick_win");
-
-  function renderCard(item: PinnedItem) {
-    return (
+  return (
+    <div
+      ref={setNodeRef}
+      {...attributes}
+      style={{
+        transform: CSS.Transform.toString(transform),
+        transition,
+        zIndex: isDragging ? 10 : undefined,
+        position: "relative",
+      }}
+    >
       <div
-        key={item.canny_id}
         style={{
           padding: "20px 24px",
           background: "oklch(0.18 0 0)",
           border: "1px solid oklch(1 0 0 / 0.08)",
           borderRadius: 12,
+          opacity: isDragging ? 0.5 : 1,
         }}
       >
         {/* Top metadata row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <GripVertical
+              size={16}
+              strokeWidth={1.75}
+              aria-hidden
+              {...listeners}
+              style={{ opacity: 0.25, cursor: "grab", flexShrink: 0 }}
+            />
             <BoardTag slug={item.board_slug} />
             {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
+            {item.status && (
+              <StatusBadgeWithOverride
+                cannyId={item.canny_id}
+                status={item.status}
+                synthesisStatus={item.synthesis_status}
+                isOverridden={item.is_status_overridden}
+              />
+            )}
             <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
               Pinned {formatPinDate(item.pinned_at)}
             </span>
           </div>
-          <button
-            type="button"
-            onClick={() => onUnpin(item)}
-            title="Unpin"
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              width: 32,
-              height: 32,
-              borderRadius: 9999,
-              border: "none",
-              background: "transparent",
-              color: "oklch(0.75 0.20 25)",
-              cursor: "pointer",
-              padding: 0,
-              transition: "background 100ms, color 100ms",
-              marginLeft: 4,
-              flexShrink: 0,
-            }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
-              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-              (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-            }}
-          >
-            <Pin size={20} strokeWidth={1.75} aria-hidden />
-          </button>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            {item.impact_rating !== null && (
+              <ImpactConfidenceWithOverride
+                cannyId={item.canny_id}
+                impactRating={item.impact_rating}
+                confidenceRating={item.confidence_rating}
+                synthesisImpact={item.synthesis_impact_rating}
+                synthesisConfidence={item.synthesis_confidence_rating}
+                isImpactOverridden={item.is_impact_overridden}
+                isConfidenceOverridden={item.is_confidence_overridden}
+                itemTitle={item.title}
+              />
+            )}
+            <TeamClassificationWithOverride
+              cannyId={item.canny_id}
+              classification={item.team_classification}
+              synthesisClassification={item.synthesis_team_classification}
+              isOverridden={item.is_team_overridden}
+            />
+            <button
+              type="button"
+              onClick={() => onUnpin(item)}
+              title="Unpin"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                justifyContent: "center",
+                width: 32,
+                height: 32,
+                borderRadius: 9999,
+                border: "none",
+                background: "transparent",
+                color: "oklch(0.75 0.20 25)",
+                cursor: "pointer",
+                padding: 0,
+                transition: "background 100ms, color 100ms",
+                marginLeft: 4,
+                flexShrink: 0,
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
+                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+              }}
+            >
+              <Pin size={20} strokeWidth={1.75} aria-hidden />
+            </button>
+          </div>
         </div>
 
         {/* Title */}
         <div
           style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 10 }}
-          onMouseEnter={() => setHoveredTitle(item.canny_id)}
-          onMouseLeave={() => setHoveredTitle(null)}
+          onMouseEnter={() => setHoveredTitle(true)}
+          onMouseLeave={() => setHoveredTitle(false)}
         >
           <p style={{ margin: 0, flex: 1, fontSize: 18, fontWeight: 500, letterSpacing: -0.3, lineHeight: 1.4, color: "oklch(0.97 0 0)", textWrap: "pretty" }}>
             {item.title}
@@ -3308,7 +3349,7 @@ function ComingUpTab({
                 color: "oklch(0.55 0 0)",
                 cursor: "pointer",
                 borderRadius: 4,
-                opacity: hoveredTitle === item.canny_id ? 1 : 0,
+                opacity: hoveredTitle ? 1 : 0,
                 transition: "opacity 120ms",
                 marginTop: 2,
               }}
@@ -3360,8 +3401,8 @@ function ComingUpTab({
             <button
               type="button"
               onClick={() => onDefer(item)}
-              onMouseEnter={() => setHoveredDefer(item.canny_id)}
-              onMouseLeave={() => setHoveredDefer(null)}
+              onMouseEnter={() => setHoveredDefer(true)}
+              onMouseLeave={() => setHoveredDefer(false)}
               style={{
                 display: "inline-flex",
                 alignItems: "center",
@@ -3371,7 +3412,7 @@ function ComingUpTab({
                 letterSpacing: 0.2,
                 borderRadius: 9999,
                 border: "none",
-                background: hoveredDefer === item.canny_id ? "oklch(1 0 0 / 0.04)" : "transparent",
+                background: hoveredDefer ? "oklch(1 0 0 / 0.04)" : "transparent",
                 color: "oklch(0.85 0 0)",
                 cursor: "pointer",
                 whiteSpace: "nowrap",
@@ -3384,8 +3425,38 @@ function ComingUpTab({
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ComingUpTab({
+  items,
+  notesCounts,
+  onUnpin,
+  onDefer,
+  onAccepted,
+  onEditTitle,
+  onScopeChange,
+}: {
+  items: PinnedItem[];
+  notesCounts: Record<string, number>;
+  onUnpin: (item: PinnedItem) => void;
+  onDefer: (item: PinnedItem) => void;
+  onAccepted: (item: PinnedItem, result: JiraAcceptResult) => void;
+  onEditTitle?: (cannyId: string) => void;
+  onScopeChange?: (cannyId: string, scope: string[] | null) => void;
+}) {
+  if (items.length === 0) {
+    return (
+      <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
+        No items pinned yet.
+      </p>
     );
   }
+
+  const top10Items = items.filter((i) => i.pinned_from !== "quick_win");
+  const quickWinItems = items.filter((i) => i.pinned_from === "quick_win");
+  const sharedProps = { notesCounts, onUnpin, onDefer, onAccepted, onEditTitle, onScopeChange };
 
   const sectionHeader = (label: string, count: number) => (
     <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.55 0 0)", marginBottom: 12 }}>
@@ -3399,7 +3470,9 @@ function ComingUpTab({
         <div>
           {sectionHeader("Top 10", top10Items.length)}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {top10Items.map(renderCard)}
+            {top10Items.map((item) => (
+              <SortablePinnedCard key={item.canny_id} item={item} {...sharedProps} />
+            ))}
           </div>
         </div>
       )}
@@ -3407,7 +3480,9 @@ function ComingUpTab({
         <div>
           {sectionHeader("Quick Wins", quickWinItems.length)}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {quickWinItems.map(renderCard)}
+            {quickWinItems.map((item) => (
+              <SortablePinnedCard key={item.canny_id} item={item} {...sharedProps} />
+            ))}
           </div>
         </div>
       )}
@@ -3459,6 +3534,16 @@ export default function Dashboard({
     newRank: number;
     prevOrderIds: string[];
   } | null>(null);
+
+  // Pinned drag-and-drop state (parallel to Top 10, separate persistence via pin_sort_order)
+  const [localPinnedOrderIds, setLocalPinnedOrderIds] = useState<string[]>(
+    () => data.pinned_items.map((p) => p.canny_id)
+  );
+  const [pendingPinnedReorder, setPendingPinnedReorder] = useState<{
+    prevOrderIds: string[];
+  } | null>(null);
+  const [pinnedConfirmHovered, setPinnedConfirmHovered] = useState(false);
+  const [pinnedConfirmActive, setPinnedConfirmActive] = useState(false);
   const [clientOverrides, setClientOverrides] = useState<Record<string, boolean>>(() => {
     const init: Record<string, boolean> = {};
     for (const s of data.selections) {
@@ -3585,6 +3670,7 @@ export default function Dashboard({
 
   function handlePinnedAccepted(item: PinnedItem, result: JiraAcceptResult) {
     setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+    setLocalPinnedOrderIds((prev) => prev.filter((id) => id !== item.canny_id));
     setAcceptedItems((prev) => [
       {
         canny_id: item.canny_id,
@@ -3613,13 +3699,27 @@ export default function Dashboard({
       board_name: item.board_name,
       canny_url: item.canny_url,
       pinned_at: new Date().toISOString(),
+      pin_sort_order: null,
       selection_reason: item.reason,
       why_callout: item.why_callout,
       tier_1_customer: item.tier_1_customer,
       committed_scope: resolveScope(item.canny_id, item.committed_scope),
       pinned_from: "top_10",
+      status: item.status,
+      synthesis_status: item.synthesis_status,
+      is_status_overridden: item.is_status_overridden,
+      impact_rating: item.impact_rating,
+      synthesis_impact_rating: item.synthesis_impact_rating,
+      is_impact_overridden: item.is_impact_overridden,
+      confidence_rating: item.confidence_rating,
+      synthesis_confidence_rating: item.synthesis_confidence_rating,
+      is_confidence_overridden: item.is_confidence_overridden,
+      team_classification: item.team_classification,
+      synthesis_team_classification: item.synthesis_team_classification,
+      is_team_overridden: item.is_team_overridden,
     };
     setPinnedItems((prev) => [...prev, newPinned]);
+    setLocalPinnedOrderIds((prev) => [...prev, item.canny_id]);
 
     startTransition(async () => {
       const res = await fetch(`/api/ideas/${item.canny_id}/pin`, {
@@ -3629,6 +3729,7 @@ export default function Dashboard({
       });
       if (!res.ok) {
         setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+        setLocalPinnedOrderIds((prev) => prev.filter((id) => id !== item.canny_id));
       }
     });
   }
@@ -3643,13 +3744,27 @@ export default function Dashboard({
       board_name: win.board_name,
       canny_url: win.canny_url,
       pinned_at: new Date().toISOString(),
+      pin_sort_order: null,
       selection_reason: null,
       why_callout: null,
       tier_1_customer: null,
       committed_scope: null,
       pinned_from: "quick_win",
+      status: null,
+      synthesis_status: null,
+      is_status_overridden: false,
+      impact_rating: null,
+      synthesis_impact_rating: null,
+      is_impact_overridden: false,
+      confidence_rating: null,
+      synthesis_confidence_rating: null,
+      is_confidence_overridden: false,
+      team_classification: win.team_classification,
+      synthesis_team_classification: win.synthesis_team_classification,
+      is_team_overridden: win.is_team_overridden,
     };
     setPinnedItems((prev) => [...prev, newPinned]);
+    setLocalPinnedOrderIds((prev) => [...prev, win.canny_id]);
 
     startTransition(async () => {
       const res = await fetch(`/api/ideas/${win.canny_id}/pin`, {
@@ -3659,12 +3774,14 @@ export default function Dashboard({
       });
       if (!res.ok) {
         setPinnedItems((prev) => prev.filter((p) => p.canny_id !== win.canny_id));
+        setLocalPinnedOrderIds((prev) => prev.filter((id) => id !== win.canny_id));
       }
     });
   }
 
   function handleUnpin(item: PinnedItem) {
     setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+    setLocalPinnedOrderIds((prev) => prev.filter((id) => id !== item.canny_id));
 
     startTransition(async () => {
       const res = await fetch(`/api/ideas/${item.canny_id}/pin`, { method: "PATCH" });
@@ -3672,12 +3789,14 @@ export default function Dashboard({
         setPinnedItems((prev) => [...prev, item].sort(
           (a, b) => new Date(a.pinned_at).getTime() - new Date(b.pinned_at).getTime()
         ));
+        setLocalPinnedOrderIds((prev) => [...prev, item.canny_id]);
       }
     });
   }
 
   function handlePinnedDefer(item: PinnedItem) {
     setPinnedItems((prev) => prev.filter((p) => p.canny_id !== item.canny_id));
+    setLocalPinnedOrderIds((prev) => prev.filter((id) => id !== item.canny_id));
     const newDone: DoneItem = {
       canny_id: item.canny_id,
       title: item.title,
@@ -3697,6 +3816,7 @@ export default function Dashboard({
         setPinnedItems((prev) => [...prev, item].sort(
           (a, b) => new Date(a.pinned_at).getTime() - new Date(b.pinned_at).getTime()
         ));
+        setLocalPinnedOrderIds((prev) => [...prev, item.canny_id]);
       }
     });
   }
@@ -3858,6 +3978,46 @@ export default function Dashboard({
       setClientOverrides((prev) => ({ ...prev, [movedId]: true }));
     }
     setPendingReorder(null);
+  }
+
+  function handlePinnedDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = localPinnedOrderIds.indexOf(active.id as string);
+    const newIndex = localPinnedOrderIds.indexOf(over.id as string);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const newOrderIds = arrayMove(localPinnedOrderIds, oldIndex, newIndex);
+    setPendingPinnedReorder({ prevOrderIds: localPinnedOrderIds });
+    setLocalPinnedOrderIds(newOrderIds);
+    // Keep pinnedItems state in the same order so renderCard reads correctly
+    setPinnedItems((prev) => {
+      const map = new Map(prev.map((p) => [p.canny_id, p]));
+      return newOrderIds.map((id) => map.get(id)).filter((p): p is PinnedItem => p !== undefined);
+    });
+  }
+
+  function handleCancelPinnedReorder() {
+    if (!pendingPinnedReorder) return;
+    setLocalPinnedOrderIds(pendingPinnedReorder.prevOrderIds);
+    setPinnedItems((prev) => {
+      const map = new Map(prev.map((p) => [p.canny_id, p]));
+      return pendingPinnedReorder.prevOrderIds
+        .map((id) => map.get(id))
+        .filter((p): p is PinnedItem => p !== undefined);
+    });
+    setPendingPinnedReorder(null);
+  }
+
+  async function handleConfirmPinnedReorder() {
+    if (!pendingPinnedReorder) return;
+    setPendingPinnedReorder(null);
+    startTransition(async () => {
+      await fetch("/api/pinned/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ordered_canny_ids: localPinnedOrderIds }),
+      });
+    });
   }
 
   return (
@@ -4175,15 +4335,85 @@ export default function Dashboard({
 
 
       {activeTab === "coming-up" && (
-        <ComingUpTab
-          items={pinnedItems.map((p) => applyLocalScope(applyLocalTitle(p)))}
-          notesCounts={data.notes_counts}
-          onUnpin={handleUnpin}
-          onDefer={handlePinnedDefer}
-          onAccepted={handlePinnedAccepted}
-          onEditTitle={handleOpenEditTitle}
-          onScopeChange={handleSaveScope}
-        />
+        <>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handlePinnedDragEnd}>
+            <SortableContext items={localPinnedOrderIds} strategy={verticalListSortingStrategy}>
+              <ComingUpTab
+                items={localPinnedOrderIds
+                  .map((id) => pinnedItems.find((p) => p.canny_id === id))
+                  .filter((p): p is PinnedItem => p !== undefined)
+                  .map((p) => applyLocalScope(applyLocalTitle(p)))}
+                notesCounts={data.notes_counts}
+                onUnpin={handleUnpin}
+                onDefer={handlePinnedDefer}
+                onAccepted={handlePinnedAccepted}
+                onEditTitle={handleOpenEditTitle}
+                onScopeChange={handleSaveScope}
+              />
+            </SortableContext>
+          </DndContext>
+          {pendingPinnedReorder && (
+            <div
+              style={{
+                position: "fixed",
+                inset: 0,
+                background: "oklch(0 0 0 / 0.60)",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 200,
+              }}
+            >
+              <div
+                style={{
+                  background: "oklch(0.18 0 0)",
+                  border: "1px solid oklch(1 0 0 / 0.08)",
+                  borderRadius: 12,
+                  padding: "24px 24px",
+                  maxWidth: 420,
+                  width: "calc(100% - 48px)",
+                }}
+              >
+                <h2 style={{ margin: "0 0 8px 0", fontSize: 16, fontWeight: 600, letterSpacing: -0.2, color: "oklch(0.97 0 0)" }}>
+                  Reorder Coming Up
+                </h2>
+                <p style={{ margin: "0 0 24px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)" }}>
+                  Save this new order for the Coming Up list?
+                </p>
+                <div style={{ display: "flex", justifyContent: "flex-end", gap: 8 }}>
+                  <button
+                    type="button"
+                    onClick={handleCancelPinnedReorder}
+                    style={{ padding: "8px 18px", fontSize: 13, fontWeight: 600, borderRadius: 9999, border: "none", background: "transparent", color: "oklch(0.65 0 0)", cursor: "pointer" }}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleConfirmPinnedReorder}
+                    onMouseEnter={() => setPinnedConfirmHovered(true)}
+                    onMouseLeave={() => { setPinnedConfirmHovered(false); setPinnedConfirmActive(false); }}
+                    onMouseDown={() => setPinnedConfirmActive(true)}
+                    onMouseUp={() => setPinnedConfirmActive(false)}
+                    style={{
+                      padding: "8px 18px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      borderRadius: 9999,
+                      border: "none",
+                      background: pinnedConfirmActive ? "oklch(0.40 0.20 295)" : pinnedConfirmHovered ? "oklch(0.50 0.20 295)" : "oklch(0.45 0.20 295)",
+                      color: "oklch(1 0 0)",
+                      cursor: "pointer",
+                      transition: "background 120ms",
+                    }}
+                  >
+                    Confirm
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {activeTab === "accepted" && (

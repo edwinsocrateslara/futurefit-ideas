@@ -16,8 +16,14 @@ export type ImpactRating = typeof IMPACT_RATING_VALUES[number];
 export const CONFIDENCE_RATING_VALUES = [1, 2, 3, 4] as const;
 export type ConfidenceRating = typeof CONFIDENCE_RATING_VALUES[number];
 
+// Synthesis-only values — synthesis schema and prompt use this; "Engineering & Data" is excluded
+// because synthesis must never auto-assign it (human-only override).
 export const TEAM_CLASSIFICATION_VALUES = ["Engineering", "Data"] as const;
 export type TeamClassification = typeof TEAM_CLASSIFICATION_VALUES[number];
+
+// UI dropdown values — superset of synthesis values, includes the manual-only combined option.
+export const MANUAL_TEAM_CLASSIFICATION_VALUES = ["Engineering", "Data", "Engineering & Data"] as const;
+export type ManualTeamClassification = typeof MANUAL_TEAM_CLASSIFICATION_VALUES[number];
 
 // ── Building blocks ───────────────────────────────────────────────────────────
 
