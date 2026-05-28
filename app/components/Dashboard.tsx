@@ -869,6 +869,10 @@ const TEAM_ICONS: Record<string, React.ReactNode> = {
   "Engineering & Data":  <UsersRound size={12} strokeWidth={2} />,
 };
 
+const TEAM_LABELS: Record<string, string> = {
+  "Engineering & Data": "Eng & Data",
+};
+
 function TeamBadge({
   classification,
   isOverridden,
@@ -900,7 +904,7 @@ function TeamBadge({
         whiteSpace: "nowrap",
       }}
     >
-      {classification}
+      {TEAM_LABELS[classification] ?? classification}
       <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
     </button>
   );
@@ -989,7 +993,7 @@ function TeamOverridePopover({
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = isSelected ? "oklch(1 0 0 / 0.06)" : "transparent"; }}
           >
             <span style={{ color: s.color, display: "flex" }}>{TEAM_ICONS[option]}</span>
-            {option}
+            {TEAM_LABELS[option] ?? option}
           </button>
         );
       })}
