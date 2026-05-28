@@ -19,7 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem, PinnedItem } from "@/lib/data/dashboard";
 import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES, TEAM_CLASSIFICATION_VALUES, MANUAL_TEAM_CLASSIFICATION_VALUES } from "@/lib/synthesis/schema";
 import type { StatusValue, TeamClassification, ManualTeamClassification } from "@/lib/synthesis/schema";
-import { KR_VALUES, KR_LABELS, KR_GROUPS } from "@/lib/synthesis/kr-identifiers";
+import { KR_VALUES, KR_LABELS, KR_GROUPS, krDisplayLabel } from "@/lib/synthesis/kr-identifiers";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
@@ -1063,9 +1063,10 @@ function KRChip({ label, isOverridden, onClick }: { label: string; isOverridden:
     cursor: onClick ? "pointer" : "default",
     transition: "opacity 100ms",
   };
+  const display = krDisplayLabel(label);
   return onClick
-    ? <button type="button" onClick={onClick} style={{ ...style, border: style.border }}>{label}</button>
-    : <span style={style}>{label}</span>;
+    ? <button type="button" onClick={onClick} style={{ ...style, border: style.border }}>{display}</button>
+    : <span style={style}>{display}</span>;
 }
 
 function KROverridePopover({

@@ -49,6 +49,15 @@ export const KR_LABELS: Record<string, string> = {
   "Eng·O3·KR3": "Claude-automated first-pass fixes for 50% of non-critical bugs",
 };
 
+const KR_GROUP_PREFIX: Record<string, string> = { D: "DATA", P: "PROD", Eng: "ENG" };
+
+// Converts internal identifier (e.g. "D·O1·KR1") to display label ("DATA-OBJ-1-KR1").
+export function krDisplayLabel(kr: string): string {
+  const [group, obj, krPart] = kr.split("·");
+  const objNum = obj?.replace("O", "") ?? "";
+  return `${KR_GROUP_PREFIX[group] ?? group}-OBJ-${objNum}-${krPart ?? ""}`;
+}
+
 // Grouped structure for the override popover UI.
 export const KR_GROUPS: Array<{
   group: string;
