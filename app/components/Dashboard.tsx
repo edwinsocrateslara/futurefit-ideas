@@ -1116,34 +1116,34 @@ function KROverridePopover({
         width: 340,
         maxHeight: 480,
         overflowY: "auto",
-        background: "oklch(0.16 0 0)",
+        background: "oklch(0.20 0 0)",
         border: "1px solid oklch(1 0 0 / 0.12)",
         borderRadius: 10,
-        padding: "12px 0 8px",
-        boxShadow: "0 8px 32px oklch(0 0 0 / 0.5)",
+        padding: "6px 0",
+        boxShadow: "0 8px 24px oklch(0 0 0 / 0.50)",
       }}
       onClick={(e) => e.stopPropagation()}
     >
       {isOverridden && (
-        <div style={{ padding: "0 12px 8px" }}>
+        <>
           <button
             type="button"
             onClick={() => save(null)}
             disabled={saving}
             style={{
-              fontSize: 11,
-              color: "oklch(0.55 0 0)",
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              padding: 0,
-              textDecoration: "underline",
-              textUnderlineOffset: 2,
+              display: "flex", alignItems: "center", gap: 8, width: "100%",
+              padding: "8px 10px", fontSize: 12, fontWeight: 400, borderRadius: 6,
+              border: "none", background: "transparent", color: "oklch(0.55 0 0)",
+              cursor: "pointer", textAlign: "left", transition: "background 100ms",
             }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
           >
-            Clear override — revert to synthesis ({(synthesis ?? []).join(", ") || "none"})
+            <RotateCcw size={12} strokeWidth={2} />
+            Clear override
           </button>
-        </div>
+          <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", margin: "4px 0" }} />
+        </>
       )}
       {KR_GROUPS.map((group) => (
         <div key={group.group}>
@@ -1156,29 +1156,38 @@ function KROverridePopover({
                 {obj.label}
               </div>
               {obj.krs.map((kr) => (
-                <label
+                <div
                   key={kr}
+                  onClick={() => toggle(kr)}
                   style={{
                     display: "flex",
                     alignItems: "flex-start",
                     gap: 8,
-                    padding: "5px 12px",
+                    padding: "8px 10px",
                     cursor: "pointer",
-                    background: selected.has(kr) ? "oklch(0.20 0.03 275)" : "transparent",
-                    transition: "background 80ms",
+                    background: selected.has(kr) ? "oklch(1 0 0 / 0.06)" : "transparent",
+                    transition: "background 100ms",
+                    borderRadius: 6,
                   }}
+                  onMouseEnter={(e) => { if (!selected.has(kr)) (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+                  onMouseLeave={(e) => { if (!selected.has(kr)) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
                 >
-                  <input
-                    type="checkbox"
-                    checked={selected.has(kr)}
-                    onChange={() => toggle(kr)}
-                    style={{ marginTop: 1, accentColor: "oklch(0.62 0.18 275)", flexShrink: 0 }}
-                  />
+                  <span
+                    style={{
+                      display: "inline-flex", alignItems: "center", justifyContent: "center",
+                      width: 14, height: 14, borderRadius: 3, flexShrink: 0, marginTop: 1,
+                      background: selected.has(kr) ? "oklch(0.62 0.18 275)" : "transparent",
+                      border: selected.has(kr) ? "none" : "1px solid oklch(1 0 0 / 0.25)",
+                      transition: "background 100ms, border-color 100ms",
+                    }}
+                  >
+                    {selected.has(kr) && <Check size={10} strokeWidth={3} style={{ color: "oklch(0.15 0 0)" }} />}
+                  </span>
                   <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    <span style={{ fontSize: 11, fontWeight: 600, color: "oklch(0.78 0 0)", letterSpacing: 0.1 }}>{kr}</span>
+                    <span style={{ fontSize: 12, fontWeight: selected.has(kr) ? 600 : 400, color: "oklch(0.72 0 0)", letterSpacing: 0.1 }}>{kr}</span>
                     <span style={{ fontSize: 10, color: "oklch(0.50 0 0)", lineHeight: 1.4 }}>{KR_LABELS[kr] ?? ""}</span>
                   </span>
-                </label>
+                </div>
               ))}
             </div>
           ))}
