@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { KR_VALUES } from "./kr-identifiers";
 
 // ── Canonical metadata values (single source of truth for prompt + UI) ───────
 
@@ -46,6 +47,7 @@ export const SelectionSchema = z.object({
   hard_deadline_notes_callout: z.string().nullable(),
   team_classification: z.enum(TEAM_CLASSIFICATION_VALUES),
   jira_story: z.string().min(1),
+  linked_krs: z.array(z.enum(KR_VALUES)).nullable(),
 });
 
 // Pattern — title, summary, linked evidence, lineage tag, exploration angles

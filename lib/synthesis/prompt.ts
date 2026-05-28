@@ -1,4 +1,5 @@
 import type { BoardSlug } from "@/config/boards";
+import { KR_VALUES } from "./kr-identifiers";
 
 export const PROMPT_VERSION = "synthesis-v4.1";
 
@@ -324,6 +325,18 @@ Examples:
 - Data: "Build provider analytics dashboard" (reporting), "Set up event tracking for Apply button" (instrumentation), "Define and surface conversion funnel metrics" (metrics)
 - Mixed with reasoning: "Add candidate count to talent search results" — classify as Data because the work is primarily defining and surfacing the count metric, not building a new UI surface (the search results already exist)
 
+**KR linkage** — After assigning team classification, identify which year-end KRs each selected item directly advances. This is the final annotation step and does NOT influence selection, ranking, or any previously assigned field.
+
+Emit a \`linked_krs\` array using only the identifiers listed below. Each identifier encodes a group (D = Data, P = Product, Eng = Engineering), an objective number, and a KR number. The OKR document in the strategy section above is the authoritative description of each KR.
+
+Rules:
+- Return 0–3 identifiers. If more than 3 seem to apply, rank all candidates by directness of connection — how much this item is the primary evidence that the KR advances, not merely adjacent — and select the 3 most direct.
+- Return [] if the item does not directly advance any committed KR. An item can be strategically important without mapping to a KR; that absence is correct and expected output. Do not force attribution.
+- A weak or tangential link is worse than an empty list.
+
+Valid identifiers:
+${KR_VALUES.join("  ")}
+
 ---
 
 ## PATTERN LINEAGE CONTEXT (up to last 4 weeks — may be fewer if recent)
@@ -466,7 +479,8 @@ Return a single JSON object. Your entire response must be valid JSON — no mark
       "customers_prospects_callout": "<named accounts, prospects, or segments — or null>",
       "hard_deadline_notes_callout": "<deadline, action items, or critical context — or null>",
       "team_classification": "<Engineering | Data>",
-      "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>"
+      "jira_story": "<full formatted user story as a single string — Title, User story, Context, Acceptance criteria>",
+      "linked_krs": ["<KR identifier from valid list, e.g. D·O2·KR4>"]
     }
   ],
   "patterns": [

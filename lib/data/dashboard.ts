@@ -36,6 +36,9 @@ export interface DashboardSelection {
   team_classification: string | null;
   synthesis_team_classification: string | null;
   is_team_overridden: boolean;
+  linked_krs: string[] | null;
+  synthesis_linked_krs: string[] | null;
+  is_krs_overridden: boolean;
   committed_scope: string[] | null;
 }
 
@@ -79,6 +82,7 @@ export interface AcceptedItem {
   accepted_at: string;
   tier_1_customer: string | null;
   snapshot_committed_scope: string[] | null;
+  linked_krs: string[] | null;
 }
 
 export interface DoneJiraItem {
@@ -125,6 +129,9 @@ export interface PinnedItem {
   team_classification: string | null;
   synthesis_team_classification: string | null;
   is_team_overridden: boolean;
+  linked_krs: string[] | null;
+  synthesis_linked_krs: string[] | null;
+  is_krs_overridden: boolean;
 }
 
 export interface DashboardPattern {
@@ -228,7 +235,7 @@ export async function getDashboardData(
   const { data: selectedIdeas, error: ideasError } = await supabase
     .from("ideas")
     .select(
-      "canny_id, title, synthesis_title, edited_title, committed_scope, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, team_classification, manual_team_classification, selection_priority_rank, jira_story, boards(slug, name)"
+      "canny_id, title, synthesis_title, edited_title, committed_scope, tier_1_customer, vote_count, canny_url, created_at, selection_reason, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, why_callout, customers_prospects_callout, hard_deadline_notes_callout, team_classification, manual_team_classification, linked_krs, manual_linked_krs, selection_priority_rank, jira_story, boards(slug, name)"
     )
     .eq("selection_week", resolvedWeek)
     .eq("selected_this_week", true)
@@ -362,6 +369,9 @@ export async function getDashboardData(
       team_classification: (idea.manual_team_classification ?? idea.team_classification) ?? null,
       synthesis_team_classification: idea.team_classification ?? null,
       is_team_overridden: idea.manual_team_classification !== null,
+      linked_krs: ((idea.manual_linked_krs ?? idea.linked_krs) as string[] | null) ?? null,
+      synthesis_linked_krs: (idea.linked_krs as string[] | null) ?? null,
+      is_krs_overridden: idea.manual_linked_krs !== null,
       committed_scope: (idea.committed_scope as string[] | null) ?? null,
       weeks_in_top_10: weeks,
       is_new_this_week: weeks === 1,
@@ -486,7 +496,7 @@ export async function getDashboardData(
     const [{ data: jiraIdeas }, { data: jiraEasyWins }] = await Promise.all([
       supabase
         .from("ideas")
-        .select("canny_id, title, synthesis_title, edited_title, tier_1_customer, selection_reason, selection_week, boards(slug, name)")
+        .select("canny_id, title, synthesis_title, edited_title, tier_1_customer, selection_reason, selection_week, linked_krs, manual_linked_krs, boards(slug, name)")
         .in("canny_id", allJiraCannyIds),
       supabase
         .from("easy_wins")
@@ -505,6 +515,7 @@ export async function getDashboardData(
           selection_reason: i.selection_reason,
           selection_week: i.selection_week,
           tier_1_customer: i.tier_1_customer ?? null,
+          linked_krs: ((i.manual_linked_krs ?? i.linked_krs) as string[] | null) ?? null,
         }];
       })
     );
@@ -545,6 +556,7 @@ export async function getDashboardData(
         accepted_at: link.accepted_at,
         tier_1_customer: idea.tier_1_customer,
         snapshot_committed_scope: (link.snapshot_committed_scope as string[] | null) ?? null,
+        linked_krs: idea.linked_krs ?? null,
       };
 
       if (link.done_at === null) {
@@ -609,7 +621,7 @@ export async function getDashboardData(
   // Pinned items — ordered by pin date ascending (earliest decision first)
   const { data: pinnedRows } = await supabase
     .from("ideas")
-    .select("canny_id, title, synthesis_title, edited_title, committed_scope, canny_url, pinned_at, pin_sort_order, pinned_from, selection_reason, why_callout, customers_prospects_callout, hard_deadline_notes_callout, tier_1_customer, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, committed_scope, canny_url, pinned_at, pin_sort_order, pinned_from, selection_reason, why_callout, customers_prospects_callout, hard_deadline_notes_callout, tier_1_customer, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, linked_krs, manual_linked_krs, boards(slug, name)")
     .not("pinned_at", "is", null)
     .order("pin_sort_order", { ascending: true, nullsFirst: false })
     .order("pinned_at", { ascending: true });
@@ -648,6 +660,9 @@ export async function getDashboardData(
         team_classification: (row.manual_team_classification ?? row.team_classification) ?? null,
         synthesis_team_classification: row.team_classification ?? null,
         is_team_overridden: row.manual_team_classification !== null,
+        linked_krs: ((row.manual_linked_krs ?? row.linked_krs) as string[] | null) ?? null,
+        synthesis_linked_krs: (row.linked_krs as string[] | null) ?? null,
+        is_krs_overridden: row.manual_linked_krs !== null,
       };
     });
 

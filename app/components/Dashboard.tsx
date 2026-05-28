@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { AcceptedItem, DashboardData, DashboardEasyWin, DashboardSelection, DoneItem, DoneJiraItem, PinnedItem } from "@/lib/data/dashboard";
 import { STATUS_VALUES, IMPACT_RATING_VALUES, CONFIDENCE_RATING_VALUES, TEAM_CLASSIFICATION_VALUES, MANUAL_TEAM_CLASSIFICATION_VALUES } from "@/lib/synthesis/schema";
 import type { StatusValue, TeamClassification, ManualTeamClassification } from "@/lib/synthesis/schema";
+import { KR_VALUES, KR_LABELS, KR_GROUPS } from "@/lib/synthesis/kr-identifiers";
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
@@ -1044,6 +1045,237 @@ function TeamClassificationWithOverride({
   );
 }
 
+// ── KR badges ──────────────────────────────────────────────────────────────
+
+function KRChip({ label, isOverridden, onClick }: { label: string; isOverridden: boolean; onClick?: () => void }) {
+  const style = {
+    display: "inline-flex",
+    alignItems: "center",
+    padding: "4px 8px",
+    fontSize: 11,
+    fontWeight: 500,
+    lineHeight: 1,
+    letterSpacing: 0.1,
+    borderRadius: 9999,
+    background: "oklch(0.18 0.04 275)",
+    color: isOverridden ? "oklch(0.78 0.22 275)" : "oklch(0.62 0.15 275)",
+    border: `1px solid ${isOverridden ? "oklch(0.62 0.18 275 / 0.50)" : "oklch(0.62 0.15 275 / 0.30)"}`,
+    whiteSpace: "nowrap" as const,
+    cursor: onClick ? "pointer" : "default",
+    transition: "opacity 100ms",
+  };
+  return onClick
+    ? <button type="button" onClick={onClick} style={{ ...style, border: style.border }}>{label}</button>
+    : <span style={style}>{label}</span>;
+}
+
+function KROverridePopover({
+  cannyId,
+  current,
+  synthesis,
+  isOverridden,
+  onClose,
+  onChange,
+}: {
+  cannyId: string;
+  current: string[];
+  synthesis: string[] | null;
+  isOverridden: boolean;
+  onClose: () => void;
+  onChange: (value: string[] | null) => void;
+}) {
+  const [selected, setSelected] = useState<Set<string>>(new Set(current));
+  const [saving, setSaving] = useState(false);
+
+  function toggle(kr: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(kr)) next.delete(kr); else next.add(kr);
+      return next;
+    });
+  }
+
+  async function save(value: string[] | null) {
+    setSaving(true);
+    const res = await fetch(`/api/ideas/${cannyId}/krs`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ manual_linked_krs: value }),
+    });
+    if (res.ok) onChange(value);
+    setSaving(false);
+    onClose();
+  }
+
+  return (
+    <div
+      style={{
+        position: "absolute",
+        top: "calc(100% + 6px)",
+        right: 0,
+        zIndex: 50,
+        width: 340,
+        maxHeight: 480,
+        overflowY: "auto",
+        background: "oklch(0.16 0 0)",
+        border: "1px solid oklch(1 0 0 / 0.12)",
+        borderRadius: 10,
+        padding: "12px 0 8px",
+        boxShadow: "0 8px 32px oklch(0 0 0 / 0.5)",
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
+      {isOverridden && (
+        <div style={{ padding: "0 12px 8px" }}>
+          <button
+            type="button"
+            onClick={() => save(null)}
+            disabled={saving}
+            style={{
+              fontSize: 11,
+              color: "oklch(0.55 0 0)",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              padding: 0,
+              textDecoration: "underline",
+              textUnderlineOffset: 2,
+            }}
+          >
+            Clear override — revert to synthesis ({(synthesis ?? []).join(", ") || "none"})
+          </button>
+        </div>
+      )}
+      {KR_GROUPS.map((group) => (
+        <div key={group.group}>
+          <div style={{ padding: "6px 12px 2px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
+            {group.group}
+          </div>
+          {group.objectives.map((obj) => (
+            <div key={obj.label} style={{ padding: "2px 0" }}>
+              <div style={{ padding: "4px 12px 2px", fontSize: 10, color: "oklch(0.40 0 0)", letterSpacing: 0.2 }}>
+                {obj.label}
+              </div>
+              {obj.krs.map((kr) => (
+                <label
+                  key={kr}
+                  style={{
+                    display: "flex",
+                    alignItems: "flex-start",
+                    gap: 8,
+                    padding: "5px 12px",
+                    cursor: "pointer",
+                    background: selected.has(kr) ? "oklch(0.20 0.03 275)" : "transparent",
+                    transition: "background 80ms",
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={selected.has(kr)}
+                    onChange={() => toggle(kr)}
+                    style={{ marginTop: 1, accentColor: "oklch(0.62 0.18 275)", flexShrink: 0 }}
+                  />
+                  <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                    <span style={{ fontSize: 11, fontWeight: 600, color: "oklch(0.78 0 0)", letterSpacing: 0.1 }}>{kr}</span>
+                    <span style={{ fontSize: 10, color: "oklch(0.50 0 0)", lineHeight: 1.4 }}>{KR_LABELS[kr] ?? ""}</span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          ))}
+        </div>
+      ))}
+      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "10px 12px 4px", borderTop: "0.5px solid oklch(1 0 0 / 0.08)", marginTop: 4 }}>
+        <button
+          type="button"
+          onClick={onClose}
+          style={{ fontSize: 12, color: "oklch(0.55 0 0)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}
+        >
+          Cancel
+        </button>
+        <button
+          type="button"
+          onClick={() => save(Array.from(selected))}
+          disabled={saving}
+          style={{
+            fontSize: 12,
+            fontWeight: 600,
+            color: "oklch(0.15 0 0)",
+            background: "oklch(0.72 0.18 275)",
+            border: "none",
+            borderRadius: 6,
+            cursor: saving ? "default" : "pointer",
+            padding: "4px 12px",
+            opacity: saving ? 0.6 : 1,
+          }}
+        >
+          Save
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function KRBadgesWithOverride({
+  cannyId,
+  linkedKrs,
+  synthesisLinkedKrs,
+  isOverridden,
+}: {
+  cannyId: string;
+  linkedKrs: string[] | null;
+  synthesisLinkedKrs: string[] | null;
+  isOverridden: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+  const [local, setLocal] = useState<string[]>(linkedKrs ?? []);
+  const [localOverridden, setLocalOverridden] = useState(isOverridden);
+
+  const hasChips = local.length > 0;
+
+  return (
+    <div style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+      {hasChips
+        ? local.map((kr) => (
+            <KRChip key={kr} label={kr} isOverridden={localOverridden} onClick={() => setOpen((o) => !o)} />
+          ))
+        : (
+          <button
+            type="button"
+            onClick={() => setOpen((o) => !o)}
+            style={{
+              fontSize: 11,
+              color: "oklch(0.40 0 0)",
+              background: "none",
+              border: "1px dashed oklch(1 0 0 / 0.12)",
+              borderRadius: 9999,
+              padding: "3px 8px",
+              cursor: "pointer",
+              letterSpacing: 0.1,
+              whiteSpace: "nowrap",
+            }}
+          >
+            + KR
+          </button>
+        )
+      }
+      {open && (
+        <KROverridePopover
+          cannyId={cannyId}
+          current={local}
+          synthesis={synthesisLinkedKrs}
+          isOverridden={localOverridden}
+          onClose={() => setOpen(false)}
+          onChange={(value) => {
+            setLocal(value ?? synthesisLinkedKrs ?? []);
+            setLocalOverridden(value !== null);
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── Jira status badge ──────────────────────────────────────────────────────
 
 const JIRA_STATUS_STYLES: Record<
@@ -1846,6 +2078,12 @@ function SignalRow({
               classification={item.team_classification}
               synthesisClassification={item.synthesis_team_classification}
               isOverridden={item.is_team_overridden}
+            />
+            <KRBadgesWithOverride
+              cannyId={item.canny_id}
+              linkedKrs={item.linked_krs}
+              synthesisLinkedKrs={item.synthesis_linked_krs}
+              isOverridden={item.is_krs_overridden}
             />
             {onPin && !isDone && (
               <button
@@ -2953,10 +3191,19 @@ function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCount
             borderRadius: 12,
           }}
         >
-          <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8, flexWrap: "wrap" }}>
-            <BoardTag slug={item.board_slug} />
-            <JiraStatusBadge status={item.jira_status} />
-            <Tier1Badge value={item.tier_1_customer} />
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <BoardTag slug={item.board_slug} />
+              <JiraStatusBadge status={item.jira_status} />
+              <Tier1Badge value={item.tier_1_customer} />
+            </div>
+            {item.linked_krs && item.linked_krs.length > 0 && (
+              <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                {item.linked_krs.map((kr) => (
+                  <KRChip key={kr} label={kr} isOverridden={false} />
+                ))}
+              </div>
+            )}
           </div>
           <p
             style={{
@@ -3317,6 +3564,12 @@ function SortablePinnedCard({
                 classification={item.team_classification}
                 synthesisClassification={item.synthesis_team_classification}
                 isOverridden={item.is_team_overridden}
+              />
+              <KRBadgesWithOverride
+                cannyId={item.canny_id}
+                linkedKrs={item.linked_krs}
+                synthesisLinkedKrs={item.synthesis_linked_krs}
+                isOverridden={item.is_krs_overridden}
               />
               <button
                 type="button"
@@ -3717,6 +3970,7 @@ export default function Dashboard({
         accepted_at: new Date().toISOString(),
         tier_1_customer: item.tier_1_customer,
         snapshot_committed_scope: snapshotScope,
+        linked_krs: signal?.linked_krs ?? null,
       },
       ...prev,
     ]);
@@ -3738,6 +3992,7 @@ export default function Dashboard({
         accepted_at: new Date().toISOString(),
         tier_1_customer: item.tier_1_customer,
         snapshot_committed_scope: resolveScope(item.canny_id, item.committed_scope),
+        linked_krs: item.linked_krs,
       },
       ...prev,
     ]);
@@ -3773,6 +4028,9 @@ export default function Dashboard({
       team_classification: item.team_classification,
       synthesis_team_classification: item.synthesis_team_classification,
       is_team_overridden: item.is_team_overridden,
+      linked_krs: item.linked_krs,
+      synthesis_linked_krs: item.synthesis_linked_krs,
+      is_krs_overridden: item.is_krs_overridden,
     };
     setPinnedItems((prev) => [...prev, newPinned]);
     setLocalPinnedOrderIds((prev) => [...prev, item.canny_id]);
@@ -3820,6 +4078,9 @@ export default function Dashboard({
       team_classification: win.team_classification,
       synthesis_team_classification: win.synthesis_team_classification,
       is_team_overridden: win.is_team_overridden,
+      linked_krs: null,
+      synthesis_linked_krs: null,
+      is_krs_overridden: false,
     };
     setPinnedItems((prev) => [...prev, newPinned]);
     setLocalPinnedOrderIds((prev) => [...prev, win.canny_id]);
