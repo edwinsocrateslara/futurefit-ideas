@@ -66,18 +66,18 @@ export const KR_GROUPS: Array<{
     ],
   },
   {
-    group: "Product",
-    objectives: [
-      { label: "Obj 1 — MA go-live", krs: ["P·O1·KR1", "P·O1·KR2", "P·O1·KR3", "P·O1·KR4", "P·O1·KR5", "P·O1·KR6"] },
-      { label: "Obj 2 — Build team velocity", krs: ["P·O2·KR1", "P·O2·KR2", "P·O2·KR3"] },
-    ],
-  },
-  {
     group: "Engineering",
     objectives: [
       { label: "Obj 1 — SOC2 / NIST / accessibility", krs: ["Eng·O1·KR1", "Eng·O1·KR2", "Eng·O1·KR3"] },
       { label: "Obj 2 — WCG integration", krs: ["Eng·O2·KR1", "Eng·O2·KR2", "Eng·O2·KR3"] },
       { label: "Obj 3 — Operational health", krs: ["Eng·O3·KR1", "Eng·O3·KR2", "Eng·O3·KR3"] },
+    ],
+  },
+  {
+    group: "Product",
+    objectives: [
+      { label: "Obj 1 — MA go-live", krs: ["P·O1·KR1", "P·O1·KR2", "P·O1·KR3", "P·O1·KR4", "P·O1·KR5", "P·O1·KR6"] },
+      { label: "Obj 2 — Build team velocity", krs: ["P·O2·KR1", "P·O2·KR2", "P·O2·KR3"] },
     ],
   },
 ];
