@@ -3260,6 +3260,8 @@ function SortablePinnedCard({
             />
             <BoardTag slug={item.board_slug} />
             {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {item.status && (
               <StatusBadgeWithOverride
                 cannyId={item.canny_id}
@@ -3268,11 +3270,6 @@ function SortablePinnedCard({
                 isOverridden={item.is_status_overridden}
               />
             )}
-            <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
-              Pinned {formatPinDate(item.pinned_at)}
-            </span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
             {item.impact_rating !== null && (
               <ImpactConfidenceWithOverride
                 cannyId={item.canny_id}
@@ -3366,12 +3363,37 @@ function SortablePinnedCard({
           </p>
         )}
 
-        {/* Why callout */}
-        {item.why_callout && (
-          <p style={{ margin: "0 0 8px 0", fontSize: 11, lineHeight: 1.5 }}>
-            <span style={{ color: "oklch(0.55 0 0)" }}>Why now: </span>
-            <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
-          </p>
+        {/* Callout block */}
+        {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
+          <div style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            marginTop: 16,
+            padding: "12px 16px",
+            background: "oklch(0.18 0 0)",
+            border: "0.5px solid oklch(1 0 0 / 0.08)",
+            borderRadius: 8,
+          }}>
+            {item.why_callout && (
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Why: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
+              </p>
+            )}
+            {item.customers_prospects_callout && (
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Customers: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
+              </p>
+            )}
+            {item.hard_deadline_notes_callout && (
+              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                <span style={{ color: "oklch(0.55 0 0)" }}>Deadline: </span>
+                <span style={{ color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
+              </p>
+            )}
+          </div>
         )}
 
         {/* Committed scope */}
@@ -3396,6 +3418,9 @@ function SortablePinnedCard({
               </a>
             )}
             <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
+            <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
+              Pinned {formatPinDate(item.pinned_at)}
+            </span>
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
@@ -3702,6 +3727,8 @@ export default function Dashboard({
       pin_sort_order: null,
       selection_reason: item.reason,
       why_callout: item.why_callout,
+      customers_prospects_callout: item.customers_prospects_callout,
+      hard_deadline_notes_callout: item.hard_deadline_notes_callout,
       tier_1_customer: item.tier_1_customer,
       committed_scope: resolveScope(item.canny_id, item.committed_scope),
       pinned_from: "top_10",
@@ -3747,6 +3774,8 @@ export default function Dashboard({
       pin_sort_order: null,
       selection_reason: null,
       why_callout: null,
+      customers_prospects_callout: null,
+      hard_deadline_notes_callout: null,
       tier_1_customer: null,
       committed_scope: null,
       pinned_from: "quick_win",

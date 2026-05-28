@@ -109,6 +109,8 @@ export interface PinnedItem {
   pinned_from: "top_10" | "quick_win";
   selection_reason: string | null;
   why_callout: string | null;
+  customers_prospects_callout: string | null;
+  hard_deadline_notes_callout: string | null;
   tier_1_customer: string | null;
   committed_scope: string[] | null;
   status: string | null;
@@ -607,7 +609,7 @@ export async function getDashboardData(
   // Pinned items — ordered by pin date ascending (earliest decision first)
   const { data: pinnedRows } = await supabase
     .from("ideas")
-    .select("canny_id, title, synthesis_title, edited_title, committed_scope, canny_url, pinned_at, pin_sort_order, pinned_from, selection_reason, why_callout, tier_1_customer, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, committed_scope, canny_url, pinned_at, pin_sort_order, pinned_from, selection_reason, why_callout, customers_prospects_callout, hard_deadline_notes_callout, tier_1_customer, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, boards(slug, name)")
     .not("pinned_at", "is", null)
     .order("pin_sort_order", { ascending: true, nullsFirst: false })
     .order("pinned_at", { ascending: true });
@@ -630,6 +632,8 @@ export async function getDashboardData(
         pinned_from: (row.pinned_from as "top_10" | "quick_win") ?? "top_10",
         selection_reason: row.selection_reason ?? null,
         why_callout: row.why_callout ?? null,
+        customers_prospects_callout: row.customers_prospects_callout ?? null,
+        hard_deadline_notes_callout: row.hard_deadline_notes_callout ?? null,
         tier_1_customer: row.tier_1_customer ?? null,
         committed_scope: (row.committed_scope as string[] | null) ?? null,
         status: (row.manual_status ?? row.selection_status) ?? null,
