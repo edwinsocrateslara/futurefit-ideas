@@ -1252,31 +1252,34 @@ function KRBadgesWithOverride({
   const hasChips = local.length > 0;
 
   return (
-    <div style={{ position: "relative", display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-      {hasChips
-        ? local.map((kr) => (
-            <KRChip key={kr} label={kr} isOverridden={localOverridden} onClick={() => setOpen((o) => !o)} />
-          ))
-        : (
-          <button
-            type="button"
-            onClick={() => setOpen((o) => !o)}
-            style={{
-              fontSize: 11,
-              color: "oklch(0.40 0 0)",
-              background: "none",
-              border: "1px dashed oklch(1 0 0 / 0.12)",
-              borderRadius: 9999,
-              padding: "3px 8px",
-              cursor: "pointer",
-              letterSpacing: 0.1,
-              whiteSpace: "nowrap",
-            }}
-          >
-            + KR
-          </button>
-        )
-      }
+    <div style={{ position: "relative" }}>
+      {hasChips ? (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4, flexWrap: "wrap",
+            background: "none", border: "none", cursor: "pointer", padding: 0,
+          }}
+        >
+          {local.map((kr) => <KRChip key={kr} label={kr} isOverridden={localOverridden} />)}
+          <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, color: "oklch(0.62 0.15 275)", flexShrink: 0 }} />
+        </button>
+      ) : (
+        <button
+          type="button"
+          onClick={() => setOpen((o) => !o)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            fontSize: 11, color: "oklch(0.40 0 0)", background: "none",
+            border: "1px dashed oklch(1 0 0 / 0.12)", borderRadius: 9999,
+            padding: "3px 8px", cursor: "pointer", letterSpacing: 0.1, whiteSpace: "nowrap",
+          }}
+        >
+          + KR
+          <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, flexShrink: 0 }} />
+        </button>
+      )}
       {open && (
         <KROverridePopover
           cannyId={cannyId}
@@ -2118,6 +2121,15 @@ function CardBody({
             <Tier1Badge value={tier_1_customer} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            {is_top_10_type && (
+              readOnly
+                ? (linked_krs && linked_krs.length > 0) && (
+                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
+                      {linked_krs.map((kr) => <KRChip key={kr} label={kr} isOverridden={false} />)}
+                    </div>
+                  )
+                : <KRBadgesWithOverride cannyId={canny_id} linkedKrs={linked_krs ?? null} synthesisLinkedKrs={synthesis_linked_krs ?? null} isOverridden={is_krs_overridden ?? false} />
+            )}
             {status != null && (
               readOnly
                 ? <StatusBadge status={status as StatusValue} isOverridden={!!is_status_overridden} />
@@ -2132,15 +2144,6 @@ function CardBody({
               readOnly
                 ? <TeamBadge classification={team_classification as ManualTeamClassification} isOverridden={false} />
                 : <TeamClassificationWithOverride cannyId={canny_id} classification={team_classification} synthesisClassification={synthesis_team_classification ?? null} isOverridden={is_team_overridden ?? false} />
-            )}
-            {is_top_10_type && (
-              readOnly
-                ? (linked_krs && linked_krs.length > 0) && (
-                    <div style={{ display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}>
-                      {linked_krs.map((kr) => <KRChip key={kr} label={kr} isOverridden={false} />)}
-                    </div>
-                  )
-                : <KRBadgesWithOverride cannyId={canny_id} linkedKrs={linked_krs ?? null} synthesisLinkedKrs={synthesis_linked_krs ?? null} isOverridden={is_krs_overridden ?? false} />
             )}
             {trailingControl}
           </div>
