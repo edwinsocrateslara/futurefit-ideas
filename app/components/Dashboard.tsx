@@ -1187,7 +1187,7 @@ function KROverridePopover({
                       {selected.has(kr) && <Check size={10} strokeWidth={3} style={{ color: "oklch(0.15 0 0)" }} />}
                     </span>
                     <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                      <span style={{ fontSize: 12, fontWeight: selected.has(kr) ? 600 : 400, color: "oklch(0.72 0 0)", letterSpacing: 0.1 }}>{kr}</span>
+                      <span style={{ fontSize: 12, fontWeight: selected.has(kr) ? 600 : 400, color: "oklch(0.72 0 0)", letterSpacing: 0.1 }}>{krDisplayLabel(kr)}</span>
                       <span style={{ fontSize: 10, color: "oklch(0.50 0 0)", lineHeight: 1.4 }}>{KR_LABELS[kr] ?? ""}</span>
                     </span>
                   </div>
