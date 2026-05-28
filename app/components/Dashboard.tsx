@@ -3208,6 +3208,7 @@ function formatPinDate(iso: string): string {
 
 function SortablePinnedCard({
   item,
+  displayRank,
   notesCounts,
   onUnpin,
   onDefer,
@@ -3216,6 +3217,7 @@ function SortablePinnedCard({
   onScopeChange,
 }: {
   item: PinnedItem;
+  displayRank: number;
   notesCounts: Record<string, number>;
   onUnpin: (item: PinnedItem) => void;
   onDefer: (item: PinnedItem) => void;
@@ -3241,36 +3243,69 @@ function SortablePinnedCard({
     >
       <div
         style={{
-          padding: "20px 24px",
+          display: "grid",
+          gridTemplateColumns: "56px 1fr",
+          gap: 20,
+          padding: "20px 24px 20px 16px",
           background: "oklch(0.18 0 0)",
           border: "1px solid oklch(1 0 0 / 0.08)",
           borderRadius: 12,
+          alignItems: "start",
           opacity: isDragging ? 0.5 : 1,
+          transition: "opacity 150ms",
         }}
       >
-        {/* Top metadata row */}
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-            <GripVertical
-              size={16}
-              strokeWidth={1.75}
-              aria-hidden
-              {...listeners}
-              style={{ opacity: 0.25, cursor: "grab", flexShrink: 0 }}
-            />
-            <BoardTag slug={item.board_slug} />
-            {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
+        {/* Rank + drag handle */}
+        <div
+          {...(listeners as React.HTMLAttributes<HTMLDivElement>)}
+          style={{
+            alignSelf: "stretch",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "flex-start",
+            paddingTop: 20,
+            paddingBottom: 20,
+            marginTop: -20,
+            marginBottom: -20,
+            borderRight: "0.5px solid oklch(1 0 0 / 0.08)",
+            cursor: "grab",
+            touchAction: "none",
+            userSelect: "none",
+          }}
+        >
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8, marginTop: 2 }}>
+            <GripVertical size={16} strokeWidth={1.75} aria-hidden style={{ opacity: 0.25 }} />
+            <span
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: 28,
+                fontWeight: 500,
+                fontVariantNumeric: "tabular-nums",
+                color: "oklch(0.65 0 0)",
+                lineHeight: 1,
+                letterSpacing: -0.5,
+              }}
+            >
+              {String(displayRank).padStart(2, "0")}
+            </span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            {item.status && (
+        </div>
+
+        {/* Content */}
+        <div>
+          {/* Top row: identity badges left, classification badges right */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8, flexWrap: "wrap", gap: 8 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+              <BoardTag slug={item.board_slug} />
+              {item.tier_1_customer && <Tier1Badge value={item.tier_1_customer} />}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
               <StatusBadgeWithOverride
                 cannyId={item.canny_id}
                 status={item.status}
                 synthesisStatus={item.synthesis_status}
                 isOverridden={item.is_status_overridden}
               />
-            )}
-            {item.impact_rating !== null && (
               <ImpactConfidenceWithOverride
                 cannyId={item.canny_id}
                 impactRating={item.impact_rating}
@@ -3281,127 +3316,126 @@ function SortablePinnedCard({
                 isConfidenceOverridden={item.is_confidence_overridden}
                 itemTitle={item.title}
               />
-            )}
-            <TeamClassificationWithOverride
-              cannyId={item.canny_id}
-              classification={item.team_classification}
-              synthesisClassification={item.synthesis_team_classification}
-              isOverridden={item.is_team_overridden}
-            />
-            <button
-              type="button"
-              onClick={() => onUnpin(item)}
-              title="Unpin"
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                justifyContent: "center",
-                width: 32,
-                height: 32,
-                borderRadius: 9999,
-                border: "none",
-                background: "transparent",
-                color: "oklch(0.75 0.20 25)",
-                cursor: "pointer",
-                padding: 0,
-                transition: "background 100ms, color 100ms",
-                marginLeft: 4,
-                flexShrink: 0,
-              }}
-              onMouseEnter={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
-                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-              }}
-              onMouseLeave={(e) => {
-                (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
-              }}
-            >
-              <Pin size={20} strokeWidth={1.75} aria-hidden />
-            </button>
+              <TeamClassificationWithOverride
+                cannyId={item.canny_id}
+                classification={item.team_classification}
+                synthesisClassification={item.synthesis_team_classification}
+                isOverridden={item.is_team_overridden}
+              />
+              <button
+                type="button"
+                onClick={() => onUnpin(item)}
+                title="Unpin"
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  width: 32,
+                  height: 32,
+                  borderRadius: 9999,
+                  border: "none",
+                  background: "transparent",
+                  color: "oklch(0.75 0.20 25)",
+                  cursor: "pointer",
+                  padding: 0,
+                  transition: "background 100ms, color 100ms",
+                  marginLeft: 4,
+                  flexShrink: 0,
+                }}
+                onMouseEnter={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.20 0.08 25)";
+                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+                }}
+                onMouseLeave={(e) => {
+                  (e.currentTarget as HTMLButtonElement).style.background = "transparent";
+                  (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.75 0.20 25)";
+                }}
+              >
+                <Pin size={20} strokeWidth={1.75} aria-hidden />
+              </button>
+            </div>
           </div>
-        </div>
 
-        {/* Title */}
-        <div
-          style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 10 }}
-          onMouseEnter={() => setHoveredTitle(true)}
-          onMouseLeave={() => setHoveredTitle(false)}
-        >
-          <p style={{ margin: 0, flex: 1, fontSize: 18, fontWeight: 500, letterSpacing: -0.3, lineHeight: 1.4, color: "oklch(0.97 0 0)", textWrap: "pretty" }}>
-            {item.title}
-          </p>
-          {onEditTitle && (
-            <button
-              type="button"
-              onClick={() => onEditTitle(item.canny_id)}
-              title="Edit title"
-              style={{
-                flexShrink: 0,
-                display: "inline-flex",
-                alignItems: "center",
-                padding: 4,
-                border: "none",
-                background: "transparent",
-                color: "oklch(0.55 0 0)",
-                cursor: "pointer",
-                borderRadius: 4,
-                opacity: hoveredTitle ? 1 : 0,
-                transition: "opacity 120ms",
-                marginTop: 2,
-              }}
-            >
-              <Pencil size={13} strokeWidth={1.5} aria-hidden />
-            </button>
+          {/* Title */}
+          <div
+            style={{ display: "flex", alignItems: "flex-start", gap: 6, marginBottom: 8 }}
+            onMouseEnter={() => setHoveredTitle(true)}
+            onMouseLeave={() => setHoveredTitle(false)}
+          >
+            <p style={{ margin: 0, flex: 1, fontSize: 16, fontWeight: 600, letterSpacing: -0.2, lineHeight: 1.4, color: "oklch(0.97 0 0)", textWrap: "pretty" }}>
+              {item.title}
+            </p>
+            {onEditTitle && (
+              <button
+                type="button"
+                onClick={() => onEditTitle(item.canny_id)}
+                title="Edit title"
+                style={{
+                  flexShrink: 0,
+                  display: "inline-flex",
+                  alignItems: "center",
+                  padding: 4,
+                  border: "none",
+                  background: "transparent",
+                  color: "oklch(0.55 0 0)",
+                  cursor: "pointer",
+                  borderRadius: 4,
+                  opacity: hoveredTitle ? 1 : 0,
+                  transition: "opacity 120ms",
+                  marginTop: 1,
+                }}
+              >
+                <Pencil size={13} strokeWidth={1.5} aria-hidden />
+              </button>
+            )}
+          </div>
+
+          {/* Reason */}
+          {item.selection_reason && (
+            <p style={{ margin: "0 0 8px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)", textWrap: "pretty" }}>
+              {item.selection_reason}
+            </p>
           )}
-        </div>
 
-        {/* Reason */}
-        {item.selection_reason && (
-          <p style={{ margin: "0 0 8px 0", fontSize: 14, lineHeight: 1.6, color: "oklch(0.85 0 0)", textWrap: "pretty" }}>
-            {item.selection_reason}
-          </p>
-        )}
+          {/* Committed scope */}
+          <CommittedScopeBlock
+            cannyId={item.canny_id}
+            scope={item.committed_scope}
+            onSave={onScopeChange}
+          />
 
-        {/* Callout block */}
-        {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
-          <div style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: 6,
-            marginTop: 16,
-            padding: "12px 16px",
-            background: "oklch(0.18 0 0)",
-            border: "0.5px solid oklch(1 0 0 / 0.08)",
-            borderRadius: 8,
-          }}>
-            {item.why_callout && (
-              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                <span style={{ color: "oklch(0.55 0 0)" }}>Why: </span>
-                <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
-              </p>
-            )}
-            {item.customers_prospects_callout && (
-              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                <span style={{ color: "oklch(0.55 0 0)" }}>Customers: </span>
-                <span style={{ color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
-              </p>
-            )}
-            {item.hard_deadline_notes_callout && (
-              <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
-                <span style={{ color: "oklch(0.55 0 0)" }}>Deadline: </span>
-                <span style={{ color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* Committed scope */}
-        <CommittedScopeBlock
-          cannyId={item.canny_id}
-          scope={item.committed_scope}
-          onSave={onScopeChange}
-        />
+          {/* Callout block */}
+          {(item.why_callout || item.customers_prospects_callout || item.hard_deadline_notes_callout) && (
+            <div style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: 6,
+              marginTop: 16,
+              padding: "12px 16px",
+              background: "oklch(0.18 0 0)",
+              border: "0.5px solid oklch(1 0 0 / 0.08)",
+              borderRadius: 8,
+            }}>
+              {item.why_callout && (
+                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                  <span style={{ color: "oklch(0.55 0 0)" }}>Why: </span>
+                  <span style={{ color: "oklch(0.85 0 0)" }}>{item.why_callout}</span>
+                </p>
+              )}
+              {item.customers_prospects_callout && (
+                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                  <span style={{ color: "oklch(0.55 0 0)" }}>Customers: </span>
+                  <span style={{ color: "oklch(0.85 0 0)" }}>{item.customers_prospects_callout}</span>
+                </p>
+              )}
+              {item.hard_deadline_notes_callout && (
+                <p style={{ margin: 0, fontSize: 11, lineHeight: 1.5 }}>
+                  <span style={{ color: "oklch(0.55 0 0)" }}>Deadline: </span>
+                  <span style={{ color: "oklch(0.85 0 0)" }}>{item.hard_deadline_notes_callout}</span>
+                </p>
+              )}
+            </div>
+          )}
 
         {/* Bottom action row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginTop: 16 }}>
@@ -3449,6 +3483,7 @@ function SortablePinnedCard({
             <AcceptButton cannyId={item.canny_id} onSuccess={(_, result) => onAccepted(item, result)} />
           </div>
         </div>
+        </div>
       </div>
     </div>
   );
@@ -3481,6 +3516,7 @@ function ComingUpTab({
 
   const top10Items = items.filter((i) => i.pinned_from !== "quick_win");
   const quickWinItems = items.filter((i) => i.pinned_from === "quick_win");
+  const globalRank = new Map(items.map((item, i) => [item.canny_id, i + 1]));
   const sharedProps = { notesCounts, onUnpin, onDefer, onAccepted, onEditTitle, onScopeChange };
 
   const sectionHeader = (label: string, count: number) => (
@@ -3496,7 +3532,7 @@ function ComingUpTab({
           {sectionHeader("Top 10", top10Items.length)}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {top10Items.map((item) => (
-              <SortablePinnedCard key={item.canny_id} item={item} {...sharedProps} />
+              <SortablePinnedCard key={item.canny_id} item={item} displayRank={globalRank.get(item.canny_id)!} {...sharedProps} />
             ))}
           </div>
         </div>
@@ -3506,7 +3542,7 @@ function ComingUpTab({
           {sectionHeader("Quick Wins", quickWinItems.length)}
           <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
             {quickWinItems.map((item) => (
-              <SortablePinnedCard key={item.canny_id} item={item} {...sharedProps} />
+              <SortablePinnedCard key={item.canny_id} item={item} displayRank={globalRank.get(item.canny_id)!} {...sharedProps} />
             ))}
           </div>
         </div>
