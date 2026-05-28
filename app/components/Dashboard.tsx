@@ -2002,7 +2002,6 @@ function SignalRow({
                 View in Canny →
               </a>
             )}
-            <NotesLink cannyId={item.canny_id} initialCount={notesCount} title={item.title} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
@@ -2256,7 +2255,6 @@ function EasyWinCard({
                 View in Canny →
               </a>
             )}
-            <NotesLink cannyId={win.canny_id} initialCount={notesCount} title={win.title} />
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
@@ -3010,7 +3008,6 @@ function AcceptedTab({ items, notesCounts }: { items: AcceptedItem[]; notesCount
             >
               {item.jira_issue_key} · View in Jira →
             </a>
-            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
           </div>
         </div>
       ))}
@@ -3169,7 +3166,6 @@ function DoneTab({
                 {item.reason}
               </p>
             )}
-            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
           </div>
           <button
             type="button"
@@ -3451,7 +3447,6 @@ function SortablePinnedCard({
                 View in Canny →
               </a>
             )}
-            <NotesLink cannyId={item.canny_id} initialCount={notesCounts[item.canny_id] ?? 0} title={item.title} />
             <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
               Pinned {formatPinDate(item.pinned_at)}
             </span>
