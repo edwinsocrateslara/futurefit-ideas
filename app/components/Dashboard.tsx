@@ -3384,7 +3384,7 @@ function SortablePinnedCard({
         why_callout={item.why_callout}
         customers_prospects_callout={item.customers_prospects_callout}
         hard_deadline_notes_callout={item.hard_deadline_notes_callout}
-        committed_scope={item.committed_scope}
+        committed_scope={item.pinned_from !== "quick_win" ? item.committed_scope : undefined}
         onEditTitle={onEditTitle}
         onScopeChange={onScopeChange}
         rank={displayRank}
