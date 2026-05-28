@@ -1115,89 +1115,96 @@ function KROverridePopover({
         zIndex: 50,
         width: 340,
         maxHeight: 480,
-        overflowY: "auto",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
         background: "oklch(0.20 0 0)",
         border: "1px solid oklch(1 0 0 / 0.12)",
         borderRadius: 10,
-        padding: "6px 0",
         boxShadow: "0 8px 24px oklch(0 0 0 / 0.50)",
       }}
       onClick={(e) => e.stopPropagation()}
     >
-      {isOverridden && (
-        <>
-          <button
-            type="button"
-            onClick={() => save(null)}
-            disabled={saving}
-            style={{
-              display: "flex", alignItems: "center", gap: 8, width: "100%",
-              padding: "8px 10px", fontSize: 12, fontWeight: 400, borderRadius: 6,
-              border: "none", background: "transparent", color: "oklch(0.55 0 0)",
-              cursor: "pointer", textAlign: "left", transition: "background 100ms",
-            }}
-            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
-            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-          >
-            <RotateCcw size={12} strokeWidth={2} />
-            Clear override
-          </button>
-          <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", margin: "4px 0" }} />
-        </>
-      )}
-      {KR_GROUPS.map((group) => (
-        <div key={group.group}>
-          <div style={{ padding: "6px 12px 2px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
-            {group.group}
-          </div>
-          {group.objectives.map((obj) => (
-            <div key={obj.label} style={{ padding: "2px 0" }}>
-              <div style={{ padding: "4px 12px 2px", fontSize: 10, color: "oklch(0.40 0 0)", letterSpacing: 0.2 }}>
-                {obj.label}
-              </div>
-              {obj.krs.map((kr) => (
-                <div
-                  key={kr}
-                  onClick={() => toggle(kr)}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: 8,
-                    padding: "8px 10px",
-                    cursor: "pointer",
-                    background: selected.has(kr) ? "oklch(1 0 0 / 0.06)" : "transparent",
-                    transition: "background 100ms",
-                    borderRadius: 6,
-                  }}
-                  onMouseEnter={(e) => { if (!selected.has(kr)) (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 0.06)"; }}
-                  onMouseLeave={(e) => { if (!selected.has(kr)) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
-                >
-                  <span
-                    style={{
-                      display: "inline-flex", alignItems: "center", justifyContent: "center",
-                      width: 14, height: 14, borderRadius: 3, flexShrink: 0, marginTop: 1,
-                      background: selected.has(kr) ? "oklch(0.62 0.18 275)" : "transparent",
-                      border: selected.has(kr) ? "none" : "1px solid oklch(1 0 0 / 0.25)",
-                      transition: "background 100ms, border-color 100ms",
-                    }}
-                  >
-                    {selected.has(kr) && <Check size={10} strokeWidth={3} style={{ color: "oklch(0.15 0 0)" }} />}
-                  </span>
-                  <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
-                    <span style={{ fontSize: 12, fontWeight: selected.has(kr) ? 600 : 400, color: "oklch(0.72 0 0)", letterSpacing: 0.1 }}>{kr}</span>
-                    <span style={{ fontSize: 10, color: "oklch(0.50 0 0)", lineHeight: 1.4 }}>{KR_LABELS[kr] ?? ""}</span>
-                  </span>
-                </div>
-              ))}
+      <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
+        {isOverridden && (
+          <>
+            <button
+              type="button"
+              onClick={() => save(null)}
+              disabled={saving}
+              style={{
+                display: "flex", alignItems: "center", gap: 8, width: "100%",
+                padding: "8px 10px", fontSize: 12, fontWeight: 400, borderRadius: 6,
+                border: "none", background: "transparent", color: "oklch(0.55 0 0)",
+                cursor: "pointer", textAlign: "left", transition: "background 100ms",
+              }}
+              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
+            >
+              <RotateCcw size={12} strokeWidth={2} />
+              Clear override
+            </button>
+            <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", margin: "4px 0" }} />
+          </>
+        )}
+        {KR_GROUPS.map((group) => (
+          <div key={group.group}>
+            <div style={{ padding: "6px 12px 2px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
+              {group.group}
             </div>
-          ))}
-        </div>
-      ))}
-      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, padding: "10px 12px 4px", borderTop: "0.5px solid oklch(1 0 0 / 0.08)", marginTop: 4 }}>
+            {group.objectives.map((obj) => (
+              <div key={obj.label} style={{ padding: "2px 0" }}>
+                <div style={{ padding: "4px 12px 2px", fontSize: 10, color: "oklch(0.40 0 0)", letterSpacing: 0.2 }}>
+                  {obj.label}
+                </div>
+                {obj.krs.map((kr) => (
+                  <div
+                    key={kr}
+                    onClick={() => toggle(kr)}
+                    style={{
+                      display: "flex",
+                      alignItems: "flex-start",
+                      gap: 8,
+                      padding: "8px 10px",
+                      cursor: "pointer",
+                      background: selected.has(kr) ? "oklch(1 0 0 / 0.06)" : "transparent",
+                      transition: "background 100ms",
+                      borderRadius: 6,
+                    }}
+                    onMouseEnter={(e) => { if (!selected.has(kr)) (e.currentTarget as HTMLDivElement).style.background = "oklch(1 0 0 / 0.06)"; }}
+                    onMouseLeave={(e) => { if (!selected.has(kr)) (e.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+                  >
+                    <span
+                      style={{
+                        display: "inline-flex", alignItems: "center", justifyContent: "center",
+                        width: 14, height: 14, borderRadius: 3, flexShrink: 0, marginTop: 1,
+                        background: selected.has(kr) ? "oklch(0.62 0.18 275)" : "transparent",
+                        border: selected.has(kr) ? "none" : "1px solid oklch(1 0 0 / 0.25)",
+                        transition: "background 100ms, border-color 100ms",
+                      }}
+                    >
+                      {selected.has(kr) && <Check size={10} strokeWidth={3} style={{ color: "oklch(0.15 0 0)" }} />}
+                    </span>
+                    <span style={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      <span style={{ fontSize: 12, fontWeight: selected.has(kr) ? 600 : 400, color: "oklch(0.72 0 0)", letterSpacing: 0.1 }}>{kr}</span>
+                      <span style={{ fontSize: 10, color: "oklch(0.50 0 0)", lineHeight: 1.4 }}>{KR_LABELS[kr] ?? ""}</span>
+                    </span>
+                  </div>
+                ))}
+              </div>
+            ))}
+          </div>
+        ))}
+      </div>
+      <div style={{ flexShrink: 0, display: "flex", justifyContent: "flex-end", gap: 8, padding: "10px 12px", borderTop: "0.5px solid oklch(1 0 0 / 0.08)" }}>
         <button
           type="button"
           onClick={onClose}
-          style={{ fontSize: 12, color: "oklch(0.55 0 0)", background: "none", border: "none", cursor: "pointer", padding: "4px 8px" }}
+          style={{
+            fontSize: 13, fontWeight: 600, color: "oklch(0.65 0 0)",
+            background: "none", border: "none", cursor: "pointer",
+            padding: "8px 18px", borderRadius: 9999,
+          }}
         >
           Cancel
         </button>
@@ -1206,16 +1213,19 @@ function KROverridePopover({
           onClick={() => save(Array.from(selected))}
           disabled={saving}
           style={{
-            fontSize: 12,
+            fontSize: 13,
             fontWeight: 600,
-            color: "oklch(0.15 0 0)",
-            background: "oklch(0.72 0.18 275)",
+            color: "oklch(1 0 0)",
+            background: "oklch(0.45 0.20 295)",
             border: "none",
-            borderRadius: 6,
-            cursor: saving ? "default" : "pointer",
-            padding: "4px 12px",
+            borderRadius: 9999,
+            cursor: saving ? "not-allowed" : "pointer",
+            padding: "8px 18px",
             opacity: saving ? 0.6 : 1,
+            transition: "background 120ms",
           }}
+          onMouseEnter={(e) => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.50 0.20 295)"; }}
+          onMouseLeave={(e) => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.45 0.20 295)"; }}
         >
           Save
         </button>
