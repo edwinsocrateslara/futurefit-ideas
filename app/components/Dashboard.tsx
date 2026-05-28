@@ -23,7 +23,7 @@ import { KR_VALUES, KR_LABELS, KR_GROUPS } from "@/lib/synthesis/kr-identifiers"
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Calendar, Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X } from "lucide-react";
+import { Calendar, Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X, UserRound } from "lucide-react";
 import Lottie from "lottie-react";
 import headerAnimation from "@/public/animations/header.json";
 
@@ -866,7 +866,7 @@ const TEAM_STYLES: Record<string, { bg: string; color: string; border: string }>
 const TEAM_ICONS: Record<string, React.ReactNode> = {
   "Engineering":         <Terminal size={12} strokeWidth={2} />,
   "Data":                <Database size={12} strokeWidth={2} />,
-  "Engineering & Data":  <><Terminal size={12} strokeWidth={2} /><Database size={12} strokeWidth={2} /></>,
+  "Engineering & Data":  <UserRound size={12} strokeWidth={2} />,
 };
 
 function TeamBadge({
