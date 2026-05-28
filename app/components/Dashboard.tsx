@@ -3447,9 +3447,7 @@ function SortablePinnedCard({
                 View in Canny →
               </a>
             )}
-            <span style={{ fontSize: 12, color: "oklch(0.45 0 0)", letterSpacing: 0.2 }}>
-              Pinned {formatPinDate(item.pinned_at)}
-            </span>
+
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
             <button
