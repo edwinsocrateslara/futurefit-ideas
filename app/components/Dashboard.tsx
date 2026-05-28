@@ -1149,12 +1149,12 @@ function KROverridePopover({
         )}
         {KR_GROUPS.map((group) => (
           <div key={group.group}>
-            <div style={{ padding: "6px 12px 1px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.45 0 0)" }}>
+            <div style={{ padding: "6px 12px 1px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.55 0.18 295)" }}>
               {group.group}
             </div>
             {group.objectives.map((obj) => (
               <div key={obj.label} style={{ padding: "1px 0" }}>
-                <div style={{ padding: "2px 12px 2px", fontSize: 10, fontWeight: 600, textTransform: "capitalize", color: "oklch(0.42 0 0)", letterSpacing: 0.2 }}>
+                <div style={{ padding: "2px 12px 2px", fontSize: 10, fontWeight: 600, textTransform: "uppercase", color: "oklch(0.42 0 0)", letterSpacing: 0.2 }}>
                   {obj.label}
                 </div>
                 {obj.krs.map((kr) => (
