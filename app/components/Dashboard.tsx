@@ -1266,7 +1266,7 @@ function KRBadgesWithOverride({
           }}
         >
           {local.map((kr) => <KRChip key={kr} label={kr} isOverridden={localOverridden} />)}
-          <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, color: "oklch(0.62 0.15 275)", flexShrink: 0 }} />
+          <ChevronDown size={9} strokeWidth={2.5} style={{ opacity: 0.6, color: "oklch(0.72 0 0)", flexShrink: 0 }} />
         </button>
       ) : (
         <button
