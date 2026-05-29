@@ -730,6 +730,7 @@ function ImpactConfidenceWithOverride({
   isImpactOverridden,
   isConfidenceOverridden,
   itemTitle,
+  onSave,
 }: {
   cannyId: string;
   impactRating: number | null;
@@ -739,6 +740,7 @@ function ImpactConfidenceWithOverride({
   isImpactOverridden: boolean;
   isConfidenceOverridden: boolean;
   itemTitle: string;
+  onSave?: (impact: number, confidence: number) => void;
 }) {
   const [modalOpen, setModalOpen] = useState(false);
   const [localImpact, setLocalImpact] = useState<number | null>(impactRating);
@@ -758,6 +760,7 @@ function ImpactConfidenceWithOverride({
     setLocalImpactOverridden(true);
     setLocalConfOverridden(true);
     setModalOpen(false);
+    onSave?.(impact, confidence);
     await fetch(`/api/ideas/${cannyId}/impact`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -771,6 +774,7 @@ function ImpactConfidenceWithOverride({
     setLocalImpactOverridden(false);
     setLocalConfOverridden(false);
     setModalOpen(false);
+    onSave?.(synthesisImpact ?? impactRating ?? 0, synthesisConfidence ?? confidenceRating ?? 0);
     await fetch(`/api/ideas/${cannyId}/impact`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -1966,6 +1970,7 @@ interface CardBodyProps {
   readOnly?: boolean;
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
+  onImpactChange?: (cannyId: string, impact: number, confidence: number) => void;
   rank?: number;
   dragHandleListeners?: Record<string, unknown>;
   isRankOverridden?: boolean;
@@ -2008,6 +2013,7 @@ function CardBody({
   readOnly = false,
   onEditTitle,
   onScopeChange,
+  onImpactChange,
   rank,
   dragHandleListeners,
   isRankOverridden,
@@ -2142,7 +2148,7 @@ function CardBody({
             {impact_rating != null && confidence_rating != null && (
               readOnly
                 ? <ImpactConfidenceBadge impact={impact_rating} confidence={confidence_rating} />
-                : <ImpactConfidenceWithOverride cannyId={canny_id} impactRating={impact_rating} confidenceRating={confidence_rating} synthesisImpact={synthesis_impact_rating ?? null} synthesisConfidence={synthesis_confidence_rating ?? null} isImpactOverridden={is_impact_overridden ?? false} isConfidenceOverridden={is_confidence_overridden ?? false} itemTitle={title} />
+                : <ImpactConfidenceWithOverride cannyId={canny_id} impactRating={impact_rating} confidenceRating={confidence_rating} synthesisImpact={synthesis_impact_rating ?? null} synthesisConfidence={synthesis_confidence_rating ?? null} isImpactOverridden={is_impact_overridden ?? false} isConfidenceOverridden={is_confidence_overridden ?? false} itemTitle={title} onSave={onImpactChange ? (imp, conf) => onImpactChange(canny_id, imp, conf) : undefined} />
             )}
             {team_classification != null && (
               readOnly
@@ -3335,6 +3341,7 @@ function SortablePinnedCard({
   onAccepted,
   onEditTitle,
   onScopeChange,
+  onImpactChange,
 }: {
   item: PinnedItem;
   displayRank: number;
@@ -3344,6 +3351,7 @@ function SortablePinnedCard({
   onAccepted: (item: PinnedItem, result: JiraAcceptResult) => void;
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
+  onImpactChange?: (cannyId: string, impact: number, confidence: number) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.canny_id });
@@ -3388,6 +3396,7 @@ function SortablePinnedCard({
         committed_scope={item.pinned_from !== "quick_win" ? item.committed_scope : undefined}
         onEditTitle={onEditTitle}
         onScopeChange={onScopeChange}
+        onImpactChange={onImpactChange}
         rank={displayRank}
         dragHandleListeners={listeners as Record<string, unknown>}
         isDimmed={isDragging}
@@ -3473,6 +3482,7 @@ function ComingUpTab({
   onAccepted,
   onEditTitle,
   onScopeChange,
+  onImpactChange,
 }: {
   items: PinnedItem[];
   notesCounts: Record<string, number>;
@@ -3481,6 +3491,7 @@ function ComingUpTab({
   onAccepted: (item: PinnedItem, result: JiraAcceptResult) => void;
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
+  onImpactChange?: (cannyId: string, impact: number, confidence: number) => void;
 }) {
   const [exporting, setExporting] = useState(false);
 
@@ -3504,7 +3515,7 @@ function ComingUpTab({
   const top10Items = items.filter((i) => i.pinned_from !== "quick_win");
   const quickWinItems = items.filter((i) => i.pinned_from === "quick_win");
   const globalRank = new Map(items.map((item, i) => [item.canny_id, i + 1]));
-  const sharedProps = { notesCounts, onUnpin, onDefer, onAccepted, onEditTitle, onScopeChange };
+  const sharedProps = { notesCounts, onUnpin, onDefer, onAccepted, onEditTitle, onScopeChange, onImpactChange };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
@@ -3875,6 +3886,12 @@ export default function Dashboard({
         setLocalPinnedOrderIds((prev) => [...prev, item.canny_id]);
       }
     });
+  }
+
+  function handlePinnedImpactChange(cannyId: string, impact: number, confidence: number) {
+    setPinnedItems((prev) => prev.map((p) =>
+      p.canny_id === cannyId ? { ...p, impact_rating: impact, confidence_rating: confidence } : p
+    ));
   }
 
   function handlePinnedDefer(item: PinnedItem) {
@@ -4492,6 +4509,7 @@ export default function Dashboard({
                 onAccepted={handlePinnedAccepted}
                 onEditTitle={handleOpenEditTitle}
                 onScopeChange={handleSaveScope}
+                onImpactChange={handlePinnedImpactChange}
               />
             </SortableContext>
           </DndContext>
