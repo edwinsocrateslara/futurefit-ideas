@@ -3537,7 +3537,7 @@ function ComingUpTab({
           cursor: exporting ? "not-allowed" : "pointer",
         }}
       >
-        {exporting ? "Exporting…" : `Export Pinned to XLSX (${items.length})`}
+        {exporting ? "Exporting…" : `Export Pinned to xlsx (${items.length})`}
       </button>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {items.map((item) => (
