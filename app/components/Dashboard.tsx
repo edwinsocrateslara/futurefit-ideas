@@ -2773,7 +2773,7 @@ function EditTitleModal({
   onClose: () => void;
 }) {
   const [value, setValue] = useState(currentTitle);
-  const remaining = 200 - value.trim().length;
+  const remaining = 500 - value.trim().length;
   const isChanged = value.trim() !== currentTitle;
   const isValid = value.trim().length > 0 && remaining >= 0;
 
@@ -2811,7 +2811,7 @@ function EditTitleModal({
             value={value}
             onChange={(e) => setValue(e.target.value)}
             rows={3}
-            maxLength={200}
+            maxLength={500}
             autoFocus
             style={{ width: "100%", padding: "10px 12px", fontSize: 14, background: "oklch(0.14 0 0)", border: "1px solid oklch(1 0 0 / 0.12)", borderRadius: 8, color: "oklch(0.97 0 0)", outline: "none", resize: "vertical", boxSizing: "border-box", fontFamily: "inherit", lineHeight: 1.5 }}
           />
@@ -2974,18 +2974,22 @@ function CommittedScopeBlock({
     maxHeight: 160,
   };
 
+  const divider = "1px solid oklch(1 0 0 / 0.08)";
+
   if (readOnly) {
     if (items.length === 0) return null;
     return (
       <div style={{ marginTop: 12 }}>
-        <p style={{ margin: "0 0 4px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
+        <p style={{ margin: "0 0 6px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
           Committed Scope
         </p>
-        <ul style={{ margin: 0, paddingLeft: 16, listStyleType: "disc" }}>
+        <div style={{ borderTop: divider }}>
           {items.map((item, i) => (
-            <li key={i} style={{ fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item}</li>
+            <div key={i} style={{ borderTop: i > 0 ? divider : undefined, padding: "10px 0" }}>
+              <span style={{ fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>{item}</span>
+            </div>
           ))}
-        </ul>
+        </div>
       </div>
     );
   }
@@ -3000,7 +3004,7 @@ function CommittedScopeBlock({
           onMouseEnter={(e) => { e.currentTarget.style.color = "oklch(0.65 0 0)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = "oklch(0.45 0 0)"; }}
         >
-          + Add committed scope
+          + Committed scope
         </button>
       </div>
     );
@@ -3011,23 +3015,24 @@ function CommittedScopeBlock({
       <p style={{ margin: "0 0 6px 0", fontSize: 11, fontWeight: 600, letterSpacing: 0.5, color: "oklch(0.45 0 0)", textTransform: "uppercase" }}>
         Committed Scope
       </p>
-      <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+      <div style={{ borderTop: divider }}>
         {items.map((item, idx) =>
           editingIdx === idx ? (
-            <textarea
-              key={idx}
-              ref={editRef}
-              value={draftValue}
-              onChange={(e) => setDraftValue(e.target.value)}
-              onBlur={commitItem}
-              onKeyDown={handleKeyDown}
-              maxLength={1000}
-              rows={1}
-              style={taStyle}
-            />
+            <div key={idx} style={{ borderTop: idx > 0 ? divider : undefined, padding: "8px 0" }}>
+              <textarea
+                ref={editRef}
+                value={draftValue}
+                onChange={(e) => setDraftValue(e.target.value)}
+                onBlur={commitItem}
+                onKeyDown={handleKeyDown}
+                maxLength={1000}
+                rows={1}
+                style={taStyle}
+              />
+            </div>
           ) : (
-            <div key={idx} style={{ display: "flex", alignItems: "flex-start", gap: 2 }}>
-              <span style={{ flex: 1, fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)", paddingTop: 2 }}>
+            <div key={idx} style={{ borderTop: idx > 0 ? divider : undefined, display: "flex", alignItems: "center", padding: "10px 0", gap: 2 }}>
+              <span style={{ flex: 1, fontSize: 13, lineHeight: 1.5, color: "oklch(0.85 0 0)" }}>
                 {item}
               </span>
               <button
@@ -3047,7 +3052,7 @@ function CommittedScopeBlock({
                 onClick={(e) => { e.stopPropagation(); deleteItem(idx); }}
                 aria-label="Delete item"
                 style={btnGhost}
-                onMouseEnter={onBtnEnter}
+                onMouseEnter={(e) => { e.currentTarget.style.color = "oklch(0.75 0.20 25)"; e.currentTarget.style.background = "oklch(0.20 0.08 25)"; }}
                 onMouseLeave={onBtnLeave}
               >
                 <X size={12} strokeWidth={2} aria-hidden />
@@ -3056,24 +3061,26 @@ function CommittedScopeBlock({
           )
         )}
         {editingIdx === -1 && (
-          <textarea
-            ref={editRef}
-            value={draftValue}
-            onChange={(e) => setDraftValue(e.target.value)}
-            onBlur={commitItem}
-            onKeyDown={handleKeyDown}
-            maxLength={1000}
-            rows={1}
-            placeholder="Add a scope item…"
-            style={taStyle}
-          />
+          <div style={{ borderTop: items.length > 0 ? divider : undefined, padding: "8px 0" }}>
+            <textarea
+              ref={editRef}
+              value={draftValue}
+              onChange={(e) => setDraftValue(e.target.value)}
+              onBlur={commitItem}
+              onKeyDown={handleKeyDown}
+              maxLength={1000}
+              rows={1}
+              placeholder="Add item…"
+              style={taStyle}
+            />
+          </div>
         )}
       </div>
       {editingIdx === null && (
         <button
           type="button"
           onClick={() => startEdit(-1)}
-          style={{ marginTop: 6, background: "none", border: "none", padding: 0, fontSize: 12, color: "oklch(0.45 0 0)", cursor: "pointer", letterSpacing: 0.2, transition: "color 100ms" }}
+          style={{ marginTop: 4, background: "none", border: "none", padding: 0, fontSize: 12, color: "oklch(0.45 0 0)", cursor: "pointer", letterSpacing: 0.2, transition: "color 100ms" }}
           onMouseEnter={(e) => { e.currentTarget.style.color = "oklch(0.65 0 0)"; }}
           onMouseLeave={(e) => { e.currentTarget.style.color = "oklch(0.45 0 0)"; }}
         >
