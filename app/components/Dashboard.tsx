@@ -23,7 +23,7 @@ import { KR_VALUES, KR_LABELS, KR_GROUPS, krDisplayLabel } from "@/lib/synthesis
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Calendar, Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X, UserRound, UsersRound } from "lucide-react";
+import { Calendar, Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X, UserRound, UsersRound, Download } from "lucide-react";
 import Lottie from "lottie-react";
 import { exportPinnedItems } from "@/lib/export/pinned";
 import headerAnimation from "@/public/animations/header.json";
@@ -3537,7 +3537,8 @@ function ComingUpTab({
           cursor: exporting ? "not-allowed" : "pointer",
         }}
       >
-        {exporting ? "Exporting…" : `Export XLSX (${items.length})`}
+        <Download size={11} strokeWidth={2} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }} />
+        {exporting ? "Exporting…" : "Export XLSX"}
       </button>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {items.map((item) => (
