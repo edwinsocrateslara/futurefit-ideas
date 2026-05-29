@@ -1056,9 +1056,9 @@ function KRChip({ label, isOverridden, onClick }: { label: string; isOverridden:
     lineHeight: 1,
     letterSpacing: 0.1,
     borderRadius: 9999,
-    background: "oklch(0.18 0.04 275)",
-    color: isOverridden ? "oklch(0.78 0.22 275)" : "oklch(0.62 0.15 275)",
-    border: `1px solid ${isOverridden ? "oklch(0.62 0.18 275 / 0.50)" : "oklch(0.62 0.15 275 / 0.30)"}`,
+    background: "oklch(0.20 0 0)",
+    color: "oklch(0.72 0 0)",
+    border: "1px solid oklch(1 0 0 / 0.12)",
     whiteSpace: "nowrap" as const,
     cursor: onClick ? "pointer" : "default",
     transition: "opacity 100ms",
@@ -1165,7 +1165,7 @@ function KROverridePopover({
                       style={{
                         display: "inline-flex", alignItems: "center", justifyContent: "center",
                         width: 14, height: 14, borderRadius: 3, flexShrink: 0, marginTop: 1,
-                        background: selected.has(kr) ? "oklch(0.62 0.18 275)" : "transparent",
+                        background: selected.has(kr) ? "oklch(0.45 0.20 295)" : "transparent",
                         border: selected.has(kr) ? "none" : "1px solid oklch(1 0 0 / 0.25)",
                         transition: "background 100ms, border-color 100ms",
                       }}
