@@ -3506,12 +3506,6 @@ function ComingUpTab({
   const globalRank = new Map(items.map((item, i) => [item.canny_id, i + 1]));
   const sharedProps = { notesCounts, onUnpin, onDefer, onAccepted, onEditTitle, onScopeChange };
 
-  const sectionHeader = (label: string, count: number) => (
-    <div style={{ fontSize: 12, fontWeight: 600, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.55 0 0)", marginBottom: 12 }}>
-      {label} · {count} {count === 1 ? "item" : "items"}
-    </div>
-  );
-
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>
@@ -3540,26 +3534,11 @@ function ComingUpTab({
           {exporting ? "Exporting…" : "Export"}
         </button>
       </div>
-      {top10Items.length > 0 && (
-        <div>
-          {sectionHeader("Top 10", top10Items.length)}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {top10Items.map((item) => (
-              <SortablePinnedCard key={item.canny_id} item={item} displayRank={globalRank.get(item.canny_id)!} {...sharedProps} />
-            ))}
-          </div>
-        </div>
-      )}
-      {quickWinItems.length > 0 && (
-        <div>
-          {sectionHeader("Quick Wins", quickWinItems.length)}
-          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-            {quickWinItems.map((item) => (
-              <SortablePinnedCard key={item.canny_id} item={item} displayRank={globalRank.get(item.canny_id)!} {...sharedProps} />
-            ))}
-          </div>
-        </div>
-      )}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        {items.map((item) => (
+          <SortablePinnedCard key={item.canny_id} item={item} displayRank={globalRank.get(item.canny_id)!} {...sharedProps} />
+        ))}
+      </div>
     </div>
   );
 }
