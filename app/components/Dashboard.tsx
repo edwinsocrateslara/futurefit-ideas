@@ -1084,8 +1084,16 @@ function KROverridePopover({
   onClose: () => void;
   onChange: (value: string[] | null) => void;
 }) {
+  const ref = useRef<HTMLDivElement>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set(current));
-  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    function handleMouseDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) onClose();
+    }
+    document.addEventListener("mousedown", handleMouseDown);
+    return () => document.removeEventListener("mousedown", handleMouseDown);
+  }, [onClose]);
 
   function toggle(kr: string) {
     setSelected((prev) => {
@@ -1095,20 +1103,19 @@ function KROverridePopover({
     });
   }
 
-  async function save(value: string[] | null) {
-    setSaving(true);
-    const res = await fetch(`/api/ideas/${cannyId}/krs`, {
+  function save(value: string[] | null) {
+    onChange(value);
+    onClose();
+    fetch(`/api/ideas/${cannyId}/krs`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ manual_linked_krs: value }),
-    });
-    if (res.ok) onChange(value);
-    setSaving(false);
-    onClose();
+    }).catch((err) => console.error("[KROverridePopover] save failed:", err));
   }
 
   return (
     <div
+      ref={ref}
       style={{
         position: "absolute",
         top: "calc(100% + 6px)",
@@ -1132,7 +1139,6 @@ function KROverridePopover({
             <button
               type="button"
               onClick={() => save(null)}
-              disabled={saving}
               style={{
                 display: "flex", alignItems: "center", gap: 8, width: "100%",
                 padding: "8px 10px", fontSize: 12, fontWeight: 400, borderRadius: 6,
@@ -1212,7 +1218,6 @@ function KROverridePopover({
         <button
           type="button"
           onClick={() => save(Array.from(selected))}
-          disabled={saving}
           style={{
             fontSize: 13,
             fontWeight: 600,
@@ -1220,13 +1225,12 @@ function KROverridePopover({
             background: "oklch(0.45 0.20 295)",
             border: "none",
             borderRadius: 9999,
-            cursor: saving ? "not-allowed" : "pointer",
+            cursor: "pointer",
             padding: "8px 18px",
-            opacity: saving ? 0.6 : 1,
             transition: "background 120ms",
           }}
-          onMouseEnter={(e) => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.50 0.20 295)"; }}
-          onMouseLeave={(e) => { if (!saving) (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.45 0.20 295)"; }}
+          onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.50 0.20 295)"; }}
+          onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(0.45 0.20 295)"; }}
         >
           Save
         </button>
