@@ -1134,26 +1134,6 @@ function KROverridePopover({
       onClick={(e) => e.stopPropagation()}
     >
       <div style={{ flex: 1, overflowY: "auto", padding: "6px 0" }}>
-        {isOverridden && (
-          <>
-            <button
-              type="button"
-              onClick={() => save(null)}
-              style={{
-                display: "flex", alignItems: "center", gap: 8, width: "100%",
-                padding: "8px 10px", fontSize: 12, fontWeight: 400, borderRadius: 6,
-                border: "none", background: "transparent", color: "oklch(0.55 0 0)",
-                cursor: "pointer", textAlign: "left", transition: "background 100ms",
-              }}
-              onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.06)"; }}
-              onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.background = "transparent"; }}
-            >
-              <RotateCcw size={12} strokeWidth={2} />
-              Clear override
-            </button>
-            <div style={{ height: 1, background: "oklch(1 0 0 / 0.08)", margin: "4px 0" }} />
-          </>
-        )}
         {KR_GROUPS.map((group) => (
           <div key={group.group}>
             <div style={{ padding: "6px 12px 1px", fontSize: 10, fontWeight: 700, letterSpacing: 1.2, textTransform: "uppercase", color: "oklch(0.55 0.18 295)" }}>
@@ -1203,7 +1183,24 @@ function KROverridePopover({
           </div>
         ))}
       </div>
-      <div style={{ flexShrink: 0, display: "flex", justifyContent: "flex-end", gap: 8, padding: "10px 12px", borderTop: "0.5px solid oklch(1 0 0 / 0.08)" }}>
+      <div style={{ flexShrink: 0, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 12px", borderTop: "0.5px solid oklch(1 0 0 / 0.08)" }}>
+        {isOverridden ? (
+          <button
+            type="button"
+            onClick={() => save(null)}
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              fontSize: 12, fontWeight: 500, color: "oklch(0.50 0 0)",
+              background: "none", border: "none", cursor: "pointer", padding: "4px 0",
+            }}
+            onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.65 0 0)"; }}
+            onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0 0)"; }}
+          >
+            <RotateCcw size={11} strokeWidth={2} />
+            Clear override
+          </button>
+        ) : <span />}
+        <div style={{ display: "flex", gap: 8 }}>
         <button
           type="button"
           onClick={onClose}
@@ -1234,6 +1231,7 @@ function KROverridePopover({
         >
           Save
         </button>
+        </div>
       </div>
     </div>
   );
