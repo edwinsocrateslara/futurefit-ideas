@@ -86,7 +86,7 @@ export async function exportPinnedItems(items: PinnedItem[]): Promise<void> {
       "Status":                  isQuickWin ? "" : str(item.status),
       "Tier":                    "",
       "TPM":                     "",
-      "Impact":                  isQuickWin || item.impact_rating == null ? "" : item.impact_rating,
+      "Impact":                  isQuickWin || item.impact_rating == null || item.confidence_rating == null ? "" : item.impact_rating * item.confidence_rating,
       "Eng Sprints":             "",
       "Data Sprints":            "",
       "Why?":                    str(item.why_callout),
