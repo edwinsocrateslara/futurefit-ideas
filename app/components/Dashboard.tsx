@@ -3525,20 +3525,27 @@ function ComingUpTab({
         disabled={exporting}
         style={{
           alignSelf: "flex-start",
+          display: "inline-flex",
+          alignItems: "center",
+          gap: 4,
           fontSize: 12,
           color: exporting ? "oklch(0.40 0 0)" : "oklch(0.55 0 0)",
-          textDecoration: "underline",
-          textUnderlineOffset: 3,
-          textDecorationThickness: 1,
+          borderTop: "none",
+          borderLeft: "none",
+          borderRight: "none",
+          borderBottom: `1px solid ${exporting ? "oklch(0.40 0 0)" : "oklch(0.55 0 0)"}`,
+          paddingBottom: 1,
           letterSpacing: 0.2,
           background: "none",
-          border: "none",
-          padding: 0,
+          paddingTop: 0,
+          paddingLeft: 0,
+          paddingRight: 0,
+          paddingBottom: 1,
           cursor: exporting ? "not-allowed" : "pointer",
         }}
       >
         {exporting ? "Exporting…" : "Export XLSX"}
-        <Download size={11} strokeWidth={2} style={{ display: "inline-block", verticalAlign: "middle", marginLeft: 4 }} />
+        <Download size={11} strokeWidth={2} />
       </button>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {items.map((item) => (
