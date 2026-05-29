@@ -4314,16 +4314,18 @@ export default function Dashboard({
       </div>
 
       {/* Tab navigation */}
-      <TabBar
-        active={activeTab}
-        signalCount={data.selections.length}
-        easyWinCount={data.easy_wins.length}
-        comingUpCount={pinnedItems.length}
-        acceptedCount={acceptedItems.length}
-        deferredCount={doneItems.length}
-        doneCount={data.done_jira_items.length}
-        onSelect={setActiveTab}
-      />
+      <div style={{ display: "flex", justifyContent: "center" }}>
+        <TabBar
+          active={activeTab}
+          signalCount={data.selections.length}
+          easyWinCount={data.easy_wins.length}
+          comingUpCount={pinnedItems.length}
+          acceptedCount={acceptedItems.length}
+          deferredCount={doneItems.length}
+          doneCount={data.done_jira_items.length}
+          onSelect={setActiveTab}
+        />
+      </div>
 
       {/* Tab content */}
       {activeTab === "signals" && (
