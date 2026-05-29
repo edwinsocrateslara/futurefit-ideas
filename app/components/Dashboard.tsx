@@ -3537,8 +3537,8 @@ function ComingUpTab({
           cursor: exporting ? "not-allowed" : "pointer",
         }}
       >
-        <Download size={11} strokeWidth={2} style={{ display: "inline-block", verticalAlign: "middle", marginRight: 4 }} />
         {exporting ? "Exporting…" : "Export XLSX"}
+        <Download size={11} strokeWidth={2} style={{ display: "inline-block", verticalAlign: "middle", marginLeft: 4 }} />
       </button>
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         {items.map((item) => (
