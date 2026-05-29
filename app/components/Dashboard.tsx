@@ -3534,7 +3534,6 @@ function ComingUpTab({
           borderLeft: "none",
           borderRight: "none",
           borderBottom: `1px solid ${exporting ? "oklch(0.40 0 0)" : "oklch(0.55 0 0)"}`,
-          paddingBottom: 1,
           letterSpacing: 0.2,
           background: "none",
           paddingTop: 0,
