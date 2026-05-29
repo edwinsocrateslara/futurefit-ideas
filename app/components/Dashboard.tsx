@@ -1434,27 +1434,42 @@ function MetricCard({
     <div
       style={{
         flex: 1,
-        padding: "16px 20px",
-        background: "oklch(0.16 0 0)",
-        border: "1px solid oklch(1 0 0 / 0.06)",
-        borderRadius: 10,
+        padding: 24,
+        borderRadius: 18,
+        backgroundColor: "oklch(0.14 0 0)",
+        backgroundImage: `radial-gradient(160% 140% at 100% 0%, color-mix(in oklch, ${accentColor} 10%, transparent) 0%, transparent 65%)`,
+        border: "1px solid oklch(1 0 0 / 0.08)",
+        boxShadow: "oklch(1 0 0 / 0.03) 0px 1px 0px 0px inset, oklch(0 0 0 / 0.60) 0px 8px 24px -12px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+        gap: 14,
       }}
     >
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          marginBottom: 4,
-        }}
-      >
-        {icon}
+      {/* Icon circle + count */}
+      <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+        <div
+          style={{
+            width: 38,
+            height: 38,
+            borderRadius: 9999,
+            background: `color-mix(in oklch, ${accentColor} 10%, oklch(0.14 0 0))`,
+            border: `1px solid color-mix(in oklch, ${accentColor} 28%, transparent)`,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            flexShrink: 0,
+          }}
+        >
+          {icon}
+        </div>
         <div
           style={{
             fontFamily: "var(--font-mono)",
-            fontSize: 28,
-            fontWeight: 500,
+            fontSize: 38,
+            fontWeight: 800,
             fontVariantNumeric: "tabular-nums",
+            letterSpacing: -0.6,
             color: "oklch(0.97 0 0)",
             lineHeight: 1,
           }}
@@ -1462,13 +1477,16 @@ function MetricCard({
           {count}
         </div>
       </div>
+
+      {/* Label */}
       <div
         style={{
-          fontSize: 12,
+          fontSize: 11,
           fontWeight: 600,
           letterSpacing: 1.2,
           textTransform: "uppercase",
-          color: accentColor,
+          color: "oklch(1 0 0 / 0.45)",
+          lineHeight: 1,
         }}
       >
         {label}
@@ -1513,7 +1531,7 @@ function TabBar({
     <div
       role="tablist"
       style={{
-        display: "inline-flex",
+        display: "flex",
         background: "oklch(0.145 0 0)",
         padding: 3,
         borderRadius: 9999,
@@ -4312,9 +4330,9 @@ export default function Dashboard({
       <div style={{ display: "flex", gap: 12, marginBottom: 24 }}>
         {(
           [
-            { section: "Top 10",     count: data.persistent_count,    label: "Persistent Ideas (4+ Weeks)", accentColor: "oklch(0.72 0.18 75)",  icon: <Calendar size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
-            { section: "Top 10",     count: data.new_count,           label: "New Ideas this Week",           accentColor: "oklch(0.70 0.20 145)", icon: <PackageOpen size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
-            { section: "Quick Wins", count: data.new_easy_wins_count, label: "New Quick Wins this Week",      accentColor: "oklch(0.70 0.20 145)", icon: <Zap size={20} color="oklch(0.97 0 0)" strokeWidth={1.75} /> },
+            { section: "Top 10",     count: data.persistent_count,    label: "Persistent Ideas (4+ Weeks)", accentColor: "oklch(0.72 0.18 75)",  icon: <Calendar size={18} color="oklch(0.72 0.18 75)" strokeWidth={1.75} /> },
+            { section: "Top 10",     count: data.new_count,           label: "New Ideas this Week",           accentColor: "oklch(0.70 0.20 145)", icon: <PackageOpen size={18} color="oklch(0.70 0.20 145)" strokeWidth={1.75} /> },
+            { section: "Quick Wins", count: data.new_easy_wins_count, label: "New Quick Wins this Week",      accentColor: "oklch(0.70 0.20 145)", icon: <Zap size={18} color="oklch(0.70 0.20 145)" strokeWidth={1.75} /> },
           ] as const
         ).map(({ count, label, accentColor, icon }, i) => (
           <div key={i} style={{ flex: 1 }}>
