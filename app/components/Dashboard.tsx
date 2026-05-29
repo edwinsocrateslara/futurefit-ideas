@@ -23,8 +23,9 @@ import { KR_VALUES, KR_LABELS, KR_GROUPS, krDisplayLabel } from "@/lib/synthesis
 import { JIRA_STATUS_CATEGORY } from "@/config/jira";
 import PatternCard from "@/app/components/PatternCard";
 import { BOARDS, BOARD_BY_SLUG } from "@/config/boards";
-import { Calendar, Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X, UserRound, UsersRound } from "lucide-react";
+import { Calendar, Pin, ArrowUp, AlertTriangle, Compass, Wrench, BarChart2, RotateCcw, ChevronDown, PackageOpen, Zap, FileText, Check, Terminal, Database, GripVertical, Plus, Folder, Pencil, RefreshCw, X, UserRound, UsersRound, Download } from "lucide-react";
 import Lottie from "lottie-react";
+import { exportPinnedItems } from "@/lib/export/pinned";
 import headerAnimation from "@/public/animations/header.json";
 
 // ── Token maps ─────────────────────────────────────────────────────────────────
@@ -3481,6 +3482,17 @@ function ComingUpTab({
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
 }) {
+  const [exporting, setExporting] = useState(false);
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      await exportPinnedItems(items);
+    } finally {
+      setExporting(false);
+    }
+  }
+
   if (items.length === 0) {
     return (
       <p style={{ fontSize: 14, color: "oklch(0.45 0 0)", margin: 0 }}>
@@ -3502,6 +3514,32 @@ function ComingUpTab({
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 32 }}>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
+        <button
+          type="button"
+          onClick={handleExport}
+          disabled={exporting}
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            fontSize: 12,
+            fontWeight: 500,
+            padding: "5px 12px",
+            borderRadius: 9999,
+            border: "1px solid oklch(1 0 0 / 0.12)",
+            background: "oklch(1 0 0 / 0.04)",
+            color: exporting ? "oklch(0.40 0 0)" : "oklch(0.60 0 0)",
+            cursor: exporting ? "not-allowed" : "pointer",
+            transition: "background 120ms, color 120ms",
+          }}
+          onMouseEnter={(e) => { if (!exporting) (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.08)"; }}
+          onMouseLeave={(e) => { if (!exporting) (e.currentTarget as HTMLButtonElement).style.background = "oklch(1 0 0 / 0.04)"; }}
+        >
+          <Download size={12} strokeWidth={2} />
+          {exporting ? "Exporting…" : "Export"}
+        </button>
+      </div>
       {top10Items.length > 0 && (
         <div>
           {sectionHeader("Top 10", top10Items.length)}
