@@ -1,4 +1,5 @@
 import type { PinnedItem } from "@/lib/data/dashboard";
+import { krDisplayLabel } from "@/lib/synthesis/kr-identifiers";
 
 const HEADERS = [
   "Rank",
@@ -77,7 +78,7 @@ export async function exportPinnedItems(items: PinnedItem[]): Promise<void> {
       : "";
 
     const krs = !isQuickWin && item.linked_krs?.length
-      ? item.linked_krs.join(", ")
+      ? item.linked_krs.map(krDisplayLabel).join(", ")
       : "";
 
     const rowData: Record<string, string | number> = {
