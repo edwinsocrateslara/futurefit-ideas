@@ -1197,7 +1197,7 @@ function KROverridePopover({
             onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.color = "oklch(0.50 0 0)"; }}
           >
             <RotateCcw size={11} strokeWidth={2} />
-            Clear override
+            Clear
           </button>
         ) : <span />}
         <div style={{ display: "flex", gap: 8 }}>
