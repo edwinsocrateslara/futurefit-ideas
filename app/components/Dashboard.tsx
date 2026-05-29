@@ -1192,7 +1192,7 @@ function KROverridePopover({
         {isOverridden ? (
           <button
             type="button"
-            onClick={() => save(null)}
+            onClick={() => save([])}
             style={{
               display: "inline-flex", alignItems: "center", gap: 6,
               fontSize: 12, fontWeight: 500, color: "oklch(0.50 0 0)",
@@ -1247,11 +1247,13 @@ function KRBadgesWithOverride({
   linkedKrs,
   synthesisLinkedKrs,
   isOverridden,
+  onKRChange,
 }: {
   cannyId: string;
   linkedKrs: string[] | null;
   synthesisLinkedKrs: string[] | null;
   isOverridden: boolean;
+  onKRChange?: (krs: string[] | null) => void;
 }) {
   const [open, setOpen] = useState(false);
   const [local, setLocal] = useState<string[]>(linkedKrs ?? []);
@@ -1298,6 +1300,7 @@ function KRBadgesWithOverride({
           onChange={(value) => {
             setLocal(value ?? synthesisLinkedKrs ?? []);
             setLocalOverridden(value !== null);
+            onKRChange?.(value);
           }}
         />
       )}
@@ -1989,6 +1992,7 @@ interface CardBodyProps {
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
   onImpactChange?: (cannyId: string, impact: number, confidence: number) => void;
+  onKRChange?: (cannyId: string, krs: string[] | null) => void;
   rank?: number;
   dragHandleListeners?: Record<string, unknown>;
   isRankOverridden?: boolean;
@@ -2032,6 +2036,7 @@ function CardBody({
   onEditTitle,
   onScopeChange,
   onImpactChange,
+  onKRChange,
   rank,
   dragHandleListeners,
   isRankOverridden,
@@ -2156,7 +2161,7 @@ function CardBody({
                       {linked_krs.map((kr) => <KRChip key={kr} label={kr} isOverridden={false} />)}
                     </div>
                   )
-                : <KRBadgesWithOverride cannyId={canny_id} linkedKrs={linked_krs ?? null} synthesisLinkedKrs={synthesis_linked_krs ?? null} isOverridden={is_krs_overridden ?? false} />
+                : <KRBadgesWithOverride cannyId={canny_id} linkedKrs={linked_krs ?? null} synthesisLinkedKrs={synthesis_linked_krs ?? null} isOverridden={is_krs_overridden ?? false} onKRChange={onKRChange ? (krs) => onKRChange(canny_id, krs) : undefined} />
             )}
             {status != null && (
               readOnly
@@ -3370,6 +3375,7 @@ function SortablePinnedCard({
   onEditTitle,
   onScopeChange,
   onImpactChange,
+  onKRChange,
 }: {
   item: PinnedItem;
   displayRank: number;
@@ -3380,6 +3386,7 @@ function SortablePinnedCard({
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
   onImpactChange?: (cannyId: string, impact: number, confidence: number) => void;
+  onKRChange?: (cannyId: string, krs: string[] | null) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: item.canny_id });
@@ -3425,6 +3432,7 @@ function SortablePinnedCard({
         onEditTitle={onEditTitle}
         onScopeChange={onScopeChange}
         onImpactChange={onImpactChange}
+        onKRChange={onKRChange}
         rank={displayRank}
         dragHandleListeners={listeners as Record<string, unknown>}
         isDimmed={isDragging}
@@ -3511,6 +3519,7 @@ function ComingUpTab({
   onEditTitle,
   onScopeChange,
   onImpactChange,
+  onKRChange,
 }: {
   items: PinnedItem[];
   notesCounts: Record<string, number>;
@@ -3520,6 +3529,7 @@ function ComingUpTab({
   onEditTitle?: (cannyId: string) => void;
   onScopeChange?: (cannyId: string, scope: string[] | null) => void;
   onImpactChange?: (cannyId: string, impact: number, confidence: number) => void;
+  onKRChange?: (cannyId: string, krs: string[] | null) => void;
 }) {
   const [exporting, setExporting] = useState(false);
 
@@ -3543,7 +3553,7 @@ function ComingUpTab({
   const top10Items = items.filter((i) => i.pinned_from !== "quick_win");
   const quickWinItems = items.filter((i) => i.pinned_from === "quick_win");
   const globalRank = new Map(items.map((item, i) => [item.canny_id, i + 1]));
-  const sharedProps = { notesCounts, onUnpin, onDefer, onAccepted, onEditTitle, onScopeChange, onImpactChange };
+  const sharedProps = { notesCounts, onUnpin, onDefer, onAccepted, onEditTitle, onScopeChange, onImpactChange, onKRChange };
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 24 }}>
@@ -3920,6 +3930,12 @@ export default function Dashboard({
   function handlePinnedImpactChange(cannyId: string, impact: number, confidence: number) {
     setPinnedItems((prev) => prev.map((p) =>
       p.canny_id === cannyId ? { ...p, impact_rating: impact, confidence_rating: confidence } : p
+    ));
+  }
+
+  function handlePinnedKRChange(cannyId: string, krs: string[] | null) {
+    setPinnedItems((prev) => prev.map((p) =>
+      p.canny_id === cannyId ? { ...p, linked_krs: krs } : p
     ));
   }
 
@@ -4539,6 +4555,7 @@ export default function Dashboard({
                 onEditTitle={handleOpenEditTitle}
                 onScopeChange={handleSaveScope}
                 onImpactChange={handlePinnedImpactChange}
+                onKRChange={handlePinnedKRChange}
               />
             </SortableContext>
           </DndContext>
