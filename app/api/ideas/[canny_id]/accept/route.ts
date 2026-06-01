@@ -1,8 +1,58 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { createIssue } from "@/lib/jira/client";
+import Anthropic from "@anthropic-ai/sdk";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 120;
+
+async function generateJiraStory(
+  title: string,
+  description: string | null,
+  reason: string | null,
+  whyCallout: string | null
+): Promise<string> {
+  const client = new Anthropic();
+  const displayTitle = title;
+  const context = [
+    reason ? `Strategic reason: ${reason}` : null,
+    whyCallout ? `Why now: ${whyCallout}` : null,
+    description ? `Original feedback: ${description.slice(0, 400)}` : null,
+  ].filter(Boolean).join("\n");
+
+  const message = await client.messages.create({
+    model: "claude-sonnet-4-6",
+    max_tokens: 1500,
+    temperature: 0.3,
+    messages: [{
+      role: "user",
+      content: `Generate a Jira user story for this product idea. Return only the formatted story, no preamble.
+
+Title: ${displayTitle}
+
+${context}
+
+Format exactly as:
+Title: ${displayTitle}
+
+User story:
+As a [specific role], I want [specific capability], so that [concrete outcome].
+
+Context:
+[2–3 sentences describing current behavior, the gap, and any technical constraints. For engineers, not leadership.]
+
+Acceptance criteria:
+- [testable behavior]
+- [testable behavior]
+- [testable behavior]
+[3–5 criteria. Describe behavior and outcomes only — no UX patterns, interaction counts, or layout.]`,
+    }],
+  });
+
+  const block = message.content[0];
+  if (block.type !== "text") throw new Error("Claude returned non-text block");
+  return block.text.trim();
+}
 
 export async function POST(
   _request: Request,
@@ -33,7 +83,7 @@ export async function POST(
   const [{ data: idea, error: ideaError }, { data: latestEasyWin }] = await Promise.all([
     supabase
       .from("ideas")
-      .select("canny_id, title, synthesis_title, edited_title, committed_scope, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification, manual_team_classification, linked_krs, manual_linked_krs")
+      .select("canny_id, title, description, synthesis_title, edited_title, committed_scope, jira_story, selection_week, selection_reason, selection_status, why_callout, customers_prospects_callout, hard_deadline_notes_callout, impact_rating, confidence_rating, team_classification, manual_team_classification, linked_krs, manual_linked_krs")
       .eq("canny_id", canny_id)
       .single(),
     supabase
@@ -54,7 +104,7 @@ export async function POST(
   const easyWinWeek = latestEasyWin?.week_of ?? "";
   const useEasyWin = easyWinWeek >= ideasWeek;
 
-  const jiraStory = useEasyWin
+  let jiraStory = useEasyWin
     ? (latestEasyWin?.jira_story ?? idea.jira_story)
     : idea.jira_story;
 
@@ -63,11 +113,27 @@ export async function POST(
     ? (latestEasyWin?.reason ?? idea.selection_reason ?? null)
     : (idea.selection_reason ?? null);
 
+  // Generate jira_story on-demand if missing — avoids blocking Accept on synthesis history.
   if (!jiraStory) {
-    return NextResponse.json(
-      { error: "No Jira story generated for this idea — run synthesis first" },
-      { status: 422 }
-    );
+    console.log(`[accept] No jira_story for ${canny_id} — generating on demand`);
+    try {
+      const displayTitle = idea.edited_title ?? idea.synthesis_title ?? idea.title;
+      jiraStory = await generateJiraStory(
+        displayTitle,
+        (idea as unknown as { description: string | null }).description,
+        snapshotReason,
+        idea.why_callout ?? null
+      );
+      // Persist so future accepts and the accepted card have it
+      await supabase.from("ideas").update({ jira_story: jiraStory }).eq("canny_id", canny_id);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : String(err);
+      console.error(`[accept] On-demand jira_story generation failed for ${canny_id}:`, message);
+      return NextResponse.json(
+        { error: `Could not generate Jira story: ${message}` },
+        { status: 502 }
+      );
+    }
   }
 
   // An easy win is any item that has an easy_wins row — row present = easy win.
