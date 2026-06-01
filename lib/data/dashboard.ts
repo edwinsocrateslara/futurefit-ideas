@@ -779,7 +779,7 @@ export async function getDoneItems(): Promise<DoneItem[]> {
   const supabase = createServerClient();
   const { data } = await supabase
     .from("ideas")
-    .select("canny_id, title, synthesis_title, edited_title, marked_done_at, selection_priority_rank, selection_week, deferred_reason, tier_1_customer, canny_url, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, linked_krs, manual_linked_krs, why_callout, customers_prospects_callout, hard_deadline_notes_callout, committed_scope, boards(slug, name)")
+    .select("canny_id, title, synthesis_title, edited_title, marked_done_at, selection_priority_rank, selection_week, selection_reason, deferred_reason, tier_1_customer, canny_url, selection_status, manual_status, impact_rating, manual_impact_rating, confidence_rating, manual_confidence_rating, team_classification, manual_team_classification, linked_krs, manual_linked_krs, why_callout, customers_prospects_callout, hard_deadline_notes_callout, committed_scope, boards(slug, name)")
     .eq("marked_done", true)
     .order("marked_done_at", { ascending: false });
 
