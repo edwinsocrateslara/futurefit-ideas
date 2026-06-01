@@ -257,20 +257,15 @@ async function writeSynthesisResults(
   output: SynthesisOutput,
   weekOf: string
 ) {
-  // Reset selection-cycle flags for all non-pinned ideas.
-  // Narrative fields (selection_reason, callouts, jira_story) are intentionally NOT cleared —
-  // they persist from the last synthesis that generated them and are only overwritten when an
-  // idea is re-selected. This preserves callout data for ideas that were in a previous top 10
-  // and get pinned after a subsequent synthesis cycle doesn't re-select them.
+  // Reset only the selection-cycle boolean and defer state for all non-pinned ideas.
+  // All synthesis-generated content (reason, callouts, status, ratings, team, KRs, jira_story)
+  // is intentionally NOT cleared — it persists from the last synthesis that generated it and
+  // is only overwritten when an idea is re-selected. This preserves metadata on deferred and
+  // previously-selected ideas so they display correctly in the Deferred tab.
   await supabase
     .from("ideas")
     .update({
       selected_this_week: false,
-      selection_status: null,
-      impact_rating: null,
-      confidence_rating: null,
-      team_classification: null,
-      linked_krs: null,
       selection_week: null,
       marked_done: false,
       marked_done_at: null,

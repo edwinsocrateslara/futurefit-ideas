@@ -802,7 +802,7 @@ export async function getDoneItems(): Promise<DoneItem[]> {
       priority_rank: row.selection_priority_rank,
       selection_week: row.selection_week,
       marked_done_at: row.marked_done_at!,
-      reason: row.deferred_reason ?? null,
+      reason: row.selection_reason ?? row.deferred_reason ?? null,
       is_quick_win: quickWinSet.has(row.canny_id),
       tier_1_customer: row.tier_1_customer ?? null,
       canny_url: (row.canny_url as string | null) ?? null,
