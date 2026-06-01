@@ -38,7 +38,7 @@ export async function POST(
       .single(),
     supabase
       .from("easy_wins")
-      .select("jira_story, reason, week_of")
+      .select("jira_story, reason, week_of, team_classification")
       .eq("canny_id", canny_id)
       .order("week_of", { ascending: false })
       .limit(1)
@@ -108,7 +108,7 @@ export async function POST(
     snapshot_deadline_callout: idea.hard_deadline_notes_callout ?? null,
     snapshot_impact_rating: idea.impact_rating ?? null,
     snapshot_confidence_rating: idea.confidence_rating ?? null,
-    snapshot_team_classification: (idea.manual_team_classification ?? idea.team_classification) ?? null,
+    snapshot_team_classification: (idea.manual_team_classification ?? idea.team_classification ?? latestEasyWin?.team_classification) ?? null,
     snapshot_status: idea.selection_status ?? null,
     snapshot_committed_scope: idea.committed_scope ?? null,
     snapshot_linked_krs: ((idea.manual_linked_krs ?? idea.linked_krs) as string[] | null) ?? null,
