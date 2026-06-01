@@ -257,28 +257,26 @@ async function writeSynthesisResults(
   output: SynthesisOutput,
   weekOf: string
 ) {
-  // Reset all ideas to unselected — unconditional so historical flags never persist
+  // Reset selection-cycle flags for all non-pinned ideas.
+  // Narrative fields (selection_reason, callouts, jira_story) are intentionally NOT cleared —
+  // they persist from the last synthesis that generated them and are only overwritten when an
+  // idea is re-selected. This preserves callout data for ideas that were in a previous top 10
+  // and get pinned after a subsequent synthesis cycle doesn't re-select them.
   await supabase
     .from("ideas")
     .update({
       selected_this_week: false,
-      selection_reason: null,
       selection_status: null,
       impact_rating: null,
       confidence_rating: null,
-      why_callout: null,
-      customers_prospects_callout: null,
-      hard_deadline_notes_callout: null,
       team_classification: null,
       linked_krs: null,
       selection_week: null,
-      jira_story: null,
       marked_done: false,
       marked_done_at: null,
       deferred_reason: null,
     })
     .neq("id", "00000000-0000-0000-0000-000000000000")
-    // Keep pinned items' synthesis fields intact so Accept from Coming Up captures a valid snapshot
     .is("pinned_at", null);
 
   // Clear selections history for this week (handles re-runs)
