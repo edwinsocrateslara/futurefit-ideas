@@ -401,7 +401,7 @@ ${architectureDocs ? `\nThe following document describes how the FutureFit AI Pa
 
 ## TASK 3: IDENTIFY EASY WINS
 
-Identify up to 10 items from the same idea pool that qualify as easy wins — things the engineering team could ship in a single sprint with no discovery work required, where the solution is obvious from the feedback itself. Return as many as genuinely meet the criteria, to a maximum of 10. If fewer than 10 genuinely qualify, return only those — do NOT pad the list with borderline items to reach a target count. A shorter list of real easy wins is better than a padded one.
+Identify all items from the same idea pool that qualify as easy wins — things one engineer could ship in a single sprint where the approach is clear enough that scoping won't require a discovery phase. There is no cap on how many to return. Do NOT pad the list with borderline items — the quality bar stays — but return every item that genuinely qualifies, not just the best handful.
 
 **Architecture context for this task:**
 The Architecture Reference above describes how FutureFit AI Pathways is built. It now includes three sections that directly support effort assessment — use them before judging any item:
@@ -412,23 +412,25 @@ The Architecture Reference above describes how FutureFit AI Pathways is built. I
 
 **What qualifies (all must be true):**
 - Clear and simple solution: the request names what to build. A developer reading it should be able to write a ticket in sprint planning without further questions.
-- Low effort: small features, toggles, copy changes on Locize-managed strings, single-screen UX changes, conditional renders, narrow filter or sort additions on existing fields, missing empty states, simple validations, minor workflow tweaks.
-- Fast: shippable within a sprint, ideally a few days of engineering time.
+- Bounded effort: shippable within a single sprint by one engineer — small features, toggles, copy changes on Locize-managed strings, single-screen UX changes, conditional renders, narrow filter or sort additions on existing fields, missing empty states, simple validations, minor workflow tweaks. An item does not need to be a one-day copy change to qualify; a well-scoped feature that clearly fits a sprint counts.
 - High value relative to effort: meaningfully reduces friction despite the small scope — not trivial polish for its own sake.
 
-**What does NOT qualify:**
-- Anything requiring a new data integration or third-party API
-- Multi-stakeholder workflows requiring coordination across roles (employer + admin + job seeker)
-- Outcomes data architecture, measurement, or reporting infrastructure
-- Ontology, taxonomy, skill graph, or AI model changes
-- New platform services or infrastructure
-- Anything requiring product discovery before scoping — if the solution isn't obvious from reading the feedback, it doesn't belong here
-- Any new email or notification feature — there is no central notification dispatch; each type requires a new Lambda + SQS + CDK stack (~10 files minimum). Not a sprint task.
+**Hard disqualifiers — always reject (real infrastructure gaps, not judgment calls):**
+- Any new email or notification feature — there is no central notification dispatch; each type requires a new Lambda + SQS + CDK stack (~10 files minimum).
 - Any feature that depends on group membership events — no such events are emitted today; adding them requires new infrastructure first.
-- Any job search filter bug where the root cause is unknown — "broken filter" may be a query fix (Engineering) or a data pipeline gap in the ML classification system (Data team). Cannot be scoped as an Easy Win without a data diagnosis confirming which it is.
 - Anything touching the EAP / Employment Ontario state machine — changes ripple across multiple lambdas and packages regardless of how small they appear.
+- New platform services or net-new infrastructure.
+- Ontology, taxonomy, skill graph, or AI model changes.
 
-**Prefer different items from the top 10.** If an item genuinely qualifies for both, it may appear in both. But easy wins should be additive — surface items that might not rank in the top 10 for strategic reasons but are clearly shippable.
+**Soft signals — no longer auto-reject; allow through if the effort/clarity bar is met, but note the caveat:**
+- New data integrations or third-party APIs — allow if it's a thin integration with a documented, already-known API and the implementation path is clear; reject only if it requires real discovery work.
+- Multi-stakeholder workflows — allow if the workflow change is small and all stakeholder roles are already modeled in the system; reject only if coordination across roles introduces real scope ambiguity.
+- Outcomes data or reporting — allow small additions to existing reports or dashboards; reject only net-new reporting infrastructure.
+- Unknown-root-cause filter bugs — allow if the feedback states a plausible root cause that points to a specific fix; reject only if the root cause is genuinely undiagnosable without a spike.
+
+If an item passes via a soft signal, append a one-line caveat to the reason field (e.g. "Assumes Revelio API already integrated — confirm before scoping.") so the reviewer knows what assumption the qualification rests on.
+
+**Ordering and overlap with top 10:** Easy wins must NOT include any item already present in the top 10 selections. The easy wins list is strictly additive — it surfaces qualifying items that fall outside the top 10. If an item is in the top 10, it is already visible to the reviewer there and should not be repeated here, even if it would otherwise qualify as an easy win. Within easy wins, order by clearest-solution-first (most unambiguous scoping at the top).
 
 **How to write the title field:**
 Write a solution-oriented title that names exactly what gets shipped. This appears on the leadership dashboard. Specific enough that an engineer reading it knows what to build. Max 80 characters.
