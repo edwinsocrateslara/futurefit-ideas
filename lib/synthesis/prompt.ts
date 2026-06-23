@@ -327,7 +327,7 @@ Examples:
 
 **KR linkage** — After assigning team classification, identify which year-end KRs each selected item directly advances. This is the final annotation step and does NOT influence selection, ranking, or any previously assigned field.
 
-Emit a \`linked_krs\` array using only the identifiers listed below. Each identifier encodes a group (D = Data, P = Product, Eng = Engineering), an objective number, and a KR number. The OKR document in the strategy section above is the authoritative description of each KR.
+Emit a \`linked_krs\` array using only the identifiers listed below. Each identifier encodes an objective number and a KR number in the format O{n}·KR{n} (e.g. O1·KR3, O3·KR5). The OKR document in the strategy section above is the authoritative description of each KR.
 
 Rules:
 - Return 0–3 identifiers. If more than 3 seem to apply, rank all candidates by directness of connection — how much this item is the primary evidence that the KR advances, not merely adjacent — and select the 3 most direct.

@@ -1,64 +1,56 @@
 // Single source of truth for KR identifiers.
-// Format: {group}·O{n}·KR{n} where group is D (Data), P (Product), or Eng (Engineering).
+// Format: O{n}·KR{n} — objective number + KR number.
 // Derived from strategy/okrs.md — update this file when OKRs change.
 
 export const KR_VALUES = [
-  "D·O1·KR1", "D·O1·KR2", "D·O1·KR3",
-  "D·O2·KR1", "D·O2·KR2", "D·O2·KR3", "D·O2·KR4",
-  "D·O3·KR1", "D·O3·KR2", "D·O3·KR3", "D·O3·KR4", "D·O3·KR5",
-  "P·O1·KR1", "P·O1·KR2", "P·O1·KR3", "P·O1·KR4", "P·O1·KR5", "P·O1·KR6",
-  "P·O2·KR1", "P·O2·KR2", "P·O2·KR3",
-  "Eng·O1·KR1", "Eng·O1·KR2", "Eng·O1·KR3",
-  "Eng·O2·KR1", "Eng·O2·KR2", "Eng·O2·KR3",
-  "Eng·O3·KR1", "Eng·O3·KR2", "Eng·O3·KR3",
+  // Obj 01 — Reliable data & workflows
+  "O1·KR1", "O1·KR2", "O1·KR3", "O1·KR4", "O1·KR5",
+  "O1·KR6", "O1·KR7", "O1·KR8", "O1·KR9",
+  // Obj 02 — Tools for intermediaries
+  "O2·KR1", "O2·KR2", "O2·KR3", "O2·KR4", "O2·KR5",
+  // Obj 03 — Talent experience
+  "O3·KR1", "O3·KR2", "O3·KR3", "O3·KR4", "O3·KR5",
+  // Obj 04 — Human impact
+  "O4·KR1", "O4·KR2", "O4·KR3", "O4·KR4",
 ] as const;
 
 export type KRValue = typeof KR_VALUES[number];
 
 // Short labels for popover display.
 export const KR_LABELS: Record<string, string> = {
-  "D·O1·KR1": "Worker profiles matched to wage records + wage data services",
-  "D·O1·KR2": "Candidate-to-placement outcomes for CO Thrives; Snowflake for MA",
-  "D·O1·KR3": "Curriculum↔job outcome match score for ActivateWork",
-  "D·O2·KR1": "Skills taxonomy cleanup — remove COVID artifacts, add AI skills",
-  "D·O2·KR2": "AI Coach V2 shipped; 70 users/week across 10+ customers",
-  "D·O2·KR3": "LMI on Revelio data — demand trends viewed by 3+ customers",
-  "D·O2·KR4": "Engagement & conversion funnel metrics shared in All Hands",
-  "D·O3·KR1": "Security vulnerabilities in ffai-data repo closed",
-  "D·O3·KR2": "Intercom data added to data lake",
-  "D·O3·KR3": "PIRL solved with Heap↔user mapping or alternative mechanism",
-  "D·O3·KR4": "Nightly gold layer updates running without errors",
-  "D·O3·KR5": "5 discovery spike decisions documented for Q3",
-  "P·O1·KR1": "Snowflake integration live for MA job seeker portal",
-  "P·O1·KR2": "MA job seeker portal: self-sign up & SSO for July launch",
-  "P·O1·KR3": "Job seeker portal KR & roadmap confirmed with management",
-  "P·O1·KR4": "Employer portal KR & roadmap confirmed with management",
-  "P·O1·KR5": "Granular permissions for multi-tenant deployments",
-  "P·O1·KR6": '"Apply to job" saved data accessible to job seekers & coaches',
-  "P·O2·KR1": "PMs and UX using Claude Code for 10 small UI win tickets",
-  "P·O2·KR2": "User journey maps complete for all personas",
-  "P·O2·KR3": "Networking study learnings shared on socials",
-  "Eng·O1·KR1": "WCAG 2.2 AA accessibility gap documented and sized",
-  "Eng·O1·KR2": "Critical/high SOC2 vulnerabilities remediated",
-  "Eng·O1·KR3": "NIST gap analysis + FedRamp go/no-go decision complete",
-  "Eng·O2·KR1": "Manual WCG integration failure processes documented",
-  "Eng·O2·KR2": "Top 80% of automatable WCG processes automated",
-  "Eng·O2·KR3": "Shared WCG roadmap based on Empyra-scope bugs",
-  "Eng·O3·KR1": "Health dashboard deployed with central monitoring",
-  "Eng·O3·KR2": "Completed:committed sprint ratio improved 18:26 → 18:21",
-  "Eng·O3·KR3": "Claude-automated first-pass fixes for 50% of non-critical bugs",
+  "O1·KR1": "PIRL event capture complete",
+  "O1·KR2": "Skills & credentials trust; filter accuracy on experience level and job type",
+  "O1·KR3": "Decrease time to employer first job posting/claim",
+  "O1·KR4": "Candidate recommendations hardened for scale and accuracy",
+  "O1·KR5": "Duplicates, gaps, and skills extraction in job data feed",
+  "O1·KR6": "SOC2, WCAG 2.2 AA compliance; clear path to NIST 553 / FedRamp",
+  "O1·KR7": "Career/role/skill ontology defined; build pipeline clean; baseline model testable",
+  "O1·KR8": "Case management integration brings x% of active talent and staff to FFAI",
+  "O1·KR9": "Upgrade MyOneFlow; self-serve and permissioning for WCG enables real-time staff assist",
+  "O2·KR1": "Routing for customer-specific user groups configurable and automated at scale",
+  "O2·KR2": "Employers and providers connected with action-taking tools (JD suggestions, claiming, insights)",
+  "O2·KR3": "Regional job demand/supply with skills trends; admin job export included",
+  "O2·KR4": "Job placement, training completion, and program success dashboards in 3+ customers' hands",
+  "O2·KR5": "Integrations and automations (Revelio, UKG, Workday) cover x% of active users' outcomes",
+  "O3·KR1": "Validate AI Coach full beta — decrease time to obvious next step",
+  "O3·KR2": "Automate and improve talent UX from AI Coach learnings with nudges on/off platform",
+  "O3·KR3": "Work recommender accurate — seniority, salary, skills; decrease wait time and no-results rate",
+  "O3·KR4": "Explore and define incentives that systematically move people through the platform",
+  "O3·KR5": "Eliminate friction in job seeker registration",
+  "O4·KR1": "Knowledge graph and predictive analytics for the broader workforce system",
+  "O4·KR2": "Causal evidence from enhanced wage outcomes (NJDOL, JFF/Ohio)",
+  "O4·KR3": "Hero metrics with ≥10 human stories published internally",
+  "O4·KR4": "Replicate WCG preliminary results in CO Thrives context",
 };
 
-const KR_GROUP_PREFIX: Record<string, string> = { D: "DATA", P: "PROD", Eng: "ENG" };
-
-// Converts internal identifier (e.g. "D·O1·KR1") to display label ("DATA-OBJ-1-KR1").
+// Converts internal identifier (e.g. "O1·KR3") to display label ("OBJ-1-KR3").
 export function krDisplayLabel(kr: string): string {
-  const [group, obj, krPart] = kr.split("·");
+  const [obj, krPart] = kr.split("·");
   const objNum = obj?.replace("O", "") ?? "";
-  return `${KR_GROUP_PREFIX[group] ?? group}-OBJ-${objNum}-${krPart ?? ""}`;
+  return `OBJ-${objNum}-${krPart ?? ""}`;
 }
 
-// Grouped structure for the override popover UI.
+// Grouped structure for the KR popover UI.
 export const KR_GROUPS: Array<{
   group: string;
   objectives: Array<{
@@ -67,26 +59,39 @@ export const KR_GROUPS: Array<{
   }>;
 }> = [
   {
-    group: "Data",
+    group: "Obj 01 · Reliable data & workflows",
     objectives: [
-      { label: "Obj 1 — Customer outcome standards", krs: ["D·O1·KR1", "D·O1·KR2", "D·O1·KR3"] },
-      { label: "Obj 2 — High learning rate data", krs: ["D·O2·KR1", "D·O2·KR2", "D·O2·KR3", "D·O2·KR4"] },
-      { label: "Obj 3 — Stable BI / recommenders / PIRL", krs: ["D·O3·KR1", "D·O3·KR2", "D·O3·KR3", "D·O3·KR4", "D·O3·KR5"] },
+      {
+        label: "Make data and workflows reliable to grow LX & Employment Services",
+        krs: ["O1·KR1", "O1·KR2", "O1·KR3", "O1·KR4", "O1·KR5", "O1·KR6", "O1·KR7", "O1·KR8", "O1·KR9"],
+      },
     ],
   },
   {
-    group: "Engineering",
+    group: "Obj 02 · Tools for intermediaries",
     objectives: [
-      { label: "Obj 1 — SOC2 / NIST / accessibility", krs: ["Eng·O1·KR1", "Eng·O1·KR2", "Eng·O1·KR3"] },
-      { label: "Obj 2 — WCG integration", krs: ["Eng·O2·KR1", "Eng·O2·KR2", "Eng·O2·KR3"] },
-      { label: "Obj 3 — Operational health", krs: ["Eng·O3·KR1", "Eng·O3·KR2", "Eng·O3·KR3"] },
+      {
+        label: "Decrease bureaucratic burden for regional and industry intermediaries",
+        krs: ["O2·KR1", "O2·KR2", "O2·KR3", "O2·KR4", "O2·KR5"],
+      },
     ],
   },
   {
-    group: "Product",
+    group: "Obj 03 · Talent experience",
     objectives: [
-      { label: "Obj 1 — MA go-live", krs: ["P·O1·KR1", "P·O1·KR2", "P·O1·KR3", "P·O1·KR4", "P·O1·KR5", "P·O1·KR6"] },
-      { label: "Obj 2 — Build team velocity", krs: ["P·O2·KR1", "P·O2·KR2", "P·O2·KR3"] },
+      {
+        label: "Transform the talent experience from 'matching' to 'moving'",
+        krs: ["O3·KR1", "O3·KR2", "O3·KR3", "O3·KR4", "O3·KR5"],
+      },
+    ],
+  },
+  {
+    group: "Obj 04 · Human impact",
+    objectives: [
+      {
+        label: "Show human impact with transition graph & outcomes storytelling",
+        krs: ["O4·KR1", "O4·KR2", "O4·KR3", "O4·KR4"],
+      },
     ],
   },
 ];
