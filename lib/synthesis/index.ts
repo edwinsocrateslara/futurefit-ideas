@@ -152,9 +152,11 @@ export async function runSynthesis(
   const allDocs = loadStrategyDocs();
   const { "futurefit-architecture-reference.md": archContent, ...strategyOnlyDocs } = allDocs;
   const strategyString = buildStrategyDocsString(strategyOnlyDocs);
-  const architectureString = archContent
-    ? buildStrategyDocsString({ "futurefit-architecture-reference.md": archContent })
-    : "";
+  // Architecture reference (~20K tokens) is excluded from the cron path to keep
+  // the prompt within Vercel's 300s ceiling. TASK 3 hard/soft disqualifier rules
+  // capture the key infrastructure constraints. Re-enable when synthesis moves off
+  // Vercel serverless (e.g. GitHub Actions or Inngest).
+  const architectureString = "";
 
   // Fetch last 4 weeks of patterns for lineage context
   const fourWeeksAgo = new Date(weekMonday);
