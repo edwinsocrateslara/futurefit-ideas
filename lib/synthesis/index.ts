@@ -18,6 +18,14 @@ const MODEL = "claude-sonnet-4-6";
 const TEMPERATURE = 0.3;
 const STRATEGY_DIR = join(process.cwd(), "strategy");
 
+// Curated boards are always included in full — items appear there because a human
+// deliberately added them. platform-feedback is high-volume; cap it by vote rank to
+// control prompt size as the pool grows.
+const PLATFORM_FEEDBACK_CAP = 100;
+
+const CLAUDE_MAX_RETRIES = 3;
+const CLAUDE_RETRY_DELAYS_MS = [5_000, 10_000]; // delay before attempt 2, then attempt 3
+
 
 function loadStrategyDocs(): Record<string, string> {
   const docs: Record<string, string> = {};
@@ -75,18 +83,41 @@ export async function runSynthesis(
 
   const weekMonday = new Date(weekOf + "T00:00:00Z");
 
-  const { data: weekIdeas, error: ideasError } = await supabase
+  // Resolve board IDs so we can split curated boards from platform-feedback
+  const { data: boardRows } = await supabase.from("boards").select("id, slug");
+  const boardIdBySlug = Object.fromEntries((boardRows ?? []).map((b) => [b.slug, b.id]));
+  const platformFeedbackId = boardIdBySlug["platform-feedback"];
+  const curatedBoardIds = ["customer-ideas", "market-ideas", "ux-inspiration"]
+    .map((slug) => boardIdBySlug[slug])
+    .filter(Boolean);
+
+  const sharedSelect = "canny_id, title, description, vote_count, board_id, created_at, boards(slug, name)";
+
+  // Curated boards: always include all items — they were deliberately added by humans
+  const { data: curatedIdeas, error: curatedError } = await supabase
     .from("ideas")
-    .select("canny_id, title, description, vote_count, board_id, created_at, boards(slug, name)")
+    .select(sharedSelect)
     .is("removed_at", null)
-    // Pinned items are excluded from synthesis — team has already committed to them.
-    // Deferred (marked_done) items intentionally stay in the pool so synthesis can re-argue them —
-    // and the reset below clears marked_done each cycle so re-argued items resurface on the dashboard.
-    // Defer is per-cycle.
     .is("pinned_at", null)
+    .in("board_id", curatedBoardIds)
     .order("vote_count", { ascending: false });
 
-  if (ideasError) throw new Error(`Failed to fetch ideas: ${ideasError.message}`);
+  if (curatedError) throw new Error(`Failed to fetch curated ideas: ${curatedError.message}`);
+
+  // platform-feedback: high-volume board — cap at top N by vote count to control prompt size
+  const { data: platformIdeas, error: platformError } = await supabase
+    .from("ideas")
+    .select(sharedSelect)
+    .is("removed_at", null)
+    .is("pinned_at", null)
+    .eq("board_id", platformFeedbackId)
+    .order("vote_count", { ascending: false })
+    .limit(PLATFORM_FEEDBACK_CAP);
+
+  if (platformError) throw new Error(`Failed to fetch platform-feedback ideas: ${platformError.message}`);
+
+  const weekIdeas = [...(curatedIdeas ?? []), ...(platformIdeas ?? [])];
+  const ideasError = null; // kept for downstream compat check below
 
   if (!weekIdeas || weekIdeas.length === 0) {
     throw new Error(`No ideas found. Cannot run synthesis.`);
@@ -165,24 +196,45 @@ export async function runSynthesis(
   const systemMessage = buildSystemMessage();
   const userMessage = buildUserMessage(boardGroups, strategyString, weekOf, previousPatterns, overrideSignals, architectureString);
 
-  // Call Claude
-  let rawOutput: string;
-  try {
-    const message = await client.messages.create({
-      model: MODEL,
-      max_tokens: 16000,
-      temperature: TEMPERATURE,
-      system: systemMessage,
-      messages: [{ role: "user", content: userMessage }],
-    });
+  console.log(`[synthesis] Pool: ${totalItems} items (${curatedIdeas?.length ?? 0} curated, ${platformIdeas?.length ?? 0} platform-feedback)`);
 
-    const block = message.content[0];
-    if (block.type !== "text") {
-      throw new Error("Claude returned a non-text response block");
+  // Call Claude — retry on 429/529 (overloaded), log and re-throw on other errors
+  let rawOutput: string | null = null;
+  let claudeError: Error | null = null;
+
+  for (let attempt = 0; attempt < CLAUDE_MAX_RETRIES; attempt++) {
+    if (attempt > 0) {
+      const delay = CLAUDE_RETRY_DELAYS_MS[attempt - 1] ?? 10_000;
+      console.log(`[synthesis] Claude attempt ${attempt + 1}/${CLAUDE_MAX_RETRIES} — waiting ${delay}ms (${claudeError?.message})`);
+      await new Promise((r) => setTimeout(r, delay));
     }
-    rawOutput = block.text;
-  } catch (err) {
-    const error = err instanceof Error ? err.message : String(err);
+
+    try {
+      const message = await client.messages.create({
+        model: MODEL,
+        max_tokens: 16000,
+        temperature: TEMPERATURE,
+        // Cache the system message — it is constant across all synthesis runs.
+        // Saves re-tokenizing ~2K tokens on retries within the 5-min cache TTL.
+        system: [{ type: "text", text: systemMessage, cache_control: { type: "ephemeral" } }],
+        messages: [{ role: "user", content: userMessage }],
+      });
+
+      const block = message.content[0];
+      if (block.type !== "text") throw new Error("Claude returned a non-text response block");
+      rawOutput = block.text;
+      claudeError = null;
+      break;
+    } catch (err) {
+      const status = (err as { status?: number })?.status;
+      claudeError = err instanceof Error ? err : new Error(String(err));
+      if (status === 529 || status === 429) continue; // retryable — overloaded
+      break; // non-retryable
+    }
+  }
+
+  if (!rawOutput) {
+    const error = claudeError?.message ?? "Unknown error after retries";
     await supabase.from("prompt_runs").insert({
       sync_run_id: syncRunId,
       prompt_version: PROMPT_VERSION,

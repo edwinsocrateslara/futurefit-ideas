@@ -11,6 +11,10 @@
     {
       "path": "/api/cron/jira-sync",
       "schedule": "0 11 * * *"
+    },
+    {
+      "path": "/api/cron/synthesize-check",
+      "schedule": "0 14 * * 2"
     }
   ]
 }
