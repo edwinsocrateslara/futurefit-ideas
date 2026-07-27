@@ -2,7 +2,8 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { runSynthesis } from "@/lib/synthesis";
 
-export const maxDuration = 300;
+// Matches /api/cron/synthesize — this route runs the same synthesis on catchup.
+export const maxDuration = 800;
 export const dynamic = "force-dynamic";
 
 function getWeekMonday(date: Date): string {

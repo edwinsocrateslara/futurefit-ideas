@@ -2,7 +2,10 @@ import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/server";
 import { runSynthesis } from "@/lib/synthesis";
 
-export const maxDuration = 300;
+// 800s is the generally-available Pro ceiling (the 300s we were using is only
+// the account default). Observed synthesis duration is ~285-590s, so 300s left
+// no reliable margin — the 2026-07-27 run was killed mid-Claude-call.
+export const maxDuration = 800;
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
